@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_spectacular",
     "rest_framework",
+    "rest_framework.authtoken",
     "apps.common",
     "apps.accounts",
     "apps.organizations",

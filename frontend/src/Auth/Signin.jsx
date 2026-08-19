@@ -1,40 +1,25 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { Fragment, useState } from "react";
 import { Col, Form, FormGroup, Input, Label, Row } from "reactstrap";
 import { Btn, H4, P } from "../AbstractElements";
 import { EmailAddress, ForgotPassword, Password, RememberPassword } from "../Constant";
 import { toast } from "react-toastify";
-import man from "/assets/images/dashboard/1.png";
+import { useNavigate } from "react-router-dom";
+import { useLoginMutation } from "../Services/mutations";
 import SocialAuth from "./Tabs/LoginTab/SocialAuth";
 
 const Login = ({ selected }) => {
-  const [email, setEmail] = useState("test@gmail.com");
-  const [password, setPassword] = useState("test123");
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("admin@dwella.local");
+  const [password, setPassword] = useState("admin12345");
   const [togglePassword, setTogglePassword] = useState(false);
-
-  const [value, setValue] = useState(localStorage.getItem("profileURL" || man));
-  const [name, setName] = useState(localStorage.getItem("Name"));
-
-  useEffect(() => {
-    localStorage.setItem("profileURL", value);
-    localStorage.setItem("Name", name);
-  }, [value, name]);
+  const loginMutation = useLoginMutation({
+    onSuccess: () => navigate("/dashboard", { replace: true }),
+    onError: (error) => toast.error(error.message || "Login failed"),
+  });
 
   const loginAuth = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setValue(man);
-    setName("Emay Walter");
-    setEmail("test@gmail.com");
-    setPassword("test123");
-    if (email === "test@gmail.com" && password === "test123") {
-      localStorage.setItem("login", true);
-      window.location.href = `/pages/sample-page`;
-      setLoading(false);
-    } else {
-      toast.error("Incorrect Password or Username!");
-      setLoading(false);
-    }
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -45,15 +30,15 @@ const Login = ({ selected }) => {
             <div className="login-card">
               <div className="login-main login-tab">
                 <Form className="theme-form">
-                  <H4>Sign </H4>
-                  <P>{"Enter your email & password to login"}</P>
+                  <H4>Dwella Suite</H4>
+                  <P>{"Sign in to manage properties, tenants, billing, and maintenance."}</P>
                   <FormGroup>
                     <Label className="col-form-label">{EmailAddress}</Label>
-                    <Input className="form-control" type="email" required="" onChange={(e) => setEmail(e.target.value)} defaultValue={email} />
+                    <Input className="form-control" type="email" required="" onChange={(e) => setEmail(e.target.value)} value={email} />
                   </FormGroup>
                   <FormGroup className="position-relative">
                     <Label className="col-form-label">{Password}</Label>
-                    <Input className="form-control" type={togglePassword ? "text" : "password"} onChange={(e) => setPassword(e.target.value)} defaultValue={password} required="" />
+                    <Input className="form-control" type={togglePassword ? "text" : "password"} onChange={(e) => setPassword(e.target.value)} value={password} required="" />
                     <div className="show-hide" onClick={() => setTogglePassword(!togglePassword)}>
                       <span className={togglePassword ? "" : "show"}></span>
                     </div>
@@ -68,9 +53,10 @@ const Login = ({ selected }) => {
                     <a className="link" href="#javascript">
                       {ForgotPassword}
                     </a>
-                    <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: loading ? loading : loading, onClick: (e) => loginAuth(e) }}>Login</Btn>
+                    <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: loginMutation.isPending, onClick: (e) => loginAuth(e) }}>
+                      {loginMutation.isPending ? "Signing in..." : "Login"}
+                    </Btn>
                   </div>
-                  <SocialAuth />
                 </Form>
               </div>
             </div>

@@ -27,7 +27,7 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+    headers.set("Authorization", `Token ${token}`);
   }
 
   const response = await fetch(`${getApiBaseUrl()}/${path.replace(/^\//, "")}`, {

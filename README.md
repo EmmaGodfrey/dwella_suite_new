@@ -50,7 +50,15 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py bootstrap_demo
 python manage.py runserver
+```
+
+Demo login after `bootstrap_demo`:
+
+```text
+admin@dwella.local
+admin12345
 ```
 
 Frontend:
