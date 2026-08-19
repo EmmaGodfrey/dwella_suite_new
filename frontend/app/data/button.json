@@ -1,0 +1,234 @@
+{
+  "button": [
+    {
+      "classes": "btn-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-danger",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-light",
+      "title": "Light Button"
+    }
+  ],
+  "color": [
+    {
+      "classes": "btn-outline-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-outline-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-outline-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-outline-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-outline-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-outline-danger",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-outline-light txt-dark",
+      "title": "Light Button"
+    }
+  ],
+  "outline": [
+    {
+      "classes": "btn-outline-primary-2x",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-outline-secondary-2x",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-outline-success-2x",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-outline-info-2x",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-outline-warning-2x",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-outline-danger-2x",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-outline-light-2x txt-dark",
+      "title": "Light Button"
+    }
+  ],
+  "gradien": [
+    {
+      "classes": "btn-primary-gradien",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-secondary-gradien",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-success-gradien",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-info-gradien",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-warning-gradien",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-danger-gradien",
+      "title": "Danger Button"
+    }
+  ],
+  "raised": [
+    {
+      "classes": "btn-primary btn-air-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-secondary btn-air-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-success btn-air-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-info btn-air-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-warning btn-air-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-danger btn-air-danger",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-light btn-air-light",
+      "title": "Light Button"
+    }
+  ],
+  "color1": [
+    {
+      "classes": "btn-outline-primary btn-air-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-outline-secondary btn-air-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-outline-success btn-air-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-outline-info btn-air-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-outline-warning btn-air-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-outline-danger btn-air-danger",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-outline-light btn-air-light txt-dark",
+      "title": "Light Button"
+    }
+  ],
+  "outline1": [
+    {
+      "classes": "btn-outline-primary-2x btn-air-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-outline-secondary-2x btn-air-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-outline-success-2x btn-air-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-outline-info-2x btn-air-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-outline-warning-2x btn-air-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-outline-danger-2x btn-air-danger",
+      "title": "Danger Button"
+    },
+    {
+      "classes": "btn-outline-light-2x btn-air-light txt-dark",
+      "title": "Light Button"
+    }
+  ],
+  "gradien1": [
+    {
+      "classes": "btn-primary-gradien btn-air-primary",
+      "title": "Primary Button"
+    },
+    {
+      "classes": "btn-secondary-gradien btn-air-secondary",
+      "title": "Secondary Button"
+    },
+    {
+      "classes": "btn-success-gradien btn-air-success",
+      "title": "Success Button"
+    },
+    {
+      "classes": "btn-info-gradien btn-air-info",
+      "title": "Info Button"
+    },
+    {
+      "classes": "btn-warning-gradien btn-air-warning",
+      "title": "Warning Button"
+    },
+    {
+      "classes": "btn-danger-gradien btn-air-danger",
+      "title": "Danger Button"
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+{
+  "data": [
+    {
+      "icon": "lucide:briefcase",
+      "title": "UX desginer at Pixelstrap",
+      "desc": "banglore - 2022"
+    },
+    {
+      "icon": "ph:book-bold",
+      "title": "studied computer science",
+      "desc": "at london univercity - 2015"
+    },
+    {
+      "icon": "ic:baseline-favorite-border",
+      "title": "relationship status",
+      "desc": "single"
+    },
+    {
+      "icon": "ph:map-pin-bold",
+      "title": "lived in london",
+      "desc": "last 5 year"
+    },
+    {
+      "icon": "tabler:droplet",
+      "title": "blood group",
+      "desc": "O+ positive"
+    }
+  ],
+  "follower": [
+    {
+      "img": "/images/user/2.png",
+      "name": "Bucky Barnes",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/3.png",
+      "name": "Sarah Loren",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/3.jpg",
+      "name": "Jason Borne",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/10.jpg",
+      "name": "Comeren Diaz",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/11.jpg",
+      "name": "Andew Jo",
+      "frd": "Add Friend"
+    }
+  ],
+  "following": [
+    {
+      "img": "/images/user/3.png",
+      "name": "Sarah Loren",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/2.png",
+      "name": "Bucky Barnes",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/10.jpg",
+      "name": "Comeren Diaz",
+      "frd": "Add Friend"
+    },
+    {
+      "img": "/images/user/3.jpg",
+      "name": "Jason Borne",
+      "frd": "Add Friend"
+    },
+
+    {
+      "img": "/images/user/11.jpg",
+      "name": "Andew Jo",
+      "frd": "Add Friend"
+    }
+  ],
+  "latest": [
+    {
+      "img": "social-app/post-1.png"
+    },
+    {
+      "img": "social-app/post-2.png"
+    },
+    {
+      "img": "social-app/post-3.png"
+    },
+    {
+      "img": "social-app/post-4.png"
+    },
+    {
+      "img": "social-app/post-5.png"
+    },
+    {
+      "img": "social-app/post-6.png"
+    },
+    {
+      "img": "social-app/post-7.png"
+    },
+    {
+      "img": "social-app/post-8.png"
+    }
+  ],
+  "friend": [
+    {
+      "img": "user/3.jpg"
+    },
+    {
+      "img": "user/5.png"
+    },
+    {
+      "img": "user/1.jpg"
+    },
+    {
+      "img": "user/2.png"
+    },
+    {
+      "img": "user/3.png"
+    },
+    {
+      "img": "user/6.jpg"
+    },
+    {
+      "img": "user/10.jpg"
+    },
+    {
+      "img": "user/14.png"
+    },
+    {
+      "img": "user/1.jpg"
+    },
+    {
+      "img": "user/4.jpg"
+    },
+    {
+      "img": "user/11.jpg"
+    },
+    {
+      "img": "user/8.png"
+    }
+  ],
+  "data1": [
+    {
+      "img": "user-card/1.jpg",
+      "img1": "avtar/3.jpg",
+      "name": "Mark Jecno",
+      "title": "Manager",
+      "follower": "9564",
+      "following": "49",
+      "total": "96"
+    },
+    {
+      "img": "user-card/2.jpg",
+      "img1": "avtar/16.jpg",
+      "name": "Johan Deo",
+      "title": "Designer",
+      "follower": "2578",
+      "following": "26",
+      "total": "96"
+    },
+    {
+      "img": "user-card/3.jpg",
+      "img1": "avtar/11.jpg",
+      "name": "Dev John",
+      "title": "Devloper",
+      "follower": "6545",
+      "following": "91",
+      "total": "21"
+    },
+    {
+      "img": "user-card/7.jpg",
+      "img1": "avtar/16.jpg",
+      "name": "Johan Deo",
+      "title": "Designer",
+      "follower": "2578",
+      "following": "26",
+      "total": "96"
+    },
+    {
+      "img": "user-card/5.jpg",
+      "img1": "avtar/11.jpg",
+      "name": "Dev John",
+      "title": "Devloper",
+      "follower": "6545",
+      "following": "91",
+      "total": "21"
+    },
+    {
+      "img": "user-card/6.jpg",
+      "img1": "avtar/3.jpg",
+      "name": "Mark Jecno",
+      "title": "Manager",
+      "follower": "9564",
+      "following": "49",
+      "total": "96"
+    }
+  ]
+}

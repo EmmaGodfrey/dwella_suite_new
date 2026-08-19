@@ -1,0 +1,33 @@
+<template>
+  <div class="col-sm-12 col-xl-6">
+    <div class="card">
+      <div class="card-header pb-0">
+        <h5 class="card-title">vertical Touchspin</h5>
+        <span>Add <code>.touchspin-vertical</code> class for vertical touchspin input group.</span>
+      </div>
+      <div class="card-body">
+        <fieldset>
+          <div class="touchspin-vertical-tab">
+            <div class="input-group bootstrap-touchspin">
+              <input class="touchspin-vertical form-control" type="text" v-model="num2" />
+              <span class="input-group-btn-vertical">
+                <button type="button" class="btn btn-primary btn-square bootstrap-touchspin-down" @click="num2--"><i class="fa fa-angle-up"></i></button>
+                <button type="button" class="btn btn-primary btn-square bootstrap-touchspin-down" @click="num2++"><i class="fa fa-angle-down"></i></button>
+              </span>
+            </div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+</template>
+<script lang="ts" setup>
+const num2 = ref<number>(55);
+watch(num2, newValue => {
+  if (newValue >= 100) {
+    num2.value = 100;
+  } else if (newValue <= 0) {
+    num2.value = 0;
+  }
+});
+</script>

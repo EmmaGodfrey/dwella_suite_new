@@ -1,0 +1,76 @@
+{
+  "details": [
+    {
+      "imge": "blog/blog-5.jpg",
+      "title": "Dressing is a way of life.",
+      "desc": "A huge part of it is the incomparable beauty you can encounter every day.People just don't do it anymore profound.",
+      "comment": "8",
+      "like": "9"
+    },
+    {
+      "imge": "blog/blog-6.jpg",
+      "title": "Encounter every day.",
+      "desc": "People just don't do it anymore. We have to change that. Sometimes the simplest things are the most profound.",
+      "comment": "9",
+      "like": "1"
+    },
+    {
+      "imge": "blog/blog-5.jpg",
+      "title": "Black color is important.",
+      "desc": "A huge part of it is the incomparable beauty you can encounter every day.People just anymore profound.",
+      "comment": "8",
+      "like": "4"
+    },
+    {
+      "imge": "blog/blog-6.jpg",
+      "title": "Encounter every day.",
+      "desc": "People just don't do it anymore. We have to change that. Sometimes the simplest things are the most profound.",
+      "comment": "6",
+      "like": "4"
+    }
+  ],
+  "list": [
+    {
+      "title": "Encounter every day.",
+      "date": "02",
+      "month": "January 2023",
+      "hits": "12",
+      "img": "blog/blog-2.jpg",
+      "desc": "A huge part of it is the incomparable beauty you can encounter every day."
+    },
+    {
+      "title": "Black color is important.",
+      "date": "03",
+      "month": "January 2023",
+      "hits": "5",
+      "img": "blog/blog-3.jpg",
+      "desc": "We have to change that. Sometimes the simplest things are the most profound. People just don't do it anymore. "
+    }
+  ],
+  "single": [
+    {
+      "imge": "blog/4.jpg",
+      "name": "Jhon Quil",
+      "dep": "Developer",
+      "hits": "06",
+      "comments": "158",
+      "desc": "There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn't anything embarrassing hidden in the middle of text."
+    },
+    {
+      "imge": "blog/12.png",
+      "name": "Mark Ateer",
+      "dep": "Designer",
+      "hits": "08",
+      "comments": "418",
+      "desc": "From the east coast to the west, each river has its own beauty and character. Each river has its own story. There are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn't anything embarrassing hidden in the middle of text."
+    },
+    {
+      "imge": "blog/14.png",
+      "name": "Greg Arias",
+      "dep": "Developer",
+      "hits": "02",
+      "comments": "428",
+      "desc": "Harpeth rises in the westernmost part of Rutherford County, just to the east of the community of College Grove in eastern Williamson County.but the majority have suffered alteration in some form, by injected humour, or randomised words which don't look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn't anything embarrassing hidden in the middle of text."
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  // https://nuxt.com/docs/guide/concepts/typescript
+  "extends": "./.nuxt/tsconfig.json",
+  "include": ["env.d.ts", ".nuxt/nuxt.d.ts", "**/*", "types/**/*.d.ts", "nuxt.config.ts", "app.vue", "**/*.vue", ".nuxt/**/*.d.ts", "app/**/*.d.ts"],
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "types": ["vue"],
+    "module": "ESNext",
+    "target": "ESNext",
+    "allowJs": true,
+    "jsx": "preserve",
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "useUnknownInCatchVariables": false,
+    "verbatimModuleSyntax": false,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./app/*"],
+      "@/*": ["./app/*"],
+      "#app": ["./.nuxt"],
+      "#imports": ["./.nuxt"],
+      "@/assets/*": ["./app/assets/*"],
+      "#components/*": ["./.nuxt/components/*"]
+    }
+  }
+}

@@ -1,0 +1,313 @@
+/**=====================
+    26. Form CSS Start
+==========================**/
+.height-35 {
+  height: 35px !important;
+}
+label {
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.form-control,
+.form-select {
+  background-color: $white;
+  font-size: 14px;
+  border-color: $light-gray;
+  color: $light-font;
+  &:focus {
+    border-color: $light-gray;
+    background-color: $white;
+    box-shadow: 0 0 0 0.2rem rgba(171, 140, 228, 0.05);
+  }
+}
+.theme-form {
+  .form-control {
+    :focus {
+      box-shadow: 0 0 0 0.2rem rgba(171, 140, 228, 0.05);
+    }
+  }
+  &.sm-form {
+    .form-group {
+      margin-bottom: $sm-form-margin-bottom;
+    }
+  }
+  .form-group {
+    margin-bottom: $form-group-margin-bottom;
+    textarea {
+      border-color: $form-input-border-color;
+      &::-webkit-input-placeholder {
+        color: $form-placeholder-color;
+        font-size: $form-placeholder-font-size;
+        letter-spacing: $form-placeholder-letter-spacing;
+        font-weight: $form-placeholder-font-weight;
+      }
+    }
+    input[type='text'],
+    input[type='email'],
+    input[type='search'],
+    input[type='password'],
+    input[type='number'],
+    input[type='tel'],
+    input[type='date'],
+    input[type='datetime-local'],
+    input[type='time'],
+    input[type='datetime-local'],
+    input[type='month'],
+    input[type='week'],
+    input[type='url'],
+    input[type='file'],
+    select {
+      border-color: $light-gray;
+      // background-color: $form-input-bg-color;
+      font-size: $form-placeholder-font-size;
+      color: $form-placeholder-color;
+      &::-webkit-input-placeholder {
+        color: $form-placeholder-color;
+        font-size: $form-placeholder-font-size;
+        letter-spacing: $form-placeholder-letter-spacing;
+        font-weight: $form-placeholder-font-weight;
+      }
+    }
+    select.form-control:not([size]):not([multiple]) {
+      border-color: $form-input-border-color;
+      font-size: $form-placeholder-font-size;
+    }
+  }
+  .checkbox {
+    label {
+      padding-left: 10px;
+    }
+  }
+  .form-divider {
+    position: relative;
+    clear: both;
+    height: 0;
+    margin: 30px 0;
+    border-top: 1px solid $light-semi-gray;
+    &:before {
+      position: absolute;
+      top: -11px;
+      left: 40%;
+      margin-left: -10px;
+      padding: 0 5px;
+      content: 'Or Signup With';
+      color: $theme-font-color;
+      background: $white;
+    }
+  }
+  .login-divider {
+    position: relative;
+    clear: both;
+    height: 0;
+    margin: 30px 0;
+    border-top: 1px solid $light-semi-gray;
+    &:before {
+      position: absolute;
+      top: -11px;
+      left: 40%;
+      margin-left: -10px;
+      padding: 0 5px;
+      color: $theme-font-color;
+      background: $white;
+      content: 'Or Login With';
+    }
+  }
+  .dropzone-clickable {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-fb {
+    background-color: $fb;
+    color: $white;
+    width: 100%;
+    &:active {
+      background-color: $fb;
+      color: $white;
+    }
+  }
+  .btn-twitter {
+    background-color: $twitter;
+    color: $white;
+    width: 100%;
+    &:active {
+      background-color: $twitter;
+      color: $white;
+    }
+  }
+  .btn-google {
+    background-color: $google-plus;
+    color: $white;
+    width: 100%;
+    &:active {
+      background-color: $google-plus;
+      color: $white;
+    }
+  }
+}
+.form-control.is-invalid,
+.was-validated .form-control:invalid {
+  border: 1px solid $light-gray;
+}
+.form-control.is-invalid:focus,
+.was-validated .form-control:invalid:focus {
+  box-shadow: none;
+  border-color: $light-gray;
+}
+.form-inline {
+  display: -webkit-inline-box;
+  .form-group {
+    margin-right: 15px;
+    .col-form-label {
+      margin-right: 5px;
+    }
+  }
+}
+.input-group {
+  span {
+    &.input-group-text {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-top-right-radius: unset;
+      border-bottom-right-radius: unset;
+    }
+  }
+}
+.search-form {
+  .form-group {
+    &:before {
+      position: absolute;
+      content: '';
+      width: 1px;
+      height: 25px;
+      background: #e8ebf2;
+      left: 82px;
+      top: 50px;
+    }
+    &:after {
+      position: absolute;
+      content: '\f002';
+      font-family: FontAwesome;
+      top: 50px;
+      left: 53px;
+      color: #8e8e8e;
+    }
+  }
+  input {
+    border: 1px solid $light-gray;
+    padding: 10px 10px 10px 70px;
+    border-radius: 50px;
+  }
+}
+.form-wizard-vue .fw-body-list li .fw-list-wrapper-icon {
+  background: linear-gradient(90deg, var(--theme-default) 0%, var(--theme-default) 100%) !important;
+  color: $white !important;
+}
+.form-wizard-vue .fw-body-list .fw-list-progress-active {
+  background: linear-gradient(90deg, var(--theme-default) -3.12%, var(--theme-default) 48.22%, var(--theme-default) 105.52%) !important;
+}
+.fw-btn {
+  background: linear-gradient(90deg, var(--theme-default) 0%, var(--theme-default) 100%) !important;
+}
+.form-wizard-vue .fw-step-checked {
+  border: 2px solid var(--theme-default) !important;
+}
+.form-label-align-right {
+  label {
+    text-align: right;
+    padding-top: 17px;
+    font-weight: 500;
+  }
+}
+.custom-file-label {
+  line-height: 1.8;
+  &::after {
+    line-height: 1.8;
+  }
+}
+.input-group-text {
+  border-color: $light-gray;
+  font-weight: 500;
+}
+
+.dropdown-menu {
+  border: 1px solid $light-gray;
+}
+.animated-modal {
+  .form-select {
+    display: inline-block;
+    width: auto;
+    vertical-align: middle;
+  }
+}
+
+.wizard-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.wizard-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.wizard-tab:hover {
+  background: #e0e0e0;
+}
+.wizard-tab.active {
+  background: var(--theme-default);
+  color: white;
+  border-color: var(--theme-default);
+}
+.step-number {
+  font-weight: bold;
+}
+.wizard-step {
+  margin-bottom: 1rem;
+}
+
+.btn-back {
+  gap: 0.5rem;
+  border: 1px dashed #d2d2d2;
+  color: #1c2d3a;
+  background: transparent;
+  -webkit-transition: all 0.5s ease;
+  transition: all 0.5s ease;
+  position: relative;
+  padding: 9px 30px 8px;
+}
+.btn-back:hover {
+  border: 1px dashed #d2d2d2;
+  border-color: var(--theme-default);
+  color: var(--theme-default);
+}
+.btn-next {
+  color: #ffffff;
+  background: var(--theme-default);
+}
+.btn-next:hover {
+  color: #ffffff;
+  background: var(--theme-default);
+}
+.btn-submit {
+  color: #ffffff;
+  background: var(--theme-default);
+}
+.btn-submit:hover {
+  color: #ffffff;
+  background: var(--theme-default);
+}
+/**=====================
+    26. Form CSS Ends
+==========================**/

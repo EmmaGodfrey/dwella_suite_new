@@ -1,0 +1,116 @@
+<template>
+  <div class="col-sm-12 box-col-12 col-xl-12 col-xxl-6">
+    <div class="card height-equal">
+      <div class="card-header pb-0">
+        <h5>Vertical Style</h5>
+        <span>For Create inline megaoption add <code>.mega-vertical</code> class in form tag</span>
+      </div>
+      <div class="card-body">
+        <form class="mega-vertical">
+          <div class="row">
+            <div class="col-sm-12">
+              <p class="mega-title m-b-5">Delivery Option</p>
+            </div>
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="media p-20">
+                  <div class="radio radio-primary me-3">
+                    <input id="radio23" type="radio" name="radio1" value="1" />
+                    <label for="radio23"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">COD<span class="badge badge-primary pull-right digits">50 INR</span></h6>
+                    <p>Estimated 10 to 15 Day Shipping (Duties end tax may be due delivery )</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="media p-20">
+                  <div class="radio radio-secondary me-3">
+                    <input id="radio24" type="radio" name="radio1" value="2" />
+                    <label for="radio24"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">Fast <span class="badge badge-secondary pull-right digits">100 INR</span></h6>
+                    <p>Estimated 10 to 12 Day Shipping (Duties end tax may be due delivery )</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="media p-20">
+                  <div class="radio radio-success me-3">
+                    <input id="radio25" type="radio" name="radio1" value="3" />
+                    <label for="radio25"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">Standard <span class="badge badge-success pull-right digits">80 INR</span></h6>
+                    <p>Estimated 3 to 5 Day Shipping (Duties end tax may be due delivery )</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card">
+                <div class="media p-20">
+                  <div class="radio radio-info me-3">
+                    <input id="radio5" type="radio" name="radio1" value="4" />
+                    <label for="radio5"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">Local <span class="badge badge-info pull-right digits">Free</span></h6>
+                    <p>Estimated 3 to 5 Day Shipping (Duties end taxes may be due upon delivery )</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-12">
+              <p class="mega-title m-b-5">Buying Option</p>
+            </div>
+            <div class="col-sm-6">
+              <div class="card mb-0">
+                <div class="media p-20">
+                  <div class="radio radio-warning me-3">
+                    <input id="radio26" type="radio" name="radio1" value="5" />
+                    <label for="radio26"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">XYZ Seller<span class="badge badge-warning pull-right digits">250 INR</span></h6>
+                    <p class="rating-star-wrapper">
+                      <i class="icofont icofont-star txt-warning"></i><i class="icofont icofont-star txt-warning"></i><i class="icofont icofont-star txt-warning"></i
+                      ><i class="icofont icofont-star txt-warning"></i><i class="icofont icofont-star txt-warning m-r-5"></i>5 start rating
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="card mb-0">
+                <div class="media p-20">
+                  <div class="radio radio-danger me-3">
+                    <input id="radio27" type="radio" name="radio1" value="6" />
+                    <label for="radio27"></label>
+                  </div>
+                  <div class="media-body">
+                    <h6 class="mt-0 mega-title-badge">ABC Seller<span class="badge badge-danger pull-right digits">150 INR</span></h6>
+                    <p class="rating-star-wrapper">
+                      <i class="icofont icofont-star txt-warning"></i><i class="icofont icofont-star"></i><i class="icofont icofont-star"></i><i class="icofont icofont-star"></i
+                      ><i class="icofont icofont-star m-r-5"></i>1 start rating
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-end">
+        <button class="btn btn-primary m-r-15" type="submit">Submit</button>
+        <button class="btn btn-light" type="submit">Cancel</button>
+      </div>
+    </div>
+  </div>
+</template>

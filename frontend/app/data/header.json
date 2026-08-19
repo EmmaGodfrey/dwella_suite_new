@@ -1,0 +1,74 @@
+{
+  "notification": [
+    {
+      "title": "Delivery processing",
+      "time": "10 minutes ago",
+      "icon": "humbleicons:activity",
+      "class": "noti-primary",
+      "span": "bg-light-primary"
+    },
+    {
+      "title": "Order Complete",
+      "time": "1 hour ago",
+      "icon": "lucide:check-circle",
+      "class": "noti-secondary",
+      "span": "bg-light-secondary"
+    },
+    {
+      "title": "Tickets Generated",
+      "time": "3 hour ago",
+      "icon": "ph:file-text-bold",
+      "class": "noti-success",
+      "span": "bg-light-success"
+    },
+    {
+      "title": "Delivery Complete",
+      "time": "6 hour ago",
+      "icon": "lucide:user-check",
+      "class": "noti-danger",
+      "span": " bg-light-danger"
+    }
+  ],
+  "chat": [
+    {
+      "img": "/images/user/4.jpg",
+      "name": "Ain Chavez",
+      "about": "What's the project report update?",
+      "time": "32 mins ago"
+    },
+    {
+      "img": "/images/user/1.jpg",
+      "name": "Erica Hughes",
+      "about": "Send me project code...",
+      "time": "58 mins ago"
+    },
+    {
+      "img": "/images/user/2.jpg",
+      "name": "Kori Thomas",
+      "about": "Check your report update...",
+      "time": "1 hr ago"
+    }
+  ],
+  "bread": [
+    {
+      "icon": "ic:baseline-favorite-border",
+      "path": "/app/bookmark",
+      "tooltip": "Bookmark"
+    },
+    {
+      "icon": "lucide:message-square",
+      "path": "/app/chat",
+      "tooltip": "Chat"
+    },
+    {
+      "icon": "material-symbols:keyboard-command-key",
+      "path": "/icons/flag",
+      "tooltip": "Icons"
+    },
+    {
+      "icon": "lucide:layers",
+      "path": "/learning/list",
+      "tooltip": "Learning"
+    }
+  ]
+}

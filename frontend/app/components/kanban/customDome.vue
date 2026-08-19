@@ -1,0 +1,111 @@
+<template>
+  <div class="col-12 colorfull-kanban">
+    <div class="card">
+      <div class="card-header pb-0">
+        <h4>Custom Board</h4>
+        <p class="mb-0">| colors, gutter, click on board&apos;s item and restricting which boards to drag items to</p>
+      </div>
+      <div class="card-body kanban-block">
+        <div id="demo2">
+          <div class="kanban-container">
+            <div
+              data-id="_todo"
+              v-for="(board, index) in dropZones"
+              :key="index"
+              data-order="1"
+              @drop="onDrop($event, index)"
+              @dragover.prevent
+              @dragenter.prevent
+              class="kanban-board col-xxl-4 col-md-12"
+              style="width: 400px; margin-left: 15px; margin-right: 15px"
+            >
+              <header class="kanban-board-header" :class="board.bg">
+                <div class="kanban-title-board">{{ board.title }}</div>
+              </header>
+              <main class="kanban-drag">
+                <div class="kanban-item is-moving" v-for="item in list(index)" :key="item.title" draggable="true" @dragstart="startDrag($event, item)">
+                  <a class="kanban-box" href="#" draggable="false"
+                    ><span class="date">{{ item.date }}</span
+                    ><span class="badge f-right" :class="item.badge">{{ item.priority }}</span>
+                    <h6>{{ item.title }}</h6>
+                    <div class="d-flex align-items-start">
+                      <img class="img-20 me-1 rounded-circle" :src="'/images/user/3.jpg'" alt="" data-original-title="" title="" />
+                      <div class="flex-grow-1">
+                        <p>{{ item.place }}</p>
+                      </div>
+                    </div>
+                    <div class="d-flex mt-3">
+                      <ul class="list">
+                        <li><i class="fa fa-comments-o"></i>2</li>
+                        <li><i class="fa fa-paperclip"></i>2</li>
+                        <li><i class="fa fa-eye"></i></li>
+                      </ul>
+                      <div class="customers">
+                        <ul>
+                          <li class="d-inline-block me-3">
+                            <p class="f-12">+5</p>
+                          </li>
+                          <li class="d-inline-block">
+                            <img class="img-20 rounded-circle" :src="'/images/user/3.jpg'" alt="" data-original-title="" title="" />
+                          </li>
+                          <li class="d-inline-block">
+                            <img class="img-20 rounded-circle" :src="'/images/user/1.jpg'" alt="" data-original-title="" title="" />
+                          </li>
+                          <li class="d-inline-block">
+                            <img class="img-20 rounded-circle" :src="'/images/user/5.png'" alt="" data-original-title="" title="" />
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              </main>
+              <footer></footer>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+<script lang="ts" setup>
+import { useKanbanStore } from '~/store/kanban';
+
+interface DropZone {
+  title: string;
+  id: number;
+  bg: string;
+}
+export interface KanbanItem {
+  id: number;
+  list: number;
+  title?: string;
+}
+const dropZones = ref<DropZone[]>([
+  { title: 'To Do (Item only in Working)', id: 0, bg: 'bg-info' },
+  { title: 'Working', id: 1, bg: 'bg-warning' },
+  { title: 'Done (Item only in Working)', id: 3, bg: 'bg-success' },
+]);
+const store = useKanbanStore();
+const { custom } = storeToRefs(store);
+
+const kanbanlist = custom.value;
+
+function list(index: number) {
+  return kanbanlist.filter(kanbanlist => kanbanlist.list === index);
+}
+function startDrag(evt: DragEvent, item: KanbanItem) {
+  if (!evt.dataTransfer) return;
+  evt.dataTransfer.dropEffect = 'move';
+  evt.dataTransfer.effectAllowed = 'move';
+  evt.dataTransfer.setData('itemID', item.id.toString());
+}
+function onDrop(evt: DragEvent, list: number) {
+  if (!evt.dataTransfer) return;
+  const itemID = evt.dataTransfer.getData('itemID');
+  const item = kanbanlist.find((kanbanlist: KanbanItem) => kanbanlist.id == Number(itemID));
+  if (item) {
+    item.list = list;
+  }
+}
+</script>

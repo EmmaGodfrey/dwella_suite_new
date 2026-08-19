@@ -1,0 +1,393 @@
+{
+  "data": [
+    {
+      "headTitle1": "General",
+      "headTitle2": "Platform Overview",
+      "type": "headtitle"
+    },
+    {
+      "path": "/dashboard",
+      "title": "Dashboard",
+      "icon": "material-symbols:home-outline",
+      "type": "link",
+      "active": false
+    },
+    {
+      "headTitle1": "User Management",
+      "headTitle2": "Manage platform users",
+      "type": "headtitle"
+    },
+    {
+      "title": "Users",
+      "icon": "lucide:users",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/users",
+          "title": "All Users",
+          "type": "link"
+        },
+        {
+          "path": "/users/tenants",
+          "title": "Tenants",
+          "type": "link"
+        },
+        {
+          "path": "/users/listers",
+          "title": "Property Listers",
+          "type": "link"
+        },
+        {
+          "path": "/users/flagged",
+          "title": "Flagged Users",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "Content Management",
+      "headTitle2": "Manage listings and applications",
+      "type": "headtitle"
+    },
+    {
+      "title": "Listings",
+      "icon": "material-symbols:home-outline",
+      "type": "sub",
+      "badgeType": "light-warning",
+      "badgeValue": "!",
+      "active": false,
+      "children": [
+        {
+          "path": "/listings",
+          "title": "All Listings",
+          "type": "link"
+        },
+        {
+          "path": "/listings/create",
+          "title": "Create Listing",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "title": "Applications",
+      "icon": "material-symbols:edit-square-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/applications/all",
+          "title": "All Applications",
+          "type": "link"
+        },
+        {
+          "path": "/applications/by-status",
+          "title": "By Status",
+          "type": "link"
+        },
+        {
+          "path": "/applications/statistics",
+          "title": "Application Stats",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "Verification & Payments",
+      "headTitle2": "Manage verifications and transactions",
+      "type": "headtitle"
+    },
+    {
+      "title": "Verifications",
+      "icon": "material-symbols:verified-outline",
+      "type": "sub",
+      "badgeType": "light-warning",
+      "badgeValue": "!",
+      "active": false,
+      "children": [
+        {
+          "path": "/verifications/pending",
+          "title": "Pending Approvals",
+          "type": "link",
+          "badgeType": "light-danger",
+          "badgeValue": "!"
+        },
+        {
+          "path": "/verifications/approved",
+          "title": "Approved",
+          "type": "link"
+        },
+        {
+          "path": "/verifications/rejected",
+          "title": "Rejected",
+          "type": "link"
+        },
+        {
+          "path": "/verifications/revoked",
+          "title": "Revoked",
+          "type": "link"
+        },
+        {
+          "path": "/verifications/plans",
+          "title": "Verification Plans",
+          "type": "link"
+        },
+        {
+          "path": "/verifications/statistics",
+          "title": "Verification Stats",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "title": "Payments",
+      "icon": "lucide:dollar-sign",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/payments/all",
+          "title": "All Transactions",
+          "type": "link"
+        },
+        {
+          "path": "/payments/verifications",
+          "title": "Verification Payments",
+          "type": "link"
+        },
+        {
+          "path": "/payments/platform-fees",
+          "title": "Platform Fees",
+          "type": "link"
+        },
+        {
+          "path": "/payments/refunds",
+          "title": "Refunds",
+          "type": "link"
+        },
+        {
+          "path": "/payments/analytics",
+          "title": "Revenue Analytics",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "Reference Data",
+      "headTitle2": "Manage platform reference data",
+      "type": "headtitle"
+    },
+    {
+      "title": "Amenities",
+      "icon": "material-symbols:category-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/amenities/all",
+          "title": "All Amenities",
+          "type": "link"
+        },
+        {
+          "path": "/amenities/categories",
+          "title": "Categories",
+          "type": "link"
+        },
+        {
+          "path": "/amenities/manage",
+          "title": "Add/Edit/Delete",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "title": "Reference Data",
+      "icon": "material-symbols:database-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/reference/property-types",
+          "title": "Property Types",
+          "type": "link"
+        },
+        {
+          "path": "/reference/provinces",
+          "title": "Provinces",
+          "type": "link"
+        },
+        {
+          "path": "/reference/districts",
+          "title": "Districts",
+          "type": "link"
+        },
+        {
+          "path": "/reference/constituencies",
+          "title": "Constituencies",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "Communication",
+      "headTitle2": "Platform notifications",
+      "type": "headtitle"
+    },
+    {
+      "title": "Notifications",
+      "icon": "material-symbols:notifications-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/notifications/send",
+          "title": "Send Notification",
+          "type": "link"
+        },
+        {
+          "path": "/notifications/templates",
+          "title": "Templates",
+          "type": "link"
+        },
+        {
+          "path": "/notifications/bulk",
+          "title": "Bulk Push",
+          "type": "link"
+        },
+        {
+          "path": "/notifications/history",
+          "title": "Notification History",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "Analytics & Reports",
+      "headTitle2": "Platform insights and reports",
+      "type": "headtitle"
+    },
+    {
+      "title": "Analytics",
+      "icon": "lucide:bar-chart",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/analytics/platform-metrics",
+          "title": "Platform Metrics",
+          "type": "link"
+        },
+        {
+          "path": "/analytics/user-activity",
+          "title": "User Activity",
+          "type": "link"
+        },
+        {
+          "path": "/analytics/listing-performance",
+          "title": "Listing Performance",
+          "type": "link"
+        },
+        {
+          "path": "/analytics/application-trends",
+          "title": "Application Trends",
+          "type": "link"
+        },
+        {
+          "path": "/analytics/revenue-reports",
+          "title": "Revenue Reports",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "title": "Reports",
+      "icon": "material-symbols:description-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/reports/users",
+          "title": "User Reports",
+          "type": "link"
+        },
+        {
+          "path": "/reports/listings",
+          "title": "Listing Reports",
+          "type": "link"
+        },
+        {
+          "path": "/reports/financial",
+          "title": "Financial Reports",
+          "type": "link"
+        },
+        {
+          "path": "/reports/export",
+          "title": "Export Data",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "headTitle1": "System",
+      "headTitle2": "Platform configuration",
+      "type": "headtitle"
+    },
+    {
+      "title": "Settings",
+      "icon": "material-symbols:settings-outline",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/settings/platform",
+          "title": "Platform Settings",
+          "type": "link"
+        },
+        {
+          "path": "/settings/payment",
+          "title": "Payment Configuration",
+          "type": "link"
+        },
+        {
+          "path": "/settings/email",
+          "title": "Email Settings",
+          "type": "link"
+        },
+        {
+          "path": "/settings/sms",
+          "title": "SMS Settings",
+          "type": "link"
+        },
+        {
+          "path": "/settings/cache",
+          "title": "Cache Management",
+          "type": "link"
+        }
+      ]
+    },
+    {
+      "title": "Audit Logs",
+      "icon": "material-symbols:history",
+      "type": "sub",
+      "active": false,
+      "children": [
+        {
+          "path": "/audit/admin-actions",
+          "title": "Admin Actions",
+          "type": "link"
+        },
+        {
+          "path": "/audit/user-actions",
+          "title": "User Actions",
+          "type": "link"
+        },
+        {
+          "path": "/audit/system-events",
+          "title": "System Events",
+          "type": "link"
+        }
+      ]
+    }
+  ]
+}

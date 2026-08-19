@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "layout_type": "ltr",
+    "layout": "Defaul",
+    "sidebar_setting": "compact-wrapper "
+  },
+  "color": {
+    "layout_version": "light",
+    "primary_color": "#24695c",
+    "secondary_color": "#ba895d"
+  }
+}

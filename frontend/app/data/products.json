@@ -1,0 +1,470 @@
+{
+  "data": [
+    {
+      "sku": 1,
+      "name": "Women's Top",
+      "images": [
+        "ecommerce/01.jpg",
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg"
+      ],
+      "shortDescription": "Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 35.0,
+      "price": 50.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["white", "black", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": ["woman top", "woman jeans", "white", "black", "green", "zara"],
+      "stock": 10,
+      "quantity": 1
+    },
+    {
+      "sku": 2,
+      "name": "Men's Jacket",
+      "images": [
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Blend Men's Blue Jacket",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 50.0,
+      "price": 45.0,
+      "sale": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "green", "red"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "green",
+        "zara",
+        "red"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 3,
+      "name": "Woman's T-shirt",
+      "images": [
+        "ecommerce/03.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Regular Fit Women's T-shirt",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. ",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 52.0,
+      "price": 87.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "max",
+      "tags": ["woman top", "woman jeans", "yellow", "gray", "green", "max"],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 4,
+      "name": "Denim Jacket",
+      "images": [
+        "ecommerce/04.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Women Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 45.0,
+      "price": 56.0,
+      "sale": false,
+      "off": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "white"],
+      "size": ["M", "L", "XL"],
+      "brand": "biba",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "white",
+        "biba"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 5,
+      "name": "Denim Jacket",
+      "images": [
+        "ecommerce/04.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Women Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 45.0,
+      "price": 25.0,
+      "sale": false,
+      "off": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "white"],
+      "size": ["M", "L", "XL"],
+      "brand": "biba",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "white",
+        "biba"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 6,
+      "name": "Women's Top",
+      "images": [
+        "ecommerce/01.jpg",
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg"
+      ],
+      "shortDescription": "Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 35.0,
+      "price": 36.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["white", "black", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": ["woman top", "woman jeans", "white", "black", "green", "zara"],
+      "stock": 10,
+      "quantity": 1
+    },
+    {
+      "sku": 7,
+      "name": "Men's Jacket",
+      "images": [
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Blend Men's Blue Jacket",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 63.0,
+      "price": 60.0,
+      "sale": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "green",
+        "zara"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 8,
+      "name": "Woman's T-shirt",
+      "images": [
+        "ecommerce/03.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Regular Fit Women's T-shirt",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. ",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 95.0,
+      "price": 78.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "max",
+      "tags": ["woman top", "woman jeans", "yellow", "gray", "green", "max"],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 9,
+      "name": "Woman's T-shirt",
+      "images": [
+        "ecommerce/03.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Regular Fit Women's T-shirt",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. ",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 90.0,
+      "price": 85.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "max",
+      "tags": ["woman top", "woman jeans", "yellow", "gray", "green", "max"],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 10,
+      "name": "Denim Jacket",
+      "images": [
+        "ecommerce/04.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Women Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 45.0,
+      "price": 38.0,
+      "sale": false,
+      "off": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "white"],
+      "size": ["M", "L", "XL"],
+      "brand": "biba",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "white",
+        "biba"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 11,
+      "name": "Women's Top",
+      "images": [
+        "ecommerce/01.jpg",
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg"
+      ],
+      "shortDescription": "Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 35.0,
+      "price": 96.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["white", "black", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": ["woman top", "woman jeans", "white", "black", "green", "zara"],
+      "stock": 10,
+      "quantity": 1
+    },
+    {
+      "sku": 12,
+      "name": "Men's Jacket",
+      "images": [
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Blend Men's Blue Jacket",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 45.0,
+      "price": 70.0,
+      "sale": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "green",
+        "zara"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 13,
+      "name": "Men's Jacket",
+      "images": [
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Blend Men's Blue Jacket",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 100.0,
+      "price": 80.0,
+      "sale": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "green",
+        "zara"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 14,
+      "name": "Woman's T-shirt",
+      "images": [
+        "ecommerce/03.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Cotton Regular Fit Women's T-shirt",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. ",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 60.0,
+      "price": 55.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["yellow", "gray", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "max",
+      "tags": ["woman top", "woman jeans", "yellow", "gray", "green", "max"],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 15,
+      "name": "Denim Jacket",
+      "images": [
+        "ecommerce/04.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg",
+        "ecommerce/05.jpg"
+      ],
+      "shortDescription": "Women Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 45.0,
+      "price": 38.0,
+      "sale": false,
+      "off": true,
+      "category": ["man shirt", "man jeans", "mens tshirt"],
+      "colors": ["yellow", "gray", "white"],
+      "size": ["M", "L", "XL"],
+      "brand": "biba",
+      "tags": [
+        "man shirt",
+        "man jeans",
+        "mens tshirt",
+        "yellow",
+        "gray",
+        "white",
+        "biba"
+      ],
+      "quantity": 1,
+      "stock": 10
+    },
+    {
+      "sku": 16,
+      "name": "Women's Top ",
+      "images": [
+        "ecommerce/01.jpg",
+        "ecommerce/02.jpg",
+        "ecommerce/03.jpg",
+        "ecommerce/04.jpg"
+      ],
+      "shortDescription": "Regular Fit Women's Top",
+      "description": "Cotton Solid Men's Fashion Full Sleeves Latest Jacket for Men With Button Closure Long Sleeve Casual Torn Lycra Denim Jacket.",
+      "details": "This is where some detailes on monkies would go. This monkey done seent some shit.",
+      "salePrice": 35.0,
+      "price": 45.0,
+      "sale": false,
+      "category": ["woman top", "woman jeans"],
+      "colors": ["white", "black", "green"],
+      "size": ["M", "L", "XL"],
+      "brand": "zara",
+      "tags": ["woman top", "woman jeans", "white", "black", "green", "zara"],
+      "stock": 10,
+      "quantity": 1
+    }
+  ],
+  "block": [
+    {
+      "for": "Raymond",
+      "title": "Raymond"
+    },
+    {
+      "for": "Pepe-Jeans",
+      "title": "Pepe-Jeans"
+    },
+    {
+      "for": "Celio",
+      "title": "Celio"
+    },
+    {
+      "for": "aime",
+      "title": "aime"
+    },
+    {
+      "for": "aliff",
+      "title": "aliff"
+    }
+  ],
+  "product": [
+    "Select..",
+    "Man's Shirt",
+    "Man's Jeans",
+    "Women T-shirt",
+    "Women Skirt"
+  ]
+}

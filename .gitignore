@@ -1,0 +1,40 @@
+# Root environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+media/
+staticfiles/
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+.output/
+.data/
+.cache/
+dist/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# OS / editors
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json

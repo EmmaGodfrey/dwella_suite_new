@@ -1,0 +1,242 @@
+{
+  "data": [
+    {
+      "day": "Today",
+      "icon": "ph:arrow-down-bold",
+      "num": "25698",
+      "total": "-$2658(36%)"
+    },
+    {
+      "day": "Month",
+      "icon": "iconamoon:arrow-up-1-bold",
+      "num": "6954",
+      "total": "+$369(15%)"
+    },
+    {
+      "day": "Week",
+      "icon": "iconamoon:arrow-up-1-bold",
+      "num": "63147",
+      "total": "+$69(65%)"
+    },
+    {
+      "day": "Year",
+      "icon": "iconamoon:arrow-up-1-bold",
+      "num": "963198",
+      "total": "+$3654(90%)"
+    }
+  ],
+  "pending": [
+    {
+      "day": "New",
+      "icon": "mingcute:shopping-bag-3-line",
+      "num": "6982",
+      "total": "68%"
+    },
+    {
+      "day": "Pending",
+      "icon": "lucide:layers",
+      "num": "783",
+      "total": "12%"
+    },
+    {
+      "day": "Done",
+      "icon": "gg:shopping-cart",
+      "num": "3674",
+      "total": "68%"
+    },
+    {
+      "day": "Cancel",
+      "icon": "lucide:dollar-sign",
+      "num": "69",
+      "total": "68%"
+    }
+  ],
+  "recent": [
+    {
+      "class": "font-primary",
+      "alfabet": "A",
+      "title": "Any desktop publishing.",
+      "date": "25 July 2022",
+      "time": "20 hours ago"
+    },
+    {
+      "class": "font-secondary",
+      "alfabet": "C",
+      "title": "Contrary to popular belief. ",
+      "date": "25 July 2022",
+      "time": "20 hours ago"
+    },
+    {
+      "class": "font-primary",
+      "alfabet": "E",
+      "title": "Established fact that a reader.",
+      "date": "25 July 2022",
+      "time": "20 hours ago"
+    },
+    {
+      "class": "font-secondary",
+      "alfabet": "H",
+      "title": "H-Code - A premium portfolio.",
+      "date": "25 July 2022",
+      "time": "20 hours ago"
+    },
+    {
+      "class": "font-primary",
+      "alfabet": "T",
+      "title": "There isn't any hidden.",
+      "date": "25 July 2022",
+      "time": "20 hours ago"
+    }
+  ],
+  "social": [
+    {
+      "icon": "fa-facebook",
+      "title": "Facebook",
+      "post": "6589",
+      "like": "75269"
+    },
+    {
+      "icon": "fa-twitter",
+      "title": "Twitter",
+      "post": "6589",
+      "like": "75269"
+    },
+    {
+      "icon": "fa-linkedin",
+      "title": "linkedin",
+      "post": "1234",
+      "like": "4369"
+    },
+    {
+      "icon": "fa-google-plus",
+      "title": "Google +",
+      "post": "369",
+      "like": "3458"
+    }
+  ],
+  "browser": [
+    {
+      "img": "/images/dashboard/chrome.png",
+      "daily": "36",
+      "month": "96",
+      "week": "46"
+    },
+    {
+      "img": "/images/dashboard/firefox.png",
+      "daily": "36",
+      "month": "96",
+      "week": "46"
+    },
+    {
+      "img": "/images/dashboard/safari.png",
+      "daily": "36",
+      "month": "96",
+      "week": "46"
+    }
+  ],
+  "product": [
+    {
+      "details": "Men Casual Shirt",
+      "quantity": "1",
+      "status": "Pending",
+      "price": "6523",
+      "class": "pill-badge-secondary",
+      "font": "font-primary"
+    },
+    {
+      "details": "Rayon Women Regular Top",
+      "quantity": "5",
+      "status": "Cancle",
+      "price": "6523",
+      "class": "pill-badge-success",
+      "font": "font-secondary"
+    },
+    {
+      "details": "Flower Printed Dress",
+      "quantity": "10",
+      "status": "Cancle",
+      "price": "6523",
+      "class": " pill-badge-warning",
+      "font": "font-secondary"
+    },
+    {
+      "details": "Polyester Women Dress",
+      "quantity": "9",
+      "status": "Return",
+      "price": "6523",
+      "class": "pill-badge-primary",
+      "font": "font-primary"
+    },
+    {
+      "details": "PCotton Regular T-Shirt",
+      "quantity": "8",
+      "status": "Pending",
+      "price": "6523",
+      "class": "pill-badge-danger",
+      "font": "font-primary"
+    },
+    {
+      "details": "Printed Sleev Dress",
+      "quantity": "3",
+      "status": "Cancle",
+      "price": "6523",
+      "class": " pill-badge-info",
+      "font": "font-secondary"
+    },
+    {
+      "details": "Rayon Women Regular Top",
+      "quantity": "8",
+      "status": "Return",
+      "price": "6523",
+      "class": "pill-badge-primary",
+      "font": "font-primary"
+    }
+  ],
+  "employe": [
+    {
+      "name": "John Deo",
+      "online": "14",
+      "class": "bg-primary",
+      "designation": "Designer",
+      "skill": "30%",
+      "experience": "2 Year",
+      "img": "/images/user/4.jpg"
+    },
+    {
+      "name": "Holio Mako",
+      "online": "250",
+      "class": "bg-secondary",
+      "designation": "Developer",
+      "skill": "70%",
+      "experience": "3 Year",
+      "img": "/images/user/1.jpg"
+    },
+    {
+      "name": "Mohsib lara",
+      "online": "99",
+      "class": " bg-primary",
+      "designation": "Tester",
+      "skill": "60%",
+      "experience": "5 Year",
+      "img": "/images/user/5.png"
+    },
+    {
+      "name": "Hileri Soli",
+      "online": "150",
+      "class": "bg-secondary",
+      "designation": "Designer",
+      "skill": "30%",
+      "experience": "3 Year",
+      "img": "/images/user/6.jpg"
+    },
+    {
+      "name": "Pusiz bia",
+      "online": "14",
+      "class": "bg-primary",
+      "designation": "Designer",
+      "skill": "90%",
+      "experience": "5 Year",
+      "img": "/images/user/7.jpg"
+    }
+  ]
+}

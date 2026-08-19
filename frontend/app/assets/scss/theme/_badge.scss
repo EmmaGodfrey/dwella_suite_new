@@ -1,0 +1,100 @@
+/**=====================
+    49. Badge CSS start
+==========================**/
+.badge {
+  padding: $badge-padding;
+  line-height: 1.3;
+
+  &:hover {
+    color: $white;
+  }
+
+  &+.badge {
+    margin-left: 5px;
+  }
+
+  svg {
+    width: $badge-svg-size;
+    height: $badge-svg-size;
+  }
+
+  >i {
+    display: flex;
+  }
+}
+
+.badge-card {
+  margin-bottom: -5px;
+
+  >.badge {
+    margin-bottom: 5px;
+  }
+}
+
+// flat badge loop css
+@each $badge-light-name,
+$badge-light-color in (primary, $primary-color),
+(secondary, $secondary-color),
+(success, $success-color),
+(danger, $danger-color),
+(info, $info-color),
+(light, $light-color),
+(dark, $dark-color),
+(warning, $warning-color) {
+  .badge-light-#{$badge-light-name} {
+    background-color: rgba($badge-light-color, 0.2);
+    color: $badge-light-color;
+  }
+}
+
+@each $pill-badge-name,
+$pill-badge-color in (primary, $primary-color),
+(secondary, $secondary-color),
+(success, $success-color),
+(danger, $danger-color),
+(info, $light-font),
+(light, $light-gray),
+(dark, $dark-color),
+(warning, $warning-color) {
+  .pill-badge-#{$pill-badge-name} {
+    background-color: $pill-badge-color;
+    box-shadow: -0.5px 4.33px 16px 0px rgba($pill-badge-color, 0.25);
+    color: $white;
+    font-size: 9px;
+    text-transform: capitalize;
+    border-radius: 5px;
+    font-weight: 600;
+    padding: 5px 9px;
+
+  }
+}
+
+// round badge loop css
+@each $round-badge-name,
+$round-badge-color in (primary, $primary-color),
+(secondary, $secondary-color),
+(success, $success-color),
+(danger, $danger-color),
+(info, $light-font),
+(light, $light-gray),
+(dark, $dark-color),
+(warning, $warning-color) {
+  .round-badge-#{$round-badge-name} {
+    border-radius: 6px;
+    background-color: $round-badge-color;
+    box-shadow: -0.5px -6.67px 14px 0px rgba($round-badge-color, 0.18);
+    color: $white !important;
+  }
+}
+
+.rounded-pill {
+  padding: 0.62em 0.7em !important;
+  min-width: 22px;
+  min-height: 22px;
+  line-height: 0.9;
+}
+
+
+/**=====================
+    49. Badge CSS Ends
+==========================**/
