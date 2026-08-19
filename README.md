@@ -2,7 +2,7 @@
 
 Dwella Suite is the new Python-first monorepo for the Dwella property management product under EG Labs.
 
-The old `dwellasuiteadmin` Nuxt project is preserved as the frontend starting point, but the suite now lives in one repo with a Django backend and one root `.env`.
+The old `dwellasuiteadmin` project is being replaced by this repo. The suite now lives in one monorepo with a Django backend, a React dashboard frontend, and one root `.env`.
 
 ## Structure
 
@@ -11,7 +11,7 @@ dwella-suite/
   .env                 # local root environment, not committed
   .env.example         # shared environment contract
   backend/             # Django + DRF modular monolith
-  frontend/            # Nuxt admin/dashboard frontend
+  frontend/            # React/Vite admin dashboard frontend
   docs/                # product and architecture specs
   deploy/              # local Docker/dev infrastructure
 ```
@@ -29,7 +29,14 @@ The backend follows the architecture documents:
 
 ## Frontend Shape
 
-The frontend remains Nuxt for now and reads its public API base URL from the root `.env`.
+The frontend uses the React version of the Viho dashboard template as its base and reads its public API base URL from the root `.env`.
+
+When adding dashboard UI, adapt components from the full React template first:
+
+```text
+C:\Users\OMEN\Desktop\EGLabs\react.zip
+C:\Users\OMEN\Desktop\EGLabs\.template_compare\react-theme\Viho-Vite-React
+```
 
 ## Local Development
 
@@ -50,8 +57,8 @@ Frontend:
 
 ```bash
 cd frontend
-yarn install
-yarn dev
+npm install
+npm run dev
 ```
 
 Docker infrastructure:
@@ -65,3 +72,5 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 - `docs/DWELLA_PROPERTY_MANAGEMENT_REQUIREMENTS.md`
 - `docs/EG_LABS_BACKEND_ARCHITECTURE_RECOMMENDATION.md`
 - `docs/EG_LABS_POS_INVENTORY_REQUIREMENTS.md`
+- `docs/FRONTEND_TEMPLATE_REFERENCE.md`
+- `docs/FRONTEND_DATA_FLOW.md`
