@@ -38,7 +38,7 @@ const AccountMenu = () => {
   const [open, setOpen] = useState(false);
   const cachedUser = getCachedUser();
   const { data: user = cachedUser } = useCurrentUserQuery({ staleTime: 60_000 });
-  const avatarUrl = resolveMediaUrl(user?.profile?.avatar);
+  const avatarUrl = resolveMediaUrl(user?.profile?.avatar_url || user?.profile?.avatar || user?.avatar_url || user?.avatar);
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "Dwella Admin";
   const verificationStatus = user?.identity_verification?.status || "not_submitted";
 

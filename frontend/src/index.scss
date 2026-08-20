@@ -104,6 +104,8 @@ h6,
 
 .page-main-header .main-header-right {
   align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
   justify-content: space-between;
 }
 
@@ -114,6 +116,8 @@ h6,
 .page-main-header .main-header-right .nav-right {
   flex: 0 0 auto;
   margin-left: auto;
+  max-width: none;
+  width: auto;
 }
 
 .page-main-header .main-header-right .nav-right .nav-menus {
@@ -386,18 +390,22 @@ h6,
 .dwella-account-menu {
   display: flex;
   align-items: center;
+  height: 100%;
 }
 
 .dwella-account-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   border: 1px solid rgba(17, 24, 39, 0.08);
   background: #ffffff;
   color: #1f2937;
   border-radius: 999px;
-  padding: 5px 9px 5px 5px;
-  min-height: 38px;
+  box-sizing: border-box;
+  height: 34px;
+  line-height: 1;
+  padding: 4px 8px 4px 4px;
+  min-height: 34px;
   box-shadow: 0 8px 20px rgba(17, 24, 39, 0.06);
 }
 
@@ -408,15 +416,15 @@ h6,
 }
 
 .dwella-account-avatar {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: #12323f;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   overflow: hidden;
 }
@@ -431,22 +439,24 @@ h6,
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
-  line-height: 1.1;
+  gap: 1px;
+  line-height: 1;
 }
 
 .dwella-account-copy > span:first-child {
-  max-width: 138px;
+  max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
 }
 
 .dwella-account-copy .badge {
-  font-size: 9px;
+  font-size: 7px;
   font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
 }
 
 .dwella-account-dropdown {
