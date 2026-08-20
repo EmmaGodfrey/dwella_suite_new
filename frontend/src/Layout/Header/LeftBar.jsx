@@ -21,14 +21,14 @@ const Leftbar = () => {
             <div className="main-header-left">
                 {mixLayout ?
                     <div className="logo-wrapper">
-                            <Link to={`/dashboard`}>
-                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/eglabs-logo.png')}`, alt: 'EGLabs' }} />
+                        <Link className="dwella-brand-link" to={`/dashboard`}>
+                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/dwella-wordmark.png')}`, alt: 'Dwella Suite' }} />
                         </Link>
                     </div>
                     :
                     <div className="dark-logo-wrapper">
-                        <Link to={`/dashboard`}>
-                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/eglabs-logo.png')}`, alt: 'EGLabs' }} />
+                        <Link className="dwella-brand-link" to={`/dashboard`}>
+                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/dwella-wordmark.png')}`, alt: 'Dwella Suite' }} />
                         </Link>
                     </div>
                 }

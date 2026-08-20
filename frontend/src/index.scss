@@ -197,8 +197,15 @@ h6,
 }
 
 .dwella-header-logo {
-  max-height: 28px;
+  width: 128px;
+  max-height: 42px;
   object-fit: contain;
+}
+
+.dwella-brand-link {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .dwella-sidebar-logo {
@@ -451,7 +458,7 @@ h6,
 
 @media (max-width: 575px) {
   .dwella-header-logo {
-    max-width: 110px;
+    width: 96px;
   }
 
   .dwella-account-copy {
