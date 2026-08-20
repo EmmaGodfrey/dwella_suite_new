@@ -4,6 +4,7 @@
   --dwella-sidebar-full-width: 290px;
   --dwella-sidebar-rail-width: 78px;
   --dwella-header-height: 64px;
+  --dwella-shell-transition: 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
@@ -67,6 +68,10 @@ h6,
 .page-wrapper .page-body-wrapper .page-body {
   margin-top: var(--dwella-header-height);
   padding: 18px 14px 0;
+  transition:
+    margin-left var(--dwella-shell-transition),
+    margin-top var(--dwella-shell-transition),
+    padding var(--dwella-shell-transition);
 }
 
 .page-wrapper .page-body-wrapper .page-header {
@@ -77,6 +82,10 @@ h6,
   height: var(--dwella-header-height) !important;
   min-height: var(--dwella-header-height) !important;
   overflow: visible;
+  transition:
+    margin-left var(--dwella-shell-transition),
+    width var(--dwella-shell-transition),
+    height var(--dwella-shell-transition);
 }
 
 .page-main-header .main-header-right {
@@ -88,6 +97,9 @@ h6,
   height: var(--dwella-header-height);
   min-height: var(--dwella-header-height);
   padding: 10px 18px !important;
+  transition:
+    width var(--dwella-shell-transition),
+    padding var(--dwella-shell-transition);
 }
 
 .page-main-header .main-header-right .left-menu-header {
@@ -157,6 +169,13 @@ h6,
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav {
   top: var(--dwella-header-height);
   box-shadow: 0 16px 36px rgba(17, 24, 39, 0.08);
+  overflow: hidden;
+  transition:
+    width var(--dwella-shell-transition),
+    opacity var(--dwella-shell-transition),
+    visibility var(--dwella-shell-transition),
+    transform var(--dwella-shell-transition),
+    box-shadow var(--dwella-shell-transition);
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon {
@@ -167,7 +186,6 @@ h6,
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .sidebar-main-title,
-.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link span,
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .according-menu {
   display: none !important;
 }
@@ -188,6 +206,9 @@ h6,
   left: 0;
   height: calc(100vh - var(--dwella-header-height));
   padding: 12px 13px 20px;
+  transition:
+    padding var(--dwella-shell-transition),
+    left var(--dwella-shell-transition);
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .main-navbar .nav-menu > li.dropdown {
@@ -195,6 +216,8 @@ h6,
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link {
+  display: flex;
+  align-items: center;
   border-radius: 8px;
   min-height: 40px;
   padding: 9px 13px;
@@ -202,12 +225,39 @@ h6,
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.2;
+  overflow: hidden;
+  transition:
+    min-height var(--dwella-shell-transition),
+    padding var(--dwella-shell-transition),
+    border-radius var(--dwella-shell-transition),
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link svg {
+  flex: 0 0 auto;
   width: 16px;
   height: 16px;
   margin-right: 11px;
+  transition:
+    width var(--dwella-shell-transition),
+    height var(--dwella-shell-transition),
+    margin var(--dwella-shell-transition),
+    color 180ms ease;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link span {
+  display: inline-block;
+  max-width: 180px;
+  opacity: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(0);
+  transition:
+    max-width var(--dwella-shell-transition),
+    opacity 180ms ease,
+    transform var(--dwella-shell-transition);
+  white-space: nowrap;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .sidebar-main-title > div {
@@ -233,6 +283,12 @@ h6,
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu > li.dropdown {
   margin-bottom: 9px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link span {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon ~ .page-body {
