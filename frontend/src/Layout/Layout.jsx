@@ -4,7 +4,6 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import React, { Fragment, useRef } from "react";
-import ThemeCustomize from "../Layout/ThemeCustomizer";
 import { ToastContainer } from "react-toastify";
 import { useContext } from "react";
 import CustomizerContext from "../_helper/Customizer";
@@ -48,7 +47,6 @@ const AppLayout = ({ children, classNames, ...rest }) => {
           <Footer />
         </div>
       </div>
-      <ThemeCustomize />
       <ToastContainer />
     </Fragment>
   );
