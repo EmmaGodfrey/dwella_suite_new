@@ -4,7 +4,6 @@ import {
   CreditCard,
   FileText,
   Home,
-  Shield,
   Tool,
   Users,
 } from "react-feather";
@@ -59,13 +58,6 @@ export const MENUITEMS = [
         title: "Reports",
         icon: Clipboard,
         path: "/reports",
-        type: "link",
-        active: false,
-      },
-      {
-        title: "Security",
-        icon: Shield,
-        path: "/security",
         type: "link",
         active: false,
       },

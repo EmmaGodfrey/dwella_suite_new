@@ -1,1 +1,357 @@
 @import '../public/assets/scss/app.scss';
+
+:root {
+  --dwella-sidebar-full-width: 290px;
+  --dwella-sidebar-rail-width: 78px;
+  --dwella-header-height: 64px;
+}
+
+html,
+body {
+  font-size: 12.5px;
+}
+
+body,
+button,
+input,
+select,
+textarea,
+.page-wrapper {
+  font-size: 12.5px;
+  letter-spacing: 0;
+}
+
+p,
+.card,
+.table,
+.form-control,
+.form-select,
+.btn,
+.dropdown-menu,
+.breadcrumb,
+.nav-link {
+  font-size: 0.9rem;
+}
+
+h1,
+.h1 {
+  font-size: 1.55rem;
+}
+
+h2,
+.h2 {
+  font-size: 1.35rem;
+}
+
+h3,
+.h3,
+.page-wrapper .page-header h3 {
+  font-size: 1.18rem;
+}
+
+h4,
+.h4 {
+  font-size: 1.05rem;
+}
+
+h5,
+.h5 {
+  font-size: 0.95rem;
+}
+
+h6,
+.h6 {
+  font-size: 0.85rem;
+}
+
+.page-wrapper .page-body-wrapper .page-body {
+  margin-top: var(--dwella-header-height);
+  padding: 18px 14px 0;
+}
+
+.page-wrapper .page-body-wrapper .page-header {
+  padding-bottom: 18px;
+}
+
+.page-main-header {
+  height: var(--dwella-header-height) !important;
+  min-height: var(--dwella-header-height) !important;
+  overflow: visible;
+}
+
+.page-main-header .main-header-right {
+  height: var(--dwella-header-height) !important;
+  min-height: var(--dwella-header-height) !important;
+}
+
+.page-main-header .main-header-right .main-header-left {
+  height: var(--dwella-header-height);
+  min-height: var(--dwella-header-height);
+  padding: 10px 18px !important;
+}
+
+.page-main-header .main-header-right .left-menu-header {
+  padding: 10px 14px !important;
+}
+
+.page-main-header .main-header-right .left-menu-header .search-bg input {
+  height: 36px;
+  padding: 0 12px;
+}
+
+.page-main-header .main-header-right .nav-right .nav-menus {
+  align-items: center;
+  padding: 10px 20px !important;
+  min-height: var(--dwella-header-height);
+}
+
+.page-main-header .main-header-right .nav-right > ul > li {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.page-main-header .main-header-right .nav-right .nav-menus svg {
+  width: 18px;
+  height: 18px;
+}
+
+.page-main-header .main-header-right .nav-right .onhover-show-div {
+  top: 42px;
+}
+
+.card {
+  margin-bottom: 18px;
+}
+
+.card .card-header,
+.card .card-body,
+.card .card-footer {
+  padding: 16px 18px;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.62rem 0.75rem;
+}
+
+.form-control,
+.form-select {
+  min-height: 38px;
+  padding: 8px 11px;
+}
+
+.btn {
+  padding: 0.46rem 0.82rem;
+  line-height: 1.25;
+}
+
+.dwella-header-logo {
+  max-height: 28px;
+  object-fit: contain;
+}
+
+.dwella-sidebar-logo {
+  max-height: 34px;
+  object-fit: contain;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav {
+  top: var(--dwella-header-height);
+  box-shadow: 0 16px 36px rgba(17, 24, 39, 0.08);
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon {
+  width: var(--dwella-sidebar-rail-width);
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .sidebar-main-title,
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link span,
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .according-menu {
+  display: none !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu > li > a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu > li > a svg {
+  margin-right: 0;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .main-navbar .nav-menu {
+  left: 0;
+  height: calc(100vh - var(--dwella-header-height));
+  padding: 12px 13px 20px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .main-navbar .nav-menu > li.dropdown {
+  margin-bottom: 7px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link {
+  border-radius: 8px;
+  min-height: 40px;
+  padding: 9px 13px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link svg {
+  width: 16px;
+  height: 16px;
+  margin-right: 11px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .sidebar-main-title > div {
+  margin: 8px 0 12px;
+  padding-bottom: 8px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .sidebar-main-title h6 {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link.active {
+  background: rgba(32, 178, 170, 0.12);
+  color: #1d7f78;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu > li.dropdown {
+  margin-bottom: 9px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon ~ .page-body {
+  margin-left: var(--dwella-sidebar-rail-width) !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon ~ div > .page-body {
+  margin-left: var(--dwella-sidebar-rail-width) !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav:not(.close_icon) ~ .page-body {
+  margin-left: var(--dwella-sidebar-full-width) !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav:not(.close_icon) ~ div > .page-body {
+  margin-left: var(--dwella-sidebar-full-width) !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon ~ footer {
+  margin-left: var(--dwella-sidebar-rail-width) !important;
+}
+
+.page-main-header .main-header-right .main-header-left {
+  gap: 10px;
+}
+
+.dwella-account-menu {
+  display: flex;
+  align-items: center;
+}
+
+.dwella-account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: #ffffff;
+  color: #1f2937;
+  border-radius: 999px;
+  padding: 5px 9px 5px 5px;
+  min-height: 38px;
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.06);
+}
+
+.dwella-account-trigger:hover,
+.dwella-account-trigger:focus {
+  border-color: rgba(32, 178, 170, 0.32);
+  color: #111827;
+}
+
+.dwella-account-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #12323f;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.dwella-account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dwella-account-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.dwella-account-copy > span:first-child {
+  max-width: 138px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dwella-account-copy .badge {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.dwella-account-dropdown {
+  min-width: 196px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.12);
+  padding: 8px;
+}
+
+.dwella-account-dropdown .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px 9px;
+  font-weight: 600;
+}
+
+@media (max-width: 575px) {
+  .dwella-header-logo {
+    max-width: 110px;
+  }
+
+  .dwella-account-copy {
+    display: none;
+  }
+
+  .dwella-account-trigger {
+    padding-right: 8px;
+  }
+}

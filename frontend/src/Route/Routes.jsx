@@ -3,12 +3,14 @@ import Dashboard from "../Components/Dashboard";
 import ModulePlaceholder from "../Components/ModulePlaceholder";
 import SamplePage from "../Components/Pages/Sample";
 import Properties from "../Components/Properties";
+import Profile from "../Components/Profile";
 import Security from "../Components/Security";
 
 export const routes = [
   //page
   { path: `/dashboard`, Component: <Dashboard /> },
   { path: `/properties`, Component: <Properties /> },
+  { path: `/profile`, Component: <Profile /> },
   { path: `/tenants`, Component: <ModulePlaceholder title="Tenants" description="Tenant CRM, occupancy records, and communication history." /> },
   { path: `/leases`, Component: <ModulePlaceholder title="Leases" description="Lease terms, renewals, deposits, and documents." /> },
   { path: `/billing`, Component: <ModulePlaceholder title="Billing" description="Rent invoices, collections, balances, and payment tracking." /> },

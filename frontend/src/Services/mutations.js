@@ -6,6 +6,9 @@ import {
   login,
   requestPasswordReset,
   startTwoFactorSetup,
+  submitIdentityVerification,
+  updateProfile,
+  uploadAvatar,
   verifyTwoFactorLogin,
   verifyTwoFactorSetup,
 } from "./auth";
@@ -77,6 +80,39 @@ export function useTwoFactorDisableMutation(options = {}) {
     mutationFn: disableTwoFactor,
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.currentUser });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useProfileUpdateMutation(options = {}) {
+  return useMutation({
+    mutationFn: updateProfile,
+    onSuccess: (data, variables, context) => {
+      queryClient.setQueryData(queryKeys.currentUser, data);
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useAvatarUploadMutation(options = {}) {
+  return useMutation({
+    mutationFn: uploadAvatar,
+    onSuccess: (data, variables, context) => {
+      queryClient.setQueryData(queryKeys.currentUser, data);
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useIdentityVerificationMutation(options = {}) {
+  return useMutation({
+    mutationFn: submitIdentityVerification,
+    onSuccess: (data, variables, context) => {
+      queryClient.setQueryData(queryKeys.currentUser, data);
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,

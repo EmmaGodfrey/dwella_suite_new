@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core import mail
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.signing import TimestampSigner
 from django.test import override_settings
 from django.utils.encoding import force_bytes
@@ -12,10 +13,15 @@ from django.utils.http import urlsafe_base64_encode
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from .models import PasswordResetRequest, TwoFactorDevice
+from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import _hotp
 
 User = get_user_model()
+
+TINY_GIF = (
+    b"GIF87a\x01\x00\x01\x00\x80\x01\x00\x00\x00\x00ccc,\x00\x00\x00\x00"
+    b"\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -170,6 +176,117 @@ def test_current_user_requires_authentication():
 
     assert response.status_code == 403
     assert response.json()["response_code"] == 403
+
+
+@pytest.mark.django_db
+def test_profile_update_changes_user_and_profile(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.patch(
+        "/api/v1/accounts/me/",
+        {
+            "first_name": "Emmanuel",
+            "last_name": "Godfrey",
+            "phone_number": "+260 977 000 111",
+            "job_title": "Property Manager",
+        },
+        format="json",
+    )
+
+    user.refresh_from_db()
+    profile = UserProfile.objects.get(user=user)
+    assert response.status_code == 200
+    assert user.first_name == "Emmanuel"
+    assert profile.phone_number == "+260 977 000 111"
+    assert response.json()["response_data"]["profile"]["job_title"] == "Property Manager"
+
+
+@pytest.mark.django_db
+def test_profile_update_rejects_invalid_phone(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.patch(
+        "/api/v1/accounts/me/",
+        {"phone_number": "call me maybe"},
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "valid phone number" in response.json()["response_message"]
+
+
+@pytest.mark.django_db
+def test_avatar_upload_updates_current_user_profile(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    avatar = SimpleUploadedFile("avatar.gif", TINY_GIF, content_type="image/gif")
+
+    response = client.post("/api/v1/accounts/me/avatar/", {"avatar": avatar}, format="multipart")
+
+    profile = UserProfile.objects.get(user=user)
+    assert response.status_code == 200
+    assert profile.avatar
+    assert response.json()["response_data"]["profile"]["avatar_url"]
+
+
+@pytest.mark.django_db
+def test_avatar_upload_requires_authentication():
+    avatar = SimpleUploadedFile("avatar.gif", TINY_GIF, content_type="image/gif")
+    response = APIClient().post(
+        "/api/v1/accounts/me/avatar/",
+        {"avatar": avatar},
+        format="multipart",
+    )
+
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_identity_verification_submit_sets_pending_status(user):
+    client = APIClient()
+    client.force_authenticate(user=user)
+    document = SimpleUploadedFile("document.gif", TINY_GIF, content_type="image/gif")
+
+    response = client.post(
+        "/api/v1/accounts/me/verification/",
+        {
+            "legal_name": "Emmanuel Godfrey",
+            "document_type": "nrc",
+            "document_number": "123456789",
+            "document_image": document,
+        },
+        format="multipart",
+    )
+
+    verification = IdentityVerification.objects.get(user=user)
+    assert response.status_code == 200
+    assert verification.status == IdentityVerification.Status.PENDING
+    assert verification.document_number_last4 == "6789"
+    assert response.json()["response_data"]["identity_verification"]["has_document"] is True
+
+
+@pytest.mark.django_db
+def test_identity_verification_rejects_duplicate_pending_submission(user):
+    IdentityVerification.objects.create(user=user, status=IdentityVerification.Status.PENDING)
+    client = APIClient()
+    client.force_authenticate(user=user)
+    document = SimpleUploadedFile("document.gif", TINY_GIF, content_type="image/gif")
+
+    response = client.post(
+        "/api/v1/accounts/me/verification/",
+        {
+            "legal_name": "Emmanuel Godfrey",
+            "document_type": "nrc",
+            "document_number": "123456789",
+            "document_image": document,
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "already submitted" in response.json()["response_message"]
 
 
 @pytest.mark.django_db

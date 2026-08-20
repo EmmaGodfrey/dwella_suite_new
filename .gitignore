@@ -26,6 +26,7 @@ node_modules/
 .cache/
 dist/
 *.tsbuildinfo
+.playwright-cli/
 
 # Logs
 logs/

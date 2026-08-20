@@ -2,7 +2,6 @@ import React, { Fragment, useEffect, useState, useContext } from 'react';
 import SidebarMenu from './SidebarMenu';
 import CustomizerContext from '../../_helper/Customizer';
 import { MENUITEMS } from './Menu';
-import Profile from './Profile';
 
 const SideBarLayout = (props) => {
   const { toggleIcon } = useContext(CustomizerContext);
@@ -101,7 +100,6 @@ const SideBarLayout = (props) => {
         closeOverlay();
       }} ></div>
       <header className={`main-nav ${toggleIcon ? 'close_icon' : ''}`}>
-        <Profile />
         <SidebarMenu setMainMenu={setMainMenu} props={props} sidebartoogle={true} setNavActive={setNavActive} width={width} />
       </header>
     </Fragment>

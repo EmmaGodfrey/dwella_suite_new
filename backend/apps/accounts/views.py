@@ -3,15 +3,17 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import PasswordResetRequest, TwoFactorDevice
+from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
     get_client_ip,
@@ -21,7 +23,10 @@ from .security import (
     verify_totp,
 )
 from .serializers import (
+    AvatarUploadSerializer,
     CurrentUserSerializer,
+    CurrentUserUpdateSerializer,
+    IdentityVerificationSubmitSerializer,
     LoginSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -145,6 +150,71 @@ class CurrentUserView(APIView):
     def get(self, request):
         serializer = CurrentUserSerializer(request.user, context={"request": request})
         return Response(serializer.data)
+
+    def patch(self, request):
+        serializer = CurrentUserUpdateSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(CurrentUserSerializer(user, context={"request": request}).data)
+
+
+class CurrentUserAvatarView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = AvatarUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        profile.avatar = serializer.validated_data["avatar"]
+        profile.save(update_fields=["avatar", "updated_at"])
+        return Response(CurrentUserSerializer(request.user, context={"request": request}).data)
+
+
+class IdentityVerificationSubmitView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        serializer = IdentityVerificationSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        document_number = serializer.validated_data.pop("document_number")
+        verification, _ = IdentityVerification.objects.get_or_create(user=request.user)
+        if verification.status in [
+            IdentityVerification.Status.PENDING,
+            IdentityVerification.Status.APPROVED,
+        ]:
+            return Response(
+                {"detail": "Identity verification is already submitted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        verification.status = IdentityVerification.Status.PENDING
+        verification.legal_name = serializer.validated_data["legal_name"]
+        verification.document_type = serializer.validated_data["document_type"]
+        verification.document_number_last4 = document_number[-4:]
+        verification.document_image = serializer.validated_data["document_image"]
+        verification.rejection_reason = ""
+        verification.submitted_at = timezone.now()
+        verification.reviewed_at = None
+        verification.save(
+            update_fields=[
+                "status",
+                "legal_name",
+                "document_type",
+                "document_number_last4",
+                "document_image",
+                "rejection_reason",
+                "submitted_at",
+                "reviewed_at",
+                "updated_at",
+            ]
+        )
+        return Response(CurrentUserSerializer(request.user, context={"request": request}).data)
 
 
 class PasswordResetRequestView(APIView):

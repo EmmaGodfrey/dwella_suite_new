@@ -41,6 +41,31 @@ export async function disableTwoFactor() {
   return api.post("/accounts/2fa/disable/", {});
 }
 
+export async function updateProfile(payload) {
+  const user = await api.patch("/accounts/me/", payload);
+  localStorage.setItem("dwella_user", JSON.stringify(user));
+  return user;
+}
+
+export async function uploadAvatar(file) {
+  const formData = new FormData();
+  formData.append("avatar", file);
+  const user = await api.post("/accounts/me/avatar/", formData);
+  localStorage.setItem("dwella_user", JSON.stringify(user));
+  return user;
+}
+
+export async function submitIdentityVerification(payload) {
+  const formData = new FormData();
+  formData.append("legal_name", payload.legalName);
+  formData.append("document_type", payload.documentType);
+  formData.append("document_number", payload.documentNumber);
+  formData.append("document_image", payload.documentImage);
+  const user = await api.post("/accounts/me/verification/", formData);
+  localStorage.setItem("dwella_user", JSON.stringify(user));
+  return user;
+}
+
 export function logout() {
   setAuthToken(null);
   localStorage.removeItem("dwella_user");
