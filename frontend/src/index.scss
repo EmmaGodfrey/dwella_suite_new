@@ -102,28 +102,18 @@ h6,
     padding var(--dwella-shell-transition);
 }
 
-.page-main-header .main-header-right .left-menu-header {
-  max-width: 360px;
-  padding: 10px 14px !important;
+.page-main-header .main-header-right {
+  align-items: center;
+  justify-content: space-between;
 }
 
-.page-main-header .main-header-right .left-menu-header .search-bg {
-  background: #f8fafc;
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  border-radius: 999px;
-  padding: 0 10px;
+.page-main-header .main-header-right .main-header-left {
+  flex: 0 0 auto;
 }
 
-.page-main-header .main-header-right .left-menu-header .search-bg i {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.page-main-header .main-header-right .left-menu-header .search-bg input {
-  height: 36px;
-  padding: 0 12px;
-  color: #1f2937;
-  font-size: 12px;
+.page-main-header .main-header-right .nav-right {
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .page-main-header .main-header-right .nav-right .nav-menus {

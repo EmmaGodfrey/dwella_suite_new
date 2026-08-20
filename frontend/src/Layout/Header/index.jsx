@@ -3,7 +3,6 @@ import React, { Fragment, useState, useEffect, useLayoutEffect } from 'react';
 import { MoreHorizontal } from 'react-feather';
 import Leftbar from './LeftBar';
 import Rightbar from './RightBar';
-import Searchbar from './Search';
 import { Row } from 'reactstrap';
 import { useContext } from 'react';
 import CustomizerContext from '../../_helper/Customizer';
@@ -50,7 +49,6 @@ const Header = () => {
             <div className={`page-main-header ${toggleIcon ? 'close_icon' : ''}`}>
                 <Row className="main-header-right m-0">
                     <Leftbar sidebartoogle={sidebartoogle} setSidebartoogle={setSidebartoogle} />
-                    <Searchbar />
                     <Rightbar />
                     <div className="d-lg-none mobile-toggle pull-right w-auto" onClick={() => toggleResp(!toggle)}>
                         <MoreHorizontal />
