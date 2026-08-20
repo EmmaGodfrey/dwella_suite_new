@@ -241,15 +241,18 @@ h6,
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 44px;
   width: 44px;
+  min-width: 44px;
   height: 44px;
   min-height: 44px;
   margin: 0 auto;
-  padding: 0;
+  padding: 0 !important;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu > li > a svg {
-  margin-right: 0;
+  display: block;
+  margin: 0 !important;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .main-navbar .nav-menu {
@@ -335,16 +338,33 @@ h6,
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu {
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu > li.dropdown {
+  display: flex;
+  justify-content: center;
   margin-bottom: 9px;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link {
+  align-items: center;
+  gap: 0;
+  justify-content: center;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link svg {
+  height: 18px;
+  width: 18px;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link span {
   max-width: 0;
+  min-width: 0;
+  width: 0;
+  margin: 0;
+  padding: 0;
   opacity: 0;
   transform: translateX(-8px);
 }
