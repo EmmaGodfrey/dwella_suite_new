@@ -1,12 +1,15 @@
 import React, { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { LI, UL, H6 } from '../../AbstractElements';
 import { MENUITEMS } from './Menu';
 import { Label } from 'reactstrap';
 
 const SidebarMenuItems = ({ setMainMenu, sidebartoogle, setNavActive }) => {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+
+  const isCurrentPath = (path) => path && (pathname === path || pathname.startsWith(`${path}/`));
 
   const toggletNavActive = (item) => {
 
@@ -73,7 +76,7 @@ const SidebarMenuItems = ({ setMainMenu, sidebartoogle, setNavActive }) => {
                   <Link
                     to={menuItem.path}
                     id="nav-link"
-                    className={`nav-link menu-title ${menuItem.active ? 'active' : ''
+                    className={`nav-link menu-title ${isCurrentPath(menuItem.path) ? 'active' : ''
                       }`}
                     onClick={() => toggletNavActive(menuItem)}
                   >

@@ -103,17 +103,33 @@ h6,
 }
 
 .page-main-header .main-header-right .left-menu-header {
+  max-width: 360px;
   padding: 10px 14px !important;
+}
+
+.page-main-header .main-header-right .left-menu-header .search-bg {
+  background: #f8fafc;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 999px;
+  padding: 0 10px;
+}
+
+.page-main-header .main-header-right .left-menu-header .search-bg i {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .page-main-header .main-header-right .left-menu-header .search-bg input {
   height: 36px;
   padding: 0 12px;
+  color: #1f2937;
+  font-size: 12px;
 }
 
 .page-main-header .main-header-right .nav-right .nav-menus {
   align-items: center;
-  padding: 10px 20px !important;
+  gap: 8px;
+  padding: 10px 18px !important;
   min-height: var(--dwella-header-height);
 }
 
@@ -123,12 +139,36 @@ h6,
 }
 
 .page-main-header .main-header-right .nav-right .nav-menus svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
+}
+
+.page-main-header .main-header-right .nav-right .nav-menus > li {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-main-header .main-header-right .nav-right .notification-box,
+.page-main-header .main-header-right .nav-right .mode {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 50%;
+  color: #334155;
 }
 
 .page-main-header .main-header-right .nav-right .onhover-show-div {
   top: 42px;
+}
+
+.dwella-notification-empty {
+  color: #64748b;
+  text-align: center;
 }
 
 .card {
@@ -194,7 +234,10 @@ h6,
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0 auto;
   padding: 0;
 }
 
@@ -272,8 +315,16 @@ h6,
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link.active {
-  background: rgba(32, 178, 170, 0.12);
-  color: #1d7f78;
+  background: rgba(32, 178, 170, 0.14) !important;
+  color: #13766f !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav .nav-menu .nav-link.active svg {
+  color: #13766f !important;
+}
+
+.page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .nav-menu .nav-link.active {
+  border-radius: 10px !important;
 }
 
 .page-wrapper.compact-wrapper .page-body-wrapper header.main-nav.close_icon .main-navbar .nav-menu {
