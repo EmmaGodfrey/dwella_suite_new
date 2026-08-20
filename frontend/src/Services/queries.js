@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { apiRequest, getApiBaseUrl } from "./apiClient";
 import { queryKeys } from "./queryKeys";
@@ -36,6 +36,16 @@ export function useCurrentUserQuery(options = {}) {
   return useQuery({
     queryKey: queryKeys.currentUser,
     queryFn: () => apiRequest("/accounts/me/"),
+    ...options,
+  });
+}
+
+export function useDashboardSummaryQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.dashboardSummary,
+    queryFn: () => apiRequest("/properties/dashboard/"),
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
     ...options,
   });
 }
