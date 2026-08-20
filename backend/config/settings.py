@@ -12,6 +12,7 @@ ROOT_DIR = BASE_DIR.parent
 SECRET_KEY = __import__("os").getenv("APP_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("APP_DEBUG", False)
 ALLOWED_HOSTS = env_list("APP_ALLOWED_HOSTS", "localhost,127.0.0.1")
+CSRF_TRUSTED_ORIGINS = env_list("APP_CSRF_TRUSTED_ORIGINS", "")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -53,6 +54,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.common.middleware.SecurityHeadersMiddleware",
     "apps.audit.middleware.RequestAuditContextMiddleware",
 ]
 
@@ -86,7 +88,10 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 10},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -101,6 +106,31 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = __import__("os").getenv("MEDIA_URL", "/media/")
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+EMAIL_BACKEND = __import__("os").getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+EMAIL_HOST = __import__("os").getenv("EMAIL_HOST", "localhost")
+EMAIL_PORT = int(__import__("os").getenv("EMAIL_PORT", "1025"))
+EMAIL_HOST_USER = __import__("os").getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = __import__("os").getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
+FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_SSL_REDIRECT = env_bool("APP_SECURE_SSL_REDIRECT", False)
+SESSION_COOKIE_SECURE = env_bool("APP_COOKIE_SECURE", False)
+CSRF_COOKIE_SECURE = env_bool("APP_COOKIE_SECURE", False)
+CONTENT_SECURITY_POLICY = __import__("os").getenv(
+    "CONTENT_SECURITY_POLICY",
+    "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+)
 
 CORS_ALLOWED_ORIGINS = env_list(
     "APP_CORS_ALLOWED_ORIGINS",
@@ -119,8 +149,24 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_RENDERER_CLASSES": [
+        "apps.common.responses.EnvelopedJSONRenderer",
+    ],
+    "EXCEPTION_HANDLER": "apps.common.responses.api_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.StandardPageNumberPagination",
     "PAGE_SIZE": 50,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
+        "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
+        "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
+        "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
+        "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
+    },
 }
 
 SPECTACULAR_SETTINGS = {

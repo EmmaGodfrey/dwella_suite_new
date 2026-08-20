@@ -39,8 +39,21 @@ export async function apiRequest(path, options = {}) {
   const payload = contentType.includes("application/json") ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const message = typeof payload === "object" ? payload.detail || payload.message : payload;
+    const message =
+      typeof payload === "object"
+        ? payload.response_message || payload.detail || payload.message
+        : payload;
     throw new Error(message || "Request failed");
+  }
+
+  if (payload && typeof payload === "object" && "response_data" in payload) {
+    if (payload.pagination) {
+      return {
+        results: payload.response_data,
+        pagination: payload.pagination,
+      };
+    }
+    return payload.response_data;
   }
 
   return payload;
