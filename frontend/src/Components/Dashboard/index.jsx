@@ -55,7 +55,7 @@ const emptySummary = {
 const MetricCard = ({ icon: Icon, label, value, detail, tone = "primary" }) => (
   <Card className="dwella-metric-card height-equal">
     <CardBody>
-      <div className={`dwella-metric-icon bg-${tone}`}>
+      <div className={`dwella-metric-icon dwella-metric-icon-${tone}`}>
         <Icon color="#fff" size={18} />
       </div>
       <div className="dwella-metric-content">
