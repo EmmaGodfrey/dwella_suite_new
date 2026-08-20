@@ -1,4 +1,5 @@
 import React, { Fragment, useState, useContext } from "react";
+import { Moon, Sun } from "react-feather";
 import { LI } from "../../../AbstractElements";
 import ConfigDB from "../../../Config/ThemeConfig";
 import CustomizerContext from "../../../_helper/Customizer";
@@ -28,9 +29,15 @@ const MoonLight = () => {
   return (
     <Fragment>
       <LI>
-        <div className="mode" onClick={() => MoonlightToggle(moonlight)}>
-          {moonlight ? <i className="fa fa-lightbulb-o"></i> : <i className="fa fa-moon-o"></i>}
-        </div>
+        <button
+          className="mode"
+          type="button"
+          onClick={() => MoonlightToggle(moonlight)}
+          aria-label={moonlight ? "Switch to light theme" : "Switch to dark theme"}
+          title={moonlight ? "Light theme" : "Dark theme"}
+        >
+          {moonlight ? <Sun /> : <Moon />}
+        </button>
       </LI>
     </Fragment>
   );
