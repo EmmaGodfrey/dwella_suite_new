@@ -6,7 +6,7 @@ import CheckContext from '../../_helper/Customizer';
 
 const Leftbar = () => {
 
-    const { mixLayout, toggleSidebar } = useContext(CheckContext);
+    const { toggleSidebar } = useContext(CheckContext);
     const [toggle, setToggle] = useState(false);
 
 
@@ -19,19 +19,11 @@ const Leftbar = () => {
     return (
         <Fragment>
             <div className="main-header-left">
-                {mixLayout ?
-                    <div className="logo-wrapper">
-                        <Link className="dwella-brand-link" to={`/dashboard`}>
-                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/dwella-wordmark.png')}`, alt: 'Dwella Suite' }} />
-                        </Link>
-                    </div>
-                    :
-                    <div className="dark-logo-wrapper">
-                        <Link className="dwella-brand-link" to={`/dashboard`}>
-                            <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/dwella-wordmark.png')}`, alt: 'Dwella Suite' }} />
-                        </Link>
-                    </div>
-                }
+                <div className="logo-wrapper">
+                    <Link className="dwella-brand-link" to={`/dashboard`}>
+                        <Image attrImage={{ className: 'img-fluid d-inline dwella-header-logo', src: `${('/assets/images/logo/dwella-wordmark.png')}`, alt: 'Dwella Suite' }} />
+                    </Link>
+                </div>
                 <div className="toggle-sidebar" onClick={() => openCloseSidebar()}>
                     <Menu className="status_toggle middle" id="sidebar-toggle" />
                 </div>

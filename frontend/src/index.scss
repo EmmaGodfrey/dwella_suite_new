@@ -134,6 +134,7 @@ h6,
   height: var(--dwella-header-height);
   min-height: var(--dwella-header-height);
   padding: 10px 18px !important;
+  position: relative;
   transition:
     width var(--dwella-shell-transition),
     padding var(--dwella-shell-transition);
@@ -148,6 +149,7 @@ h6,
 
 .page-main-header .main-header-right .main-header-left {
   flex: 0 0 auto;
+  justify-content: center;
 }
 
 .page-main-header .main-header-right .nav-right {
@@ -245,10 +247,23 @@ h6,
   object-fit: contain;
 }
 
+.page-main-header .main-header-left .logo-wrapper,
+.page-main-header .main-header-left .dark-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .dwella-brand-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-width: 0;
+}
+
+.page-main-header .main-header-left .toggle-sidebar {
+  position: absolute;
+  right: 18px;
 }
 
 .dwella-sidebar-logo {
@@ -760,6 +775,181 @@ body.dark-only .dwella-dashboard .table > :not(caption) > * > * {
   line-height: 1.25;
 }
 
+.dwella-properties .card,
+.dwella-themed-modal .modal-content {
+  border: 1px solid var(--dwella-border);
+  background: var(--dwella-surface) !important;
+  background-color: var(--dwella-surface) !important;
+  box-shadow: var(--dwella-shadow);
+  color: var(--dwella-text);
+}
+
+.dwella-properties .card-header,
+.dwella-properties .card-body,
+.dwella-properties .table,
+.dwella-themed-modal .modal-header,
+.dwella-themed-modal .modal-body,
+.dwella-themed-modal .modal-footer {
+  background: var(--dwella-surface) !important;
+  background-color: var(--dwella-surface) !important;
+  color: var(--dwella-text);
+}
+
+.dwella-themed-modal .modal-header,
+.dwella-themed-modal .modal-footer {
+  border-color: var(--dwella-border-soft);
+}
+
+.dwella-themed-modal .btn-close {
+  filter: none;
+}
+
+body.dark-only .dwella-themed-modal .btn-close {
+  filter: invert(1) grayscale(100%);
+}
+
+.dwella-properties .text-muted {
+  color: var(--dwella-text-muted) !important;
+}
+
+.dwella-properties .table > :not(caption) > * > * {
+  border-color: var(--dwella-border-soft);
+  color: var(--dwella-text);
+}
+
+.dwella-property-stat .card-body {
+  display: grid;
+  gap: 7px;
+  min-height: 108px;
+}
+
+.dwella-property-stat svg {
+  color: var(--dwella-accent-strong);
+}
+
+.dwella-property-stat span,
+.dwella-property-card span,
+.dwella-property-card small {
+  color: var(--dwella-text-muted);
+  font-size: 11px;
+}
+
+.dwella-property-stat h5 {
+  margin-bottom: 0;
+  font-size: 20px;
+}
+
+.dwella-property-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(140px, 0.6fr) minmax(140px, 0.6fr) minmax(130px, 0.55fr) auto auto auto;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.dwella-property-search {
+  position: relative;
+}
+
+.dwella-property-search svg {
+  color: var(--dwella-text-muted);
+  left: 12px;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.dwella-property-search .form-control {
+  padding-left: 34px;
+}
+
+.dwella-properties .form-control,
+.dwella-properties .form-select,
+.dwella-themed-modal .form-control,
+.dwella-themed-modal .form-select {
+  border-color: var(--dwella-border);
+  background-color: var(--dwella-surface-subtle);
+  color: var(--dwella-text);
+}
+
+.dwella-properties .form-control::placeholder,
+.dwella-themed-modal .form-control::placeholder {
+  color: var(--dwella-text-muted);
+}
+
+.dwella-icon-button {
+  align-items: center;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.dwella-property-add {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.dwella-property-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dwella-property-card {
+  border: 1px solid var(--dwella-border);
+  border-radius: 8px;
+  background: var(--dwella-surface-subtle);
+  padding: 14px;
+}
+
+.dwella-property-card > div {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.dwella-property-card h5 {
+  margin-bottom: 6px;
+}
+
+.dwella-empty-state {
+  align-items: center;
+  border: 1px dashed var(--dwella-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 30px 18px;
+  text-align: center;
+}
+
+.dwella-empty-state svg {
+  color: var(--dwella-accent-strong);
+}
+
+.dwella-empty-state .btn {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
+}
+
+@media (max-width: 1199px) {
+  .dwella-property-toolbar {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .dwella-property-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 575px) {
   .dwella-header-logo {
     width: 96px;
@@ -775,5 +965,14 @@ body.dark-only .dwella-dashboard .table > :not(caption) > * > * {
 
   .dwella-mini-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dwella-property-toolbar,
+  .dwella-property-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dwella-property-add {
+    width: 100%;
   }
 }

@@ -124,6 +124,7 @@ export function useCreatePropertyMutation(options = {}) {
     mutationFn: (payload) => api.post("/properties/", payload),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
