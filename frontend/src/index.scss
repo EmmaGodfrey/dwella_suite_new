@@ -976,3 +976,647 @@ body.dark-only .dwella-themed-modal .btn-close {
     width: 100%;
   }
 }
+
+/* Dwella product shell */
+:root {
+  --dwella-primary: #1c493f;
+  --dwella-primary-dark: #0a211d;
+  --dwella-primary-soft: #e7f0ed;
+  --dwella-secondary: #dfa63a;
+  --dwella-secondary-soft: #fff8e8;
+  --dwella-ink: #12231f;
+  --dwella-muted: #66756f;
+  --dwella-subtle: #8a9994;
+  --dwella-line: #d6dfdb;
+  --dwella-line-soft: #e8eeeb;
+  --dwella-paper: #ffffff;
+  --dwella-wash: #f7f9f8;
+  --dwella-danger: #c84f4f;
+  --dwella-success: #208a61;
+  --dwella-sidebar-width: 252px;
+  --dwella-sidebar-collapsed: 78px;
+}
+
+body,
+.App {
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--dwella-ink);
+  background: var(--dwella-wash);
+  font-family: "DM Sans", "Inter", "Segoe UI", sans-serif;
+  font-size: 13px;
+}
+
+body.dark-only {
+  --dwella-primary-soft: rgba(50, 113, 101, 0.2);
+  --dwella-secondary-soft: rgba(223, 166, 58, 0.14);
+  --dwella-ink: #f8fafc;
+  --dwella-muted: #aab8b4;
+  --dwella-subtle: #7f908a;
+  --dwella-line: rgba(231, 240, 237, 0.14);
+  --dwella-line-soft: rgba(231, 240, 237, 0.09);
+  --dwella-paper: #151c1a;
+  --dwella-wash: #0f1514;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.dwella-app-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(231, 240, 237, 0.72), transparent 360px), var(--dwella-wash);
+}
+
+body.dark-only .dwella-app-shell {
+  background: linear-gradient(180deg, rgba(28, 73, 63, 0.18), transparent 360px), var(--dwella-wash);
+}
+
+.dwella-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1030;
+  width: var(--dwella-sidebar-width);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  background: var(--dwella-primary-dark);
+  color: #f6fbf8;
+  transition: width 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dwella-sidebar-brand {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dwella-sidebar-brand a {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.dwella-brand-mark {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.dwella-brand-mark img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.dwella-brand-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.18s ease;
+}
+
+.dwella-brand-copy strong {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.dwella-brand-copy small {
+  margin-top: 3px;
+  color: #87a29b;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dwella-sidebar-close,
+.dwella-mobile-menu,
+.dwella-icon-action,
+.dwella-collapse-button,
+.dwella-nav-scrim {
+  border: 0;
+  background: transparent;
+}
+
+.dwella-sidebar-close {
+  display: none;
+  margin-left: auto;
+  color: #9ab0aa;
+}
+
+.dwella-sidebar-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 18px;
+}
+
+.dwella-nav-section {
+  margin: 12px 10px 8px;
+  color: #66837c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: opacity 0.18s ease;
+}
+
+.dwella-nav-item {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px;
+  color: #91a7a1;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.dwella-nav-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateX(2px);
+}
+
+.dwella-nav-item.active {
+  color: #fff;
+  background: var(--dwella-primary);
+  box-shadow: inset 3px 0 0 var(--dwella-secondary);
+}
+
+.dwella-nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+.dwella-nav-item span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: opacity 0.18s ease;
+}
+
+.dwella-sidebar-footer {
+  display: grid;
+  gap: 10px;
+}
+
+.dwella-plan-card {
+  padding: 13px;
+  display: grid;
+  gap: 3px;
+  color: #cfe1dc;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  transition: opacity 0.18s ease;
+}
+
+.dwella-plan-card span,
+.dwella-plan-card small {
+  color: #829b95;
+  font-size: 10px;
+}
+
+.dwella-plan-card strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dwella-collapse-button {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #b6ccc6;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dwella-main-frame {
+  min-height: 100vh;
+  margin-left: var(--dwella-sidebar-width);
+  transition: margin-left 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dwella-topbar {
+  min-height: 74px;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 28px;
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--dwella-line);
+  backdrop-filter: blur(14px);
+}
+
+body.dark-only .dwella-topbar {
+  background: rgba(15, 21, 20, 0.88);
+}
+
+.dwella-mobile-menu {
+  width: 40px;
+  height: 40px;
+  display: none;
+  place-items: center;
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line);
+  border-radius: 10px;
+}
+
+.dwella-page-title {
+  min-width: 0;
+}
+
+.dwella-page-title span {
+  display: block;
+  margin-bottom: 3px;
+  color: #9a7128;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dwella-page-title h1 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: 22px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.dwella-page-title p {
+  margin: 3px 0 0;
+  color: var(--dwella-muted);
+  font-size: 12px;
+}
+
+.dwella-topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.dwella-icon-action {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  color: var(--dwella-muted);
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line);
+  border-radius: 10px;
+}
+
+.dwella-icon-action i {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 7px;
+  height: 7px;
+  background: var(--dwella-secondary);
+  border: 1px solid var(--dwella-paper);
+  border-radius: 999px;
+}
+
+.dwella-user-menu {
+  position: relative;
+}
+
+.dwella-user-trigger {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 8px 4px 5px;
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line);
+  border-radius: 12px;
+}
+
+.dwella-user-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: var(--dwella-primary);
+  background: var(--dwella-primary-soft);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dwella-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dwella-user-trigger > span:nth-child(2) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.dwella-user-trigger strong {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--dwella-ink);
+  font-size: 12px;
+  line-height: 1.15;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dwella-user-trigger small {
+  margin-top: 2px;
+  color: var(--dwella-muted);
+  font-size: 10px;
+}
+
+.dwella-user-dropdown {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 1050;
+  min-width: 190px;
+  padding: 7px;
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(10, 33, 29, 0.16);
+}
+
+.dwella-user-dropdown a,
+.dwella-user-dropdown button {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  color: var(--dwella-ink);
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: none;
+}
+
+.dwella-user-dropdown a:hover,
+.dwella-user-dropdown button:hover {
+  background: var(--dwella-primary-soft);
+}
+
+.dwella-user-dropdown button {
+  color: var(--dwella-danger);
+}
+
+.dwella-content {
+  width: min(100%, 1500px);
+  margin: 0 auto;
+  padding: 26px 28px 48px;
+}
+
+.dwella-content > .page-title,
+.dwella-content .breadcrumb,
+.dwella-content .page-header,
+.dwella-content .page-title .breadcrumb {
+  display: none !important;
+}
+
+.dwella-content .container-fluid {
+  padding: 0;
+}
+
+.dwella-content .row {
+  margin-right: -8px;
+  margin-left: -8px;
+}
+
+.dwella-content [class*="col-"],
+.dwella-content .col {
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.dwella-content .card {
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line);
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(10, 33, 29, 0.06);
+}
+
+body.dark-only .dwella-content .card {
+  box-shadow: none;
+}
+
+.dwella-content .card-header {
+  padding: 18px 18px 0;
+  background: transparent;
+  border: 0;
+}
+
+.dwella-content .card-header h5,
+.dwella-content .card h4,
+.dwella-content .card h5 {
+  color: var(--dwella-ink);
+}
+
+.dwella-content .card-header span,
+.dwella-content .text-muted,
+.dwella-content p {
+  color: var(--dwella-muted) !important;
+}
+
+.dwella-content .card-body {
+  padding: 18px;
+}
+
+.dwella-content .table {
+  color: var(--dwella-ink);
+}
+
+.dwella-content .table thead th {
+  color: var(--dwella-subtle);
+  background: var(--dwella-primary-soft);
+  border-bottom: 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dwella-content .table td {
+  border-color: var(--dwella-line-soft);
+  color: var(--dwella-ink);
+  font-size: 12px;
+}
+
+.dwella-content .form-control,
+.dwella-content .form-select {
+  min-height: 38px;
+  color: var(--dwella-ink);
+  background-color: var(--dwella-paper);
+  border-color: var(--dwella-line);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.dwella-content .form-control:focus,
+.dwella-content .form-select:focus {
+  border-color: var(--dwella-primary);
+  box-shadow: 0 0 0 3px rgba(28, 73, 63, 0.14);
+}
+
+.dwella-content .btn {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dwella-content .btn-primary {
+  background: var(--dwella-primary) !important;
+  border-color: var(--dwella-primary) !important;
+}
+
+.dwella-content .btn-light,
+.dwella-content .btn-outline-primary {
+  color: var(--dwella-primary) !important;
+  background: var(--dwella-primary-soft) !important;
+  border-color: transparent !important;
+}
+
+.dwella-app-shell.is-collapsed .dwella-sidebar {
+  width: var(--dwella-sidebar-collapsed);
+}
+
+.dwella-app-shell.is-collapsed .dwella-main-frame {
+  margin-left: var(--dwella-sidebar-collapsed);
+}
+
+.dwella-app-shell.is-collapsed .dwella-brand-copy,
+.dwella-app-shell.is-collapsed .dwella-nav-section,
+.dwella-app-shell.is-collapsed .dwella-nav-item span,
+.dwella-app-shell.is-collapsed .dwella-plan-card,
+.dwella-app-shell.is-collapsed .dwella-collapse-button span {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dwella-app-shell.is-collapsed .dwella-sidebar-brand,
+.dwella-app-shell.is-collapsed .dwella-nav-item,
+.dwella-app-shell.is-collapsed .dwella-collapse-button {
+  justify-content: center;
+}
+
+.dwella-app-shell.is-collapsed .dwella-nav-item {
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .dwella-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .dwella-app-shell.nav-open .dwella-sidebar {
+    transform: translateX(0);
+  }
+
+  .dwella-app-shell.is-collapsed .dwella-sidebar {
+    width: var(--dwella-sidebar-width);
+  }
+
+  .dwella-app-shell.is-collapsed .dwella-brand-copy,
+  .dwella-app-shell.is-collapsed .dwella-nav-section,
+  .dwella-app-shell.is-collapsed .dwella-nav-item span,
+  .dwella-app-shell.is-collapsed .dwella-plan-card,
+  .dwella-app-shell.is-collapsed .dwella-collapse-button span {
+    width: auto;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dwella-main-frame,
+  .dwella-app-shell.is-collapsed .dwella-main-frame {
+    margin-left: 0;
+  }
+
+  .dwella-sidebar-close,
+  .dwella-mobile-menu {
+    display: grid;
+  }
+
+  .dwella-nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1025;
+    background: rgba(10, 33, 29, 0.52);
+  }
+
+  .dwella-content {
+    padding: 20px 16px 38px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-topbar {
+    align-items: flex-start;
+    padding: 12px 14px;
+  }
+
+  .dwella-page-title p,
+  .dwella-user-trigger > span:nth-child(2),
+  .dwella-user-trigger svg {
+    display: none;
+  }
+
+  .dwella-page-title h1 {
+    font-size: 18px;
+  }
+
+  .dwella-topbar-actions {
+    gap: 6px;
+  }
+}
