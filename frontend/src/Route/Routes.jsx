@@ -1,7 +1,6 @@
 //Pages
 import Dashboard from "../Components/Dashboard";
 import ModulePlaceholder from "../Components/ModulePlaceholder";
-import SamplePage from "../Components/Pages/Sample";
 import Properties from "../Components/Properties";
 import Profile from "../Components/Profile";
 import Security from "../Components/Security";
@@ -61,5 +60,4 @@ export const routes = [
     description: "Two-factor authentication and account protection.",
     Component: <Security />,
   },
-  { path: `/pages/sample-page`, title: "Sample", description: "Template reference page.", Component: <SamplePage /> },
 ];

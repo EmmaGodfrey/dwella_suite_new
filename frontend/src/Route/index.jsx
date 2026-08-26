@@ -2,7 +2,6 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Signin from "../Auth/Signin";
-import Loader from "../Layout/Loader";
 import LayoutRoutes from "../Route/LayoutRoutes";
 import PrivateRoute from "./PrivateRoute";
 
@@ -14,7 +13,7 @@ const Routers = () => {
     let abortController = new AbortController();
     setAuthenticated(JSON.parse(localStorage.getItem("authenticated")));
     console.ignoredYellowBox = ["Warning: Each", "Warning: Failed"];
-    console.disableYellowBox = true;
+        console.disableYellowBox = true;
     return () => {
       abortController.abort();
     };
@@ -23,7 +22,7 @@ const Routers = () => {
   return (
     <BrowserRouter basename={"/"}>
       <>
-        <Suspense fallback={<Loader />}>
+        <Suspense fallback={<div className="dwella-route-loading">Loading Dwella Suite</div>}>
           <Routes>
             <Route path={"/"} element={<PrivateRoute />}>
               {currentUser !== null || authenticated ? (

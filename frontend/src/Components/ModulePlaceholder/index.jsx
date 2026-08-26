@@ -1,28 +1,21 @@
-import React, { Fragment } from "react";
-import { Card, CardBody, Col, Container, Row } from "reactstrap";
-
-import { Breadcrumbs, P } from "../../AbstractElements";
-import HeaderCard from "../Common/Component/HeaderCard";
+import React from "react";
+import { ArrowRight, Clock } from "react-feather";
 
 const ModulePlaceholder = ({ title, description }) => (
-  <Fragment>
-    <Breadcrumbs mainTitle={title} parent="Dwella Suite" title={title} />
-    <Container fluid={true}>
-      <Row>
-        <Col sm="12">
-          <Card>
-            <HeaderCard title={title} span1={description} />
-            <CardBody>
-              <P>
-                This module is part of the Dwella Suite roadmap. Its backend app exists and will follow the same
-                API client, TanStack Query, and template-component pattern as the dashboard and properties flow.
-              </P>
-            </CardBody>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  </Fragment>
+  <div className="dwella-screen">
+    <section className="dwella-card dwella-module-placeholder">
+      <span><Clock size={22} /></span>
+      <div>
+        <p className="dwella-kicker">Module workspace</p>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+      <button className="dwella-secondary-action" type="button">
+        Coming next
+        <ArrowRight size={15} />
+      </button>
+    </section>
+  </div>
 );
 
 export default ModulePlaceholder;

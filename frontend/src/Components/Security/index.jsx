@@ -1,15 +1,9 @@
-import React, { Fragment, useState } from "react";
-import { Alert, Card, CardBody, Col, Container, FormGroup, Input, Label, Row } from "reactstrap";
+import React, { useState } from "react";
+import { Key, Shield, ShieldOff } from "react-feather";
 import { toast } from "react-toastify";
 
-import { Breadcrumbs, Btn, H4, P } from "../../AbstractElements";
-import HeaderCard from "../Common/Component/HeaderCard";
 import { useCurrentUserQuery } from "../../Services/queries";
-import {
-  useTwoFactorDisableMutation,
-  useTwoFactorSetupMutation,
-  useTwoFactorSetupVerifyMutation,
-} from "../../Services/mutations";
+import { useTwoFactorDisableMutation, useTwoFactorSetupMutation, useTwoFactorSetupVerifyMutation } from "../../Services/mutations";
 
 const Security = () => {
   const [setup, setSetup] = useState(null);
@@ -33,51 +27,51 @@ const Security = () => {
   });
 
   return (
-    <Fragment>
-      <Breadcrumbs mainTitle="Security" parent="Dwella Suite" title="Security" />
-      <Container fluid={true}>
-        <Row>
-          <Col xl="7">
-            <Card>
-              <HeaderCard title="Account Protection" span1="Manage sign-in protections for your admin account." />
-              <CardBody>
-                <div className="d-flex justify-content-between align-items-start gap-3">
-                  <div>
-                    <H4>Two-Factor Authentication</H4>
-                    <P>{user?.has_two_factor ? "2FA is enabled for this account." : "Add an authenticator code before account access is granted."}</P>
-                  </div>
-                  {user?.has_two_factor ? (
-                    <Btn attrBtn={{ color: "outline-danger", disabled: disableMutation.isPending, onClick: () => disableMutation.mutate() }}>
-                      Disable
-                    </Btn>
-                  ) : (
-                    <Btn attrBtn={{ color: "primary", disabled: setupMutation.isPending, onClick: () => setupMutation.mutate() }}>
-                      {setupMutation.isPending ? "Starting..." : "Set Up 2FA"}
-                    </Btn>
-                  )}
-                </div>
-                {setup && (
-                  <div className="mt-4">
-                    <Alert color="light" className="border">
-                      <strong>Secret:</strong> <code>{setup.secret}</code>
-                      <br />
-                      <strong>Authenticator URI:</strong> <code className="text-break">{setup.provisioning_uri}</code>
-                    </Alert>
-                    <FormGroup>
-                      <Label>6-digit code</Label>
-                      <Input inputMode="numeric" maxLength="6" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} />
-                    </FormGroup>
-                    <Btn attrBtn={{ color: "primary", disabled: verifyMutation.isPending, onClick: () => verifyMutation.mutate({ code }) }}>
-                      {verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}
-                    </Btn>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </Fragment>
+    <div className="dwella-screen dwella-security-screen">
+      <section className="dwella-card dwella-panel security-panel">
+        <header className="dwella-panel-heading">
+          <div>
+            <h2>Account Protection</h2>
+            <p>Manage sign-in protections for your admin account.</p>
+          </div>
+          <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>
+            {user?.has_two_factor ? <Shield size={22} /> : <ShieldOff size={22} />}
+          </span>
+        </header>
+        <div className="dwella-security-row">
+          <div>
+            <h3>Two-Factor Authentication</h3>
+            <p>{user?.has_two_factor ? "2FA is enabled for this account." : "Add an authenticator code before account access is granted."}</p>
+          </div>
+          {user?.has_two_factor ? (
+            <button className="dwella-danger-action" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()} type="button">
+              Disable
+            </button>
+          ) : (
+            <button className="dwella-primary-action compact" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()} type="button">
+              {setupMutation.isPending ? "Starting..." : "Set Up 2FA"}
+            </button>
+          )}
+        </div>
+
+        {setup ? (
+          <div className="dwella-setup-box">
+            <Key size={18} />
+            <div>
+              <p><strong>Secret:</strong> <code>{setup.secret}</code></p>
+              <p><strong>Authenticator URI:</strong> <code>{setup.provisioning_uri}</code></p>
+              <label className="dwella-field">
+                <span>6-digit code</span>
+                <input inputMode="numeric" maxLength="6" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} />
+              </label>
+              <button className="dwella-primary-action compact" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate({ code })} type="button">
+                {verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </section>
+    </div>
   );
 };
 

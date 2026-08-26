@@ -1,46 +1,28 @@
-import React, { Fragment, useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Card, CardBody, Col, Container, FormGroup, Input, Label, Row } from "reactstrap";
+import React, { useEffect, useMemo, useState } from "react";
 import { Camera, CheckCircle, Shield, Upload } from "react-feather";
 import { toast } from "react-toastify";
 
-import { Breadcrumbs, Btn, H4, H5, P } from "../../AbstractElements";
-import HeaderCard from "../Common/Component/HeaderCard";
 import { useCurrentUserQuery } from "../../Services/queries";
-import {
-  useAvatarUploadMutation,
-  useIdentityVerificationMutation,
-  useProfileUpdateMutation,
-} from "../../Services/mutations";
-
-const statusColor = {
-  approved: "success",
-  pending: "warning",
-  rejected: "danger",
-  not_submitted: "secondary",
-};
+import { useAvatarUploadMutation, useIdentityVerificationMutation, useProfileUpdateMutation } from "../../Services/mutations";
 
 const displayStatus = (value) => (value || "not_submitted").replace("_", " ");
-
 const validatePhone = (value) => {
   const cleaned = value.trim();
   if (!cleaned) return "";
   return /^\+?[0-9 ]{7,20}$/.test(cleaned) ? "" : "Enter a valid phone number.";
 };
 
+const Field = ({ label, children }) => (
+  <label className="dwella-field">
+    <span>{label}</span>
+    {children}
+  </label>
+);
+
 const Profile = () => {
   const { data: user, isLoading, isError, error } = useCurrentUserQuery();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    phoneNumber: "",
-    jobTitle: "",
-  });
-  const [verification, setVerification] = useState({
-    legalName: "",
-    documentType: "nrc",
-    documentNumber: "",
-    documentImage: null,
-  });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phoneNumber: "", jobTitle: "" });
+  const [verification, setVerification] = useState({ legalName: "", documentType: "nrc", documentNumber: "", documentImage: null });
 
   useEffect(() => {
     if (!user) return;
@@ -54,12 +36,7 @@ const Profile = () => {
 
   const initials = useMemo(() => {
     const source = `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email || "DS";
-    return source
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    return source.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   }, [user]);
 
   const profileMutation = useProfileUpdateMutation({
@@ -78,14 +55,8 @@ const Profile = () => {
   const submitProfile = (event) => {
     event.preventDefault();
     const phoneError = validatePhone(form.phoneNumber);
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      toast.error("First and last name are required.");
-      return;
-    }
-    if (phoneError) {
-      toast.error(phoneError);
-      return;
-    }
+    if (!form.firstName.trim() || !form.lastName.trim()) return toast.error("First and last name are required.");
+    if (phoneError) return toast.error(phoneError);
     profileMutation.mutate({
       first_name: form.firstName.trim(),
       last_name: form.lastName.trim(),
@@ -96,168 +67,91 @@ const Profile = () => {
 
   const submitVerification = (event) => {
     event.preventDefault();
-    if (verification.legalName.trim().split(" ").length < 2) {
-      toast.error("Enter your full legal name.");
-      return;
-    }
-    if (verification.documentNumber.trim().length < 4) {
-      toast.error("Document number is too short.");
-      return;
-    }
-    if (!verification.documentImage) {
-      toast.error("Attach a document image.");
-      return;
-    }
+    if (verification.legalName.trim().split(" ").length < 2) return toast.error("Enter your full legal name.");
+    if (verification.documentNumber.trim().length < 4) return toast.error("Document number is too short.");
+    if (!verification.documentImage) return toast.error("Attach a document image.");
     verificationMutation.mutate(verification);
   };
 
   const currentStatus = user?.identity_verification?.status || "not_submitted";
   const canSubmitVerification = !["approved", "pending"].includes(currentStatus);
+  const fullName = isLoading ? "Loading..." : `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
 
   return (
-    <Fragment>
-      <Breadcrumbs mainTitle="Profile" parent="Dwella Suite" title="Profile" />
-      <Container fluid={true}>
-        {isError ? <Alert color="danger">Unable to load profile: {error.message}</Alert> : null}
-        <Row>
-          <Col xl="4">
-            <Card>
-              <CardBody className="text-center">
-                <div className="mx-auto mb-3 rounded-circle overflow-hidden bg-primary d-flex align-items-center justify-content-center" style={{ width: 112, height: 112 }}>
-                  {user?.profile?.avatar_url ? (
-                    <img src={user.profile.avatar_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <span className="text-white fs-2 fw-semibold">{initials}</span>
-                  )}
-                </div>
-                <H4>{isLoading ? "Loading..." : `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email}</H4>
-                <P attrPara={{ className: "text-muted mb-3" }}>{user?.email}</P>
-                <Label className="btn btn-outline-primary mb-0">
-                  <Camera size={16} className="me-2" />
-                  Change Photo
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    className="d-none"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      if (file) avatarMutation.mutate(file);
-                    }}
-                  />
-                </Label>
-                <div className="mt-4 d-flex justify-content-center gap-2">
-                  <Badge color={user?.has_two_factor ? "success" : "secondary"}>
-                    2FA {user?.has_two_factor ? "enabled" : "off"}
-                  </Badge>
-                  <Badge color={statusColor[currentStatus]}>{displayStatus(currentStatus)}</Badge>
-                </div>
-              </CardBody>
-            </Card>
-          </Col>
-          <Col xl="8">
-            <Card>
-              <HeaderCard title="Account Details" span1="Keep your admin identity accurate for audit trails and ownership records." />
-              <CardBody>
-                <Row>
-                  <Col md="6">
-                    <FormGroup>
-                      <Label>First Name</Label>
-                      <Input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} />
-                    </FormGroup>
-                  </Col>
-                  <Col md="6">
-                    <FormGroup>
-                      <Label>Last Name</Label>
-                      <Input value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} />
-                    </FormGroup>
-                  </Col>
-                  <Col md="6">
-                    <FormGroup>
-                      <Label>Phone Number</Label>
-                      <Input value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} />
-                    </FormGroup>
-                  </Col>
-                  <Col md="6">
-                    <FormGroup>
-                      <Label>Role / Job Title</Label>
-                      <Input value={form.jobTitle} onChange={(event) => setForm({ ...form, jobTitle: event.target.value })} />
-                    </FormGroup>
-                  </Col>
-                </Row>
-                <Btn attrBtn={{ color: "primary", disabled: profileMutation.isPending, onClick: submitProfile }}>
-                  {profileMutation.isPending ? "Saving..." : "Save Profile"}
-                </Btn>
-              </CardBody>
-            </Card>
+    <div className="dwella-screen dwella-profile-screen">
+      {isError ? <div className="dwella-alert danger">Unable to load profile: {error.message}</div> : null}
+      <section className="dwella-profile-grid">
+        <aside className="dwella-card dwella-profile-summary">
+          <div className="dwella-profile-photo">
+            {user?.profile?.avatar_url ? <img src={user.profile.avatar_url} alt="Profile" /> : <span>{initials}</span>}
+          </div>
+          <h2>{fullName}</h2>
+          <p>{user?.email}</p>
+          <label className="dwella-secondary-action file-action">
+            <Camera size={16} />
+            Change Photo
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) avatarMutation.mutate(file);
+              }}
+            />
+          </label>
+          <div className="dwella-chip-row centered">
+            <span className={`dwella-chip ${user?.has_two_factor ? "managed" : "archived"}`}>2FA {user?.has_two_factor ? "enabled" : "off"}</span>
+            <span className={`dwella-chip ${currentStatus}`}>{displayStatus(currentStatus)}</span>
+          </div>
+        </aside>
 
-            <Card>
-              <HeaderCard title="Identity Verification" span1="Submit identity details so sensitive operations can require a verified person." />
-              <CardBody>
-                <div className="d-flex align-items-start gap-3 mb-4">
-                  <div className="bg-light rounded-circle d-flex align-items-center justify-content-center" style={{ width: 42, height: 42 }}>
-                    {currentStatus === "approved" ? <CheckCircle size={20} className="text-success" /> : <Shield size={20} className="text-primary" />}
-                  </div>
-                  <div>
-                    <H5 attrH5={{ className: "text-capitalize" }}>{displayStatus(currentStatus)}</H5>
-                    <P attrPara={{ className: "text-muted mb-0" }}>
-                      {currentStatus === "pending"
-                        ? "Your submitted details are awaiting review."
-                        : currentStatus === "approved"
-                          ? "Your identity has been verified."
-                          : "Submit your legal name and identity document for review."}
-                    </P>
-                    {user?.identity_verification?.rejection_reason ? (
-                      <Alert color="danger" className="mt-3 mb-0">
-                        {user.identity_verification.rejection_reason}
-                      </Alert>
-                    ) : null}
-                  </div>
-                </div>
+        <div className="dwella-profile-stack">
+          <form className="dwella-card dwella-panel" onSubmit={submitProfile}>
+            <header className="dwella-panel-heading">
+              <div><h2>Account Details</h2><p>Keep your admin identity accurate for audit trails and ownership records.</p></div>
+            </header>
+            <div className="dwella-form-grid two">
+              <Field label="First name"><input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} /></Field>
+              <Field label="Last name"><input value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} /></Field>
+              <Field label="Phone number"><input value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} /></Field>
+              <Field label="Role / job title"><input value={form.jobTitle} onChange={(event) => setForm({ ...form, jobTitle: event.target.value })} /></Field>
+            </div>
+            <footer><button className="dwella-primary-action compact" disabled={profileMutation.isPending}>{profileMutation.isPending ? "Saving..." : "Save Profile"}</button></footer>
+          </form>
 
-                {canSubmitVerification ? (
-                  <Row>
-                    <Col md="6">
-                      <FormGroup>
-                        <Label>Legal Name</Label>
-                        <Input value={verification.legalName} onChange={(event) => setVerification({ ...verification, legalName: event.target.value })} />
-                      </FormGroup>
-                    </Col>
-                    <Col md="6">
-                      <FormGroup>
-                        <Label>Document Type</Label>
-                        <Input type="select" value={verification.documentType} onChange={(event) => setVerification({ ...verification, documentType: event.target.value })}>
-                          <option value="nrc">NRC</option>
-                          <option value="passport">Passport</option>
-                          <option value="drivers_license">Driver's License</option>
-                        </Input>
-                      </FormGroup>
-                    </Col>
-                    <Col md="6">
-                      <FormGroup>
-                        <Label>Document Number</Label>
-                        <Input value={verification.documentNumber} onChange={(event) => setVerification({ ...verification, documentNumber: event.target.value })} />
-                      </FormGroup>
-                    </Col>
-                    <Col md="6">
-                      <FormGroup>
-                        <Label>Document Image</Label>
-                        <Input type="file" accept="image/*" onChange={(event) => setVerification({ ...verification, documentImage: event.target.files?.[0] || null })} />
-                      </FormGroup>
-                    </Col>
-                    <Col sm="12">
-                      <Btn attrBtn={{ color: "primary", disabled: verificationMutation.isPending, onClick: submitVerification }}>
-                        <Upload size={16} className="me-2" />
-                        {verificationMutation.isPending ? "Submitting..." : "Submit Verification"}
-                      </Btn>
-                    </Col>
-                  </Row>
-                ) : null}
-              </CardBody>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </Fragment>
+          <form className="dwella-card dwella-panel" onSubmit={submitVerification}>
+            <header className="dwella-panel-heading">
+              <div><h2>Identity Verification</h2><p>Submit identity details so sensitive operations can require a verified person.</p></div>
+            </header>
+            <div className="dwella-verification-state">
+              <span>{currentStatus === "approved" ? <CheckCircle size={20} /> : <Shield size={20} />}</span>
+              <div>
+                <h3>{displayStatus(currentStatus)}</h3>
+                <p>{currentStatus === "pending" ? "Your submitted details are awaiting review." : currentStatus === "approved" ? "Your identity has been verified." : "Submit your legal name and identity document for review."}</p>
+                {user?.identity_verification?.rejection_reason ? <div className="dwella-alert danger">{user.identity_verification.rejection_reason}</div> : null}
+              </div>
+            </div>
+            {canSubmitVerification ? (
+              <>
+                <div className="dwella-form-grid two">
+                  <Field label="Legal name"><input value={verification.legalName} onChange={(event) => setVerification({ ...verification, legalName: event.target.value })} /></Field>
+                  <Field label="Document type">
+                    <select value={verification.documentType} onChange={(event) => setVerification({ ...verification, documentType: event.target.value })}>
+                      <option value="nrc">NRC</option>
+                      <option value="passport">Passport</option>
+                      <option value="drivers_license">Driver's License</option>
+                    </select>
+                  </Field>
+                  <Field label="Document number"><input value={verification.documentNumber} onChange={(event) => setVerification({ ...verification, documentNumber: event.target.value })} /></Field>
+                  <Field label="Document image"><input type="file" accept="image/*" onChange={(event) => setVerification({ ...verification, documentImage: event.target.files?.[0] || null })} /></Field>
+                </div>
+                <footer><button className="dwella-primary-action compact" disabled={verificationMutation.isPending}><Upload size={16} />{verificationMutation.isPending ? "Submitting..." : "Submit Verification"}</button></footer>
+              </>
+            ) : null}
+          </form>
+        </div>
+      </section>
+    </div>
   );
 };
 

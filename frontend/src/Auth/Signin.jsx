@@ -1,18 +1,24 @@
-import React, { Fragment, useMemo, useState } from "react";
-import { Col, Form, FormGroup, Input, Label, Row } from "reactstrap";
-import { Btn, H4, P } from "../AbstractElements";
-import { EmailAddress, ForgotPassword, Password, RememberPassword } from "../Constant";
-import { toast } from "react-toastify";
+import React, { useMemo, useState } from "react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, Shield } from "react-feather";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import {
   useLoginMutation,
   usePasswordResetConfirmMutation,
   usePasswordResetRequestMutation,
   useTwoFactorLoginMutation,
 } from "../Services/mutations";
-import SocialAuth from "./Tabs/LoginTab/SocialAuth";
 
-const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
+const disposableDomains = new Set([
+  "10minutemail.com",
+  "guerrillamail.com",
+  "mailinator.com",
+  "tempmail.com",
+  "temp-mail.org",
+  "throwawaymail.com",
+  "yopmail.com",
+]);
 
 const validateEmail = (value) => {
   const email = value.trim().toLowerCase();
@@ -27,7 +33,7 @@ const validatePassword = (value) => {
   return "";
 };
 
-const Login = ({ selected }) => {
+const Signin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState("admin@dwella.local");
@@ -36,16 +42,17 @@ const Login = ({ selected }) => {
   const [twoFactorCode, setTwoFactorCode] = useState("");
   const [challengeToken, setChallengeToken] = useState("");
   const [mode, setMode] = useState(searchParams.get("reset_uid") && searchParams.get("reset_token") ? "reset-confirm" : "login");
-  const [togglePassword, setTogglePassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const resetUid = searchParams.get("reset_uid");
   const resetToken = searchParams.get("reset_token");
-  const isResetConfirm = mode === "reset-confirm";
-  const heading = useMemo(() => {
-    if (mode === "forgot") return "Reset Password";
-    if (isResetConfirm) return "Set New Password";
-    if (mode === "2fa") return "Two-Factor Verification";
-    return "Dwella Suite";
-  }, [isResetConfirm, mode]);
+
+  const copy = useMemo(() => {
+    if (mode === "forgot") return ["Reset password", "Enter your admin email and we will send a secure reset link."];
+    if (mode === "reset-confirm") return ["Set new password", "Choose a stronger password for your Dwella account."];
+    if (mode === "2fa") return ["Two-factor verification", "Enter the code from your authenticator app."];
+    return ["Welcome to Dwella Suite", "Secure access for property operations, owners, tenants, and finance."];
+  }, [mode]);
+
   const loginMutation = useLoginMutation({
     onSuccess: (data) => {
       if (data.two_factor_required) {
@@ -74,135 +81,128 @@ const Login = ({ selected }) => {
     onError: (error) => toast.error(error.message || "Password reset failed"),
   });
 
-  const loginAuth = async (e) => {
-    e.preventDefault();
+  const submitLogin = (event) => {
+    event.preventDefault();
     const emailError = validateEmail(email);
-    if (emailError) {
-      toast.error(emailError);
-      return;
-    }
-    if (!password) {
-      toast.error("Enter your password.");
-      return;
-    }
+    if (emailError) return toast.error(emailError);
+    if (!password) return toast.error("Enter your password.");
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
   };
 
-  const submitResetRequest = (e) => {
-    e.preventDefault();
+  const submitResetRequest = (event) => {
+    event.preventDefault();
     const emailError = validateEmail(email);
-    if (emailError) {
-      toast.error(emailError);
-      return;
-    }
+    if (emailError) return toast.error(emailError);
     resetRequestMutation.mutate({ email: email.trim().toLowerCase() });
   };
 
-  const submitResetConfirm = (e) => {
-    e.preventDefault();
+  const submitResetConfirm = (event) => {
+    event.preventDefault();
     const passwordError = validatePassword(resetPassword);
-    if (passwordError) {
-      toast.error(passwordError);
-      return;
-    }
+    if (passwordError) return toast.error(passwordError);
     resetConfirmMutation.mutate({ uid: resetUid, token: resetToken, password: resetPassword });
   };
 
-  const submitTwoFactor = (e) => {
-    e.preventDefault();
-    if (!/^\d{6}$/.test(twoFactorCode)) {
-      toast.error("Enter the 6-digit code from your authenticator app.");
-      return;
-    }
+  const submitTwoFactor = (event) => {
+    event.preventDefault();
+    if (!/^\d{6}$/.test(twoFactorCode)) return toast.error("Enter the 6-digit code from your authenticator app.");
     twoFactorMutation.mutate({ challengeToken, code: twoFactorCode });
   };
 
   return (
-    <Fragment>
-      <div className="p-0 container-fluid">
-        <Row>
-          <Col className="col-12">
-            <div className="login-card">
-              <div className="login-main login-tab">
-                <Form className="theme-form">
-                  <H4>{heading}</H4>
-                  <P>{mode === "2fa" ? "Enter the code from your authenticator app." : "Secure access for Dwella property operations."}</P>
-                  {mode === "2fa" ? (
-                    <>
-                      <FormGroup>
-                        <Label className="col-form-label">Authentication Code</Label>
-                        <Input className="form-control" inputMode="numeric" maxLength="6" onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ""))} value={twoFactorCode} />
-                      </FormGroup>
-                      <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: twoFactorMutation.isPending, onClick: submitTwoFactor }}>
-                        {twoFactorMutation.isPending ? "Verifying..." : "Verify and Login"}
-                      </Btn>
-                      <button type="button" className="btn btn-link w-100 mt-2" onClick={() => setMode("login")}>
-                        Back to login
-                      </button>
-                    </>
-                  ) : mode === "forgot" ? (
-                    <>
-                      <FormGroup>
-                        <Label className="col-form-label">{EmailAddress}</Label>
-                        <Input className="form-control" type="email" onChange={(e) => setEmail(e.target.value)} value={email} />
-                      </FormGroup>
-                      <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: resetRequestMutation.isPending, onClick: submitResetRequest }}>
-                        {resetRequestMutation.isPending ? "Sending..." : "Send Reset Link"}
-                      </Btn>
-                      <button type="button" className="btn btn-link w-100 mt-2" onClick={() => setMode("login")}>
-                        Back to login
-                      </button>
-                    </>
-                  ) : isResetConfirm ? (
-                    <>
-                      <FormGroup>
-                        <Label className="col-form-label">New Password</Label>
-                        <Input className="form-control" type={togglePassword ? "text" : "password"} onChange={(e) => setResetPassword(e.target.value)} value={resetPassword} />
-                        <div className="show-hide" onClick={() => setTogglePassword(!togglePassword)}>
-                          <span className={togglePassword ? "" : "show"}></span>
-                        </div>
-                      </FormGroup>
-                      <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: resetConfirmMutation.isPending, onClick: submitResetConfirm }}>
-                        {resetConfirmMutation.isPending ? "Saving..." : "Set Password"}
-                      </Btn>
-                    </>
-                  ) : (
-                    <>
-                      <FormGroup>
-                        <Label className="col-form-label">{EmailAddress}</Label>
-                        <Input className="form-control" type="email" onChange={(e) => setEmail(e.target.value)} value={email} />
-                      </FormGroup>
-                      <FormGroup className="position-relative">
-                        <Label className="col-form-label">{Password}</Label>
-                        <Input className="form-control" type={togglePassword ? "text" : "password"} onChange={(e) => setPassword(e.target.value)} value={password} />
-                        <div className="show-hide" onClick={() => setTogglePassword(!togglePassword)}>
-                          <span className={togglePassword ? "" : "show"}></span>
-                        </div>
-                      </FormGroup>
-                      <div className="form-group mb-0">
-                        <div className="checkbox ms-3">
-                          <Input id="checkbox1" type="checkbox" />
-                          <Label className="text-muted" for="checkbox1">
-                            {RememberPassword}
-                          </Label>
-                        </div>
-                        <button type="button" className="btn btn-link p-0 link" onClick={() => setMode("forgot")}>
-                          {ForgotPassword}
-                        </button>
-                        <Btn attrBtn={{ color: "primary", className: "btn-block", disabled: loginMutation.isPending, onClick: loginAuth }}>
-                          {loginMutation.isPending ? "Signing in..." : "Login"}
-                        </Btn>
-                      </div>
-                    </>
-                  )}
-                </Form>
-              </div>
+    <main className="dwella-auth-page">
+      <section className="dwella-auth-hero">
+        <div className="dwella-auth-brand">
+          <span>
+            <img src="/assets/images/logo/dwella-icon.png" alt="" />
+          </span>
+          <div>
+            <strong>Dwella Suite</strong>
+            <small>Property OS</small>
+          </div>
+        </div>
+        <div>
+          <p className="dwella-kicker">Built for property operators</p>
+          <h1>One calm workspace for the messy business of managing property.</h1>
+          <p>
+            Track portfolio health, tenants, leases, maintenance, payments, reports, and admin security
+            without carrying template clutter into the product.
+          </p>
+        </div>
+      </section>
+
+      <section className="dwella-auth-panel">
+        <form className="dwella-auth-card" onSubmit={mode === "forgot" ? submitResetRequest : mode === "reset-confirm" ? submitResetConfirm : mode === "2fa" ? submitTwoFactor : submitLogin}>
+          <div className="dwella-auth-card-header">
+            <span>{mode === "2fa" ? <Shield size={18} /> : <Lock size={18} />}</span>
+            <div>
+              <h2>{copy[0]}</h2>
+              <p>{copy[1]}</p>
             </div>
-          </Col>
-        </Row>
-      </div>
-    </Fragment>
+          </div>
+
+          {mode === "2fa" ? (
+            <label className="dwella-field">
+              <span>Authentication code</span>
+              <input inputMode="numeric" maxLength="6" value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, ""))} />
+            </label>
+          ) : mode === "reset-confirm" ? (
+            <label className="dwella-field">
+              <span>New password</span>
+              <div className="dwella-password-field">
+                <input type={showPassword ? "text" : "password"} value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
+                <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+          ) : (
+            <>
+              <label className="dwella-field">
+                <span>Email address</span>
+                <div className="dwella-input-icon">
+                  <Mail size={16} />
+                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                </div>
+              </label>
+              {mode === "login" ? (
+                <label className="dwella-field">
+                  <span>Password</span>
+                  <div className="dwella-password-field">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} />
+                    <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+              ) : null}
+            </>
+          )}
+
+          <button className="dwella-primary-action" type="submit" disabled={loginMutation.isPending || twoFactorMutation.isPending || resetRequestMutation.isPending || resetConfirmMutation.isPending}>
+            {mode === "forgot"
+              ? resetRequestMutation.isPending ? "Sending..." : "Send reset link"
+              : mode === "reset-confirm"
+                ? resetConfirmMutation.isPending ? "Saving..." : "Set password"
+                : mode === "2fa"
+                  ? twoFactorMutation.isPending ? "Verifying..." : "Verify and continue"
+                  : loginMutation.isPending ? "Signing in..." : "Sign in"}
+          </button>
+
+          {mode === "login" ? (
+            <button className="dwella-text-action" type="button" onClick={() => setMode("forgot")}>
+              Forgot password?
+            </button>
+          ) : (
+            <button className="dwella-text-action" type="button" onClick={() => setMode("login")}>
+              <ArrowLeft size={15} />
+              Back to sign in
+            </button>
+          )}
+        </form>
+      </section>
+    </main>
   );
 };
 
-export default Login;
+export default Signin;
