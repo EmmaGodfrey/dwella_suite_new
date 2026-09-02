@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { Button, Card, Field, Input, Text, Title3 } from "@fluentui/react-components";
+import { Button, Field, Input, Text, Title3 } from "@fluentui/react-components";
 import { Key24Regular, Shield24Regular, ShieldDismiss24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useTwoFactorDisableMutation, useTwoFactorSetupMutation, useTwoFactorSetupVerifyMutation } from "../../Services/mutations";
+import { PageSection } from "../../shared/components";
 
 const Security = () => {
   const [setup, setSetup] = useState(null);
@@ -29,11 +30,14 @@ const Security = () => {
 
   return (
     <div className="dwella-screen dwella-security-screen">
-      <Card className="dwella-card dwella-panel security-panel" appearance="outline">
-        <header className="dwella-panel-heading">
-          <div><Title3>Account Protection</Title3><Text>Manage sign-in protections for your admin account.</Text></div>
+      <PageSection
+        className="security-panel"
+        title="Account Protection"
+        note="Manage sign-in protections for your admin account."
+        actions={
           <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>{user?.has_two_factor ? <Shield24Regular /> : <ShieldDismiss24Regular />}</span>
-        </header>
+        }
+      >
         <div className="dwella-security-row">
           <div>
             <Title3>Two-Factor Authentication</Title3>
@@ -59,7 +63,7 @@ const Security = () => {
             </div>
           </div>
         ) : null}
-      </Card>
+      </PageSection>
     </div>
   );
 };

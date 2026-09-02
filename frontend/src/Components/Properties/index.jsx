@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import {
-  Badge,
   Button,
   Card,
   Caption1,
@@ -22,7 +21,6 @@ import {
   TableRow,
   Text,
   Textarea,
-  Title2,
   Title3,
 } from "@fluentui/react-components";
 import { Add24Regular, Building24Regular, Dismiss24Regular, Grid24Regular, Location24Regular, Search24Regular, Table24Regular } from "@fluentui/react-icons";
@@ -30,6 +28,7 @@ import { toast } from "react-toastify";
 
 import { useCreatePropertyMutation } from "../../Services/mutations";
 import { usePropertiesQuery } from "../../Services/queries";
+import { EmptyState, MetricCard, PageSection, StatusBadge, labelize } from "../../shared/components";
 
 const initialForm = { name: "", property_type: "apartment", management_status: "managed", address: "", town: "", province: "", description: "" };
 const propertyTypes = [
@@ -52,17 +51,7 @@ const orderOptions = [
   { value: "management_status", label: "Status" },
 ];
 
-const labelize = (value) => String(value || "Not set").replace(/_/g, " ");
 const optionLabel = (items, value) => items.find((item) => item.value === value)?.label || "";
-const statusIntent = (value) => value === "managed" ? "success" : value === "prospect" ? "warning" : "subtle";
-
-const Stat = ({ icon: Icon, label, value }) => (
-  <Card className="dwella-card dwella-property-stat" appearance="outline">
-    <Icon />
-    <Text size={200}>{label}</Text>
-    <Title2>{value}</Title2>
-  </Card>
-);
 
 const Properties = () => {
   const [filters, setFilters] = useState({ search: "", property_type: "", management_status: "", ordering: "name" });
@@ -111,18 +100,17 @@ const Properties = () => {
   return (
     <div className="dwella-screen dwella-properties-screen">
       <section className="dwella-metric-grid">
-        <Stat icon={Building24Regular} label="Total properties" value={propertiesQuery.isLoading ? "..." : metrics.total} />
-        <Stat icon={Grid24Regular} label="Managed" value={propertiesQuery.isLoading ? "..." : metrics.managed} />
-        <Stat icon={Add24Regular} label="Prospects" value={propertiesQuery.isLoading ? "..." : metrics.prospects} />
-        <Stat icon={Location24Regular} label="Towns" value={propertiesQuery.isLoading ? "..." : metrics.towns} />
+        <MetricCard icon={<Building24Regular />} label="Total properties" value={propertiesQuery.isLoading ? "..." : metrics.total} />
+        <MetricCard icon={<Grid24Regular />} label="Managed" value={propertiesQuery.isLoading ? "..." : metrics.managed} />
+        <MetricCard icon={<Add24Regular />} label="Prospects" value={propertiesQuery.isLoading ? "..." : metrics.prospects} />
+        <MetricCard icon={<Location24Regular />} label="Towns" value={propertiesQuery.isLoading ? "..." : metrics.towns} />
       </section>
 
-      <Card className="dwella-card dwella-panel" appearance="outline">
-        <header className="dwella-panel-heading">
-          <div><Title3 as="h2">Property Portfolio</Title3><Text size={200}>Search, filter, and manage buildings, homes, and commercial sites.</Text></div>
-          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setModalOpen(true)}>Add Property</Button>
-        </header>
-
+      <PageSection
+        title="Property Portfolio"
+        note="Search, filter, and manage buildings, homes, and commercial sites."
+        actions={<Button appearance="primary" icon={<Add24Regular />} onClick={() => setModalOpen(true)}>Add Property</Button>}
+      >
         {propertiesQuery.isError ? <div className="dwella-alert danger">Unable to load properties: {propertiesQuery.error.message}</div> : null}
 
         <div className="dwella-property-toolbar">
@@ -141,7 +129,7 @@ const Properties = () => {
           <div className="dwella-property-grid">
             {properties.map((property) => (
               <Card className="dwella-property-card" key={property.id} appearance="filled-alternative">
-                <div><Caption1>{labelize(property.property_type)}</Caption1><Badge appearance="tint" color={statusIntent(property.management_status)}>{labelize(property.management_status)}</Badge></div>
+                <div><Caption1>{labelize(property.property_type)}</Caption1><StatusBadge value={property.management_status} /></div>
                 <Title3 as="h3">{property.name}</Title3>
                 <Text>{property.address}</Text>
                 <Caption1>{[property.town, property.province].filter(Boolean).join(", ") || "Location not set"}</Caption1>
@@ -159,8 +147,8 @@ const Properties = () => {
                     <TableCell>{labelize(property.property_type)}</TableCell>
                     <TableCell>{property.town || "Not set"}</TableCell>
                     <TableCell>{property.province || "Not set"}</TableCell>
-                    <TableCell><Badge appearance="tint" color={statusIntent(property.management_status)}>{labelize(property.management_status)}</Badge></TableCell>
-                    <TableCell><Badge appearance="tint" color={property.is_active ? "success" : "subtle"}>{property.is_active ? "Active" : "Inactive"}</Badge></TableCell>
+                    <TableCell><StatusBadge value={property.management_status} /></TableCell>
+                    <TableCell><StatusBadge value={property.is_active ? "active" : "inactive"}>{property.is_active ? "Active" : "Inactive"}</StatusBadge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -169,9 +157,9 @@ const Properties = () => {
         )}
 
         {!propertiesQuery.isLoading && properties.length === 0 ? (
-          <div className="dwella-empty-state"><Building24Regular /><Title3>No properties found</Title3><Text>Add your first managed property or clear filters to see more records.</Text><Button appearance="primary" icon={<Add24Regular />} onClick={() => setModalOpen(true)}>Add Property</Button></div>
+          <EmptyState icon={<Building24Regular />} title="No properties found" description="Add your first managed property or clear filters to see more records." actionLabel="Add Property" onAction={() => setModalOpen(true)} />
         ) : null}
-      </Card>
+      </PageSection>
 
       <Dialog open={modalOpen} onOpenChange={(_, data) => setModalOpen(data.open)}>
         <DialogSurface className="dwella-fluent-dialog">

@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useAvatarUploadMutation, useIdentityVerificationMutation, useProfileUpdateMutation } from "../../Services/mutations";
+import { PageSection } from "../../shared/components";
 
 const displayStatus = (value) => (value || "not_submitted").replace("_", " ");
 const statusIntent = (value) => value === "approved" ? "success" : value === "pending" ? "warning" : value === "rejected" ? "danger" : "subtle";
@@ -102,9 +103,8 @@ const Profile = () => {
         </Card>
 
         <div className="dwella-profile-stack">
-          <Card className="dwella-card dwella-panel" appearance="outline">
+          <PageSection title="Account Details" note="Keep your admin identity accurate for audit trails and ownership records.">
             <form onSubmit={submitProfile}>
-              <header className="dwella-panel-heading"><div><Title3>Account Details</Title3><Text>Keep your admin identity accurate for audit trails and ownership records.</Text></div></header>
               <div className="dwella-form-grid two">
                 <Field label="First name"><Input value={form.firstName} onChange={(_, data) => setForm({ ...form, firstName: data.value })} /></Field>
                 <Field label="Last name"><Input value={form.lastName} onChange={(_, data) => setForm({ ...form, lastName: data.value })} /></Field>
@@ -113,11 +113,10 @@ const Profile = () => {
               </div>
               <footer><Button appearance="primary" type="submit" disabled={profileMutation.isPending}>{profileMutation.isPending ? "Saving..." : "Save Profile"}</Button></footer>
             </form>
-          </Card>
+          </PageSection>
 
-          <Card className="dwella-card dwella-panel" appearance="outline">
+          <PageSection title="Identity Verification" note="Submit identity details so sensitive operations can require a verified person.">
             <form onSubmit={submitVerification}>
-              <header className="dwella-panel-heading"><div><Title3>Identity Verification</Title3><Text>Submit identity details so sensitive operations can require a verified person.</Text></div></header>
               <div className="dwella-verification-state">
                 <span>{currentStatus === "approved" ? <CheckmarkCircle24Regular /> : <Shield24Regular />}</span>
                 <div>
@@ -141,7 +140,7 @@ const Profile = () => {
                 </>
               ) : null}
             </form>
-          </Card>
+          </PageSection>
         </div>
       </section>
     </div>

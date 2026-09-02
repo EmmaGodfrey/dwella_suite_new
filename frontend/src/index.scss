@@ -16,6 +16,7 @@
   --dwella-danger: #c84f4f;
   --dwella-sidebar-width: 252px;
   --dwella-sidebar-collapsed: 78px;
+  --fontFamilyBase: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body.dark-only {
@@ -46,7 +47,7 @@ body,
 body {
   color: var(--dwella-ink);
   background: var(--dwella-wash);
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--fontFamilyBase);
   font-size: 13px;
 }
 
@@ -91,7 +92,7 @@ body.dark-only .dwella-app-shell {
   gap: 8px;
 }
 
-.dwella-sidebar-brand a {
+.dwella-brand-link {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -146,14 +147,15 @@ body.dark-only .dwella-app-shell {
 }
 
 .dwella-sidebar-nav {
-  display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: 4px;
+  min-height: 0;
   padding-top: 18px;
+  background: transparent !important;
+  color: inherit !important;
 }
 
 .dwella-nav-section {
+  display: block;
   margin: 12px 10px 8px;
   color: #66837c;
   font-size: 10px;
@@ -162,37 +164,49 @@ body.dark-only .dwella-app-shell {
   text-transform: uppercase;
 }
 
-.dwella-nav-item {
+.dwella-sidebar-nav [role="tree"],
+.dwella-sidebar-nav [role="group"],
+.dwella-sidebar-nav .fui-NavDrawerBody {
+  display: grid;
+  gap: 4px;
+}
+
+.dwella-sidebar-nav [role="treeitem"],
+.dwella-sidebar-nav .fui-NavItem {
   min-height: 42px;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 12px;
+  margin: 0;
+  padding: 0 12px !important;
   color: #91a7a1;
+  background: transparent !important;
   border-radius: 10px;
   text-decoration: none;
   transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
 }
 
-.dwella-nav-item:hover {
+.dwella-sidebar-nav [role="treeitem"]:hover,
+.dwella-sidebar-nav .fui-NavItem:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.07);
   transform: translateX(2px);
 }
 
-.dwella-nav-item.active {
+.dwella-sidebar-nav [aria-selected="true"],
+.dwella-sidebar-nav [data-selected="true"],
+.dwella-sidebar-nav [aria-current="page"] {
   color: #fff;
-  background: var(--dwella-primary);
+  background: var(--dwella-primary) !important;
   box-shadow: inset 3px 0 0 var(--dwella-secondary);
 }
 
-.dwella-nav-item svg {
+.dwella-sidebar-nav [role="treeitem"] svg,
+.dwella-sidebar-nav .fui-NavItem svg {
   width: 20px;
   height: 20px;
   flex: 0 0 20px;
 }
 
-.dwella-nav-item span {
+.dwella-sidebar-nav [role="treeitem"] span,
+.dwella-sidebar-nav .fui-NavItem span {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -348,7 +362,8 @@ body.dark-only .dwella-app-shell {
 
 .dwella-app-shell.is-collapsed .dwella-brand-copy,
 .dwella-app-shell.is-collapsed .dwella-nav-section,
-.dwella-app-shell.is-collapsed .dwella-nav-item span,
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"] span:not(:first-child),
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem span:not(:first-child),
 .dwella-app-shell.is-collapsed .dwella-plan-card,
 .dwella-app-shell.is-collapsed .dwella-collapse-button span {
   width: 0;
@@ -357,13 +372,25 @@ body.dark-only .dwella-app-shell {
 }
 
 .dwella-app-shell.is-collapsed .dwella-sidebar-brand,
-.dwella-app-shell.is-collapsed .dwella-nav-item,
+.dwella-app-shell.is-collapsed .dwella-brand-link,
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"],
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem,
 .dwella-app-shell.is-collapsed .dwella-collapse-button {
   justify-content: center;
 }
 
-.dwella-app-shell.is-collapsed .dwella-nav-item {
-  padding: 0;
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"],
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem {
+  width: 50px;
+  min-width: 50px;
+  padding: 0 !important;
+  font-size: 0 !important;
+  gap: 0;
+}
+
+.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem svg {
+  width: 20px;
+  height: 20px;
 }
 
 .dwella-screen {
@@ -417,6 +444,7 @@ body.dark-only .dwella-app-shell {
 
 .dwella-metric-icon,
 .dwella-property-stat > svg,
+.dwella-empty-state > svg,
 .dwella-security-emblem,
 .dwella-module-placeholder > span {
   width: 36px;
@@ -850,7 +878,8 @@ body.dark-only .dwella-app-shell {
 
   .dwella-app-shell.is-collapsed .dwella-brand-copy,
   .dwella-app-shell.is-collapsed .dwella-nav-section,
-  .dwella-app-shell.is-collapsed .dwella-nav-item span,
+  .dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"] span:not(:first-child),
+  .dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem span:not(:first-child),
   .dwella-app-shell.is-collapsed .dwella-plan-card,
   .dwella-app-shell.is-collapsed .dwella-collapse-button span {
     width: auto;
