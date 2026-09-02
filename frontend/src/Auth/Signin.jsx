@@ -97,7 +97,7 @@ const Signin = () => {
       <section className="dwella-auth-hero">
         <div className="dwella-auth-brand">
           <span><img src="/assets/images/logo/dwella-icon.png" alt="" /></span>
-          <div><strong>Dwella Suite</strong><small>Property OS</small></div>
+          <div><strong>Dwella Suite</strong></div>
         </div>
         <div>
           <Text className="dwella-kicker">Built for property operators</Text>

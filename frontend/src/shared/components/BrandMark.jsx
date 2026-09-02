@@ -9,7 +9,6 @@ export const BrandMark = ({ compact = false, onClick }) => (
     {!compact ? (
       <span className="dwella-brand-copy">
         <strong>Dwella Suite</strong>
-        <small>Property OS</small>
       </span>
     ) : null}
   </Link>

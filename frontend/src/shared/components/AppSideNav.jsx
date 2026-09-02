@@ -1,6 +1,6 @@
 import React from "react";
-import { Button, Nav, NavDrawerBody, NavDrawerFooter, NavItem, Text } from "@fluentui/react-components";
-import { Dismiss24Regular, PanelLeft24Regular } from "@fluentui/react-icons";
+import { Button, Nav, NavDrawerBody, NavItem, Text, Tooltip } from "@fluentui/react-components";
+import { Dismiss24Regular, Navigation24Regular } from "@fluentui/react-icons";
 import { useNavigate } from "react-router-dom";
 
 import { navigationItems } from "../navigation";
@@ -13,6 +13,15 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
     <aside className="dwella-sidebar" aria-hidden={!mobileOpen ? undefined : false}>
       <div className="dwella-sidebar-brand">
         <BrandMark compact={collapsed} onClick={onMobileClose} />
+        <Tooltip content={collapsed ? "Expand navigation" : "Collapse navigation"} relationship="label">
+          <Button
+            className="dwella-sidebar-toggle"
+            appearance="subtle"
+            icon={<Navigation24Regular />}
+            onClick={onCollapseToggle}
+            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+          />
+        </Tooltip>
         <Button className="dwella-sidebar-close" appearance="subtle" icon={<Dismiss24Regular />} onClick={onMobileClose} aria-label="Close navigation" />
       </div>
 
@@ -32,17 +41,6 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
           ))}
         </NavDrawerBody>
       </Nav>
-
-      <NavDrawerFooter className="dwella-sidebar-footer">
-        <div className="dwella-plan-card">
-          <Text>Active workspace</Text>
-          <strong>Dwella operations</strong>
-          <small>Core property tools enabled</small>
-        </div>
-        <Button className="dwella-collapse-button" appearance="subtle" icon={<PanelLeft24Regular />} onClick={onCollapseToggle}>
-          <span>{collapsed ? "Expand" : "Collapse"} sidebar</span>
-        </Button>
-      </NavDrawerFooter>
     </aside>
   );
 };
