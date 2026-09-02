@@ -1,25 +1,28 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Camera, CheckCircle, Shield, Upload } from "react-feather";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Avatar, Badge, Button, Card, Dropdown, Field, Input, Option, Text, Title2, Title3 } from "@fluentui/react-components";
+import { ArrowUpload24Regular, Camera24Regular, CheckmarkCircle24Regular, Shield24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useAvatarUploadMutation, useIdentityVerificationMutation, useProfileUpdateMutation } from "../../Services/mutations";
 
 const displayStatus = (value) => (value || "not_submitted").replace("_", " ");
+const statusIntent = (value) => value === "approved" ? "success" : value === "pending" ? "warning" : value === "rejected" ? "danger" : "subtle";
+const documentTypes = [
+  { value: "nrc", label: "NRC" },
+  { value: "passport", label: "Passport" },
+  { value: "drivers_license", label: "Driver's License" },
+];
+const documentLabel = (value) => documentTypes.find((item) => item.value === value)?.label || "";
 const validatePhone = (value) => {
   const cleaned = value.trim();
   if (!cleaned) return "";
   return /^\+?[0-9 ]{7,20}$/.test(cleaned) ? "" : "Enter a valid phone number.";
 };
 
-const Field = ({ label, children }) => (
-  <label className="dwella-field">
-    <span>{label}</span>
-    {children}
-  </label>
-);
-
 const Profile = () => {
+  const avatarInputRef = useRef(null);
+  const documentInputRef = useRef(null);
   const { data: user, isLoading, isError, error } = useCurrentUserQuery();
   const [form, setForm] = useState({ firstName: "", lastName: "", phoneNumber: "", jobTitle: "" });
   const [verification, setVerification] = useState({ legalName: "", documentType: "nrc", documentNumber: "", documentImage: null });
@@ -81,74 +84,64 @@ const Profile = () => {
     <div className="dwella-screen dwella-profile-screen">
       {isError ? <div className="dwella-alert danger">Unable to load profile: {error.message}</div> : null}
       <section className="dwella-profile-grid">
-        <aside className="dwella-card dwella-profile-summary">
-          <div className="dwella-profile-photo">
-            {user?.profile?.avatar_url ? <img src={user.profile.avatar_url} alt="Profile" /> : <span>{initials}</span>}
-          </div>
-          <h2>{fullName}</h2>
-          <p>{user?.email}</p>
-          <label className="dwella-secondary-action file-action">
-            <Camera size={16} />
+        <Card className="dwella-card dwella-profile-summary" appearance="outline">
+          <Avatar name={fullName} image={user?.profile?.avatar_url ? { src: user.profile.avatar_url } : undefined} initials={initials} size={96} />
+          <Title2>{fullName}</Title2>
+          <Text>{user?.email}</Text>
+          <input ref={avatarInputRef} hidden type="file" accept="image/*" onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) avatarMutation.mutate(file);
+          }} />
+          <Button appearance="secondary" icon={<Camera24Regular />} onClick={() => avatarInputRef.current?.click()}>
             Change Photo
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) avatarMutation.mutate(file);
-              }}
-            />
-          </label>
+          </Button>
           <div className="dwella-chip-row centered">
-            <span className={`dwella-chip ${user?.has_two_factor ? "managed" : "archived"}`}>2FA {user?.has_two_factor ? "enabled" : "off"}</span>
-            <span className={`dwella-chip ${currentStatus}`}>{displayStatus(currentStatus)}</span>
+            <Badge appearance="tint" color={user?.has_two_factor ? "success" : "subtle"}>2FA {user?.has_two_factor ? "enabled" : "off"}</Badge>
+            <Badge appearance="tint" color={statusIntent(currentStatus)}>{displayStatus(currentStatus)}</Badge>
           </div>
-        </aside>
+        </Card>
 
         <div className="dwella-profile-stack">
-          <form className="dwella-card dwella-panel" onSubmit={submitProfile}>
-            <header className="dwella-panel-heading">
-              <div><h2>Account Details</h2><p>Keep your admin identity accurate for audit trails and ownership records.</p></div>
-            </header>
-            <div className="dwella-form-grid two">
-              <Field label="First name"><input value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} /></Field>
-              <Field label="Last name"><input value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} /></Field>
-              <Field label="Phone number"><input value={form.phoneNumber} onChange={(event) => setForm({ ...form, phoneNumber: event.target.value })} /></Field>
-              <Field label="Role / job title"><input value={form.jobTitle} onChange={(event) => setForm({ ...form, jobTitle: event.target.value })} /></Field>
-            </div>
-            <footer><button className="dwella-primary-action compact" disabled={profileMutation.isPending}>{profileMutation.isPending ? "Saving..." : "Save Profile"}</button></footer>
-          </form>
-
-          <form className="dwella-card dwella-panel" onSubmit={submitVerification}>
-            <header className="dwella-panel-heading">
-              <div><h2>Identity Verification</h2><p>Submit identity details so sensitive operations can require a verified person.</p></div>
-            </header>
-            <div className="dwella-verification-state">
-              <span>{currentStatus === "approved" ? <CheckCircle size={20} /> : <Shield size={20} />}</span>
-              <div>
-                <h3>{displayStatus(currentStatus)}</h3>
-                <p>{currentStatus === "pending" ? "Your submitted details are awaiting review." : currentStatus === "approved" ? "Your identity has been verified." : "Submit your legal name and identity document for review."}</p>
-                {user?.identity_verification?.rejection_reason ? <div className="dwella-alert danger">{user.identity_verification.rejection_reason}</div> : null}
+          <Card className="dwella-card dwella-panel" appearance="outline">
+            <form onSubmit={submitProfile}>
+              <header className="dwella-panel-heading"><div><Title3>Account Details</Title3><Text>Keep your admin identity accurate for audit trails and ownership records.</Text></div></header>
+              <div className="dwella-form-grid two">
+                <Field label="First name"><Input value={form.firstName} onChange={(_, data) => setForm({ ...form, firstName: data.value })} /></Field>
+                <Field label="Last name"><Input value={form.lastName} onChange={(_, data) => setForm({ ...form, lastName: data.value })} /></Field>
+                <Field label="Phone number"><Input value={form.phoneNumber} onChange={(_, data) => setForm({ ...form, phoneNumber: data.value })} /></Field>
+                <Field label="Role / job title"><Input value={form.jobTitle} onChange={(_, data) => setForm({ ...form, jobTitle: data.value })} /></Field>
               </div>
-            </div>
-            {canSubmitVerification ? (
-              <>
-                <div className="dwella-form-grid two">
-                  <Field label="Legal name"><input value={verification.legalName} onChange={(event) => setVerification({ ...verification, legalName: event.target.value })} /></Field>
-                  <Field label="Document type">
-                    <select value={verification.documentType} onChange={(event) => setVerification({ ...verification, documentType: event.target.value })}>
-                      <option value="nrc">NRC</option>
-                      <option value="passport">Passport</option>
-                      <option value="drivers_license">Driver's License</option>
-                    </select>
-                  </Field>
-                  <Field label="Document number"><input value={verification.documentNumber} onChange={(event) => setVerification({ ...verification, documentNumber: event.target.value })} /></Field>
-                  <Field label="Document image"><input type="file" accept="image/*" onChange={(event) => setVerification({ ...verification, documentImage: event.target.files?.[0] || null })} /></Field>
+              <footer><Button appearance="primary" type="submit" disabled={profileMutation.isPending}>{profileMutation.isPending ? "Saving..." : "Save Profile"}</Button></footer>
+            </form>
+          </Card>
+
+          <Card className="dwella-card dwella-panel" appearance="outline">
+            <form onSubmit={submitVerification}>
+              <header className="dwella-panel-heading"><div><Title3>Identity Verification</Title3><Text>Submit identity details so sensitive operations can require a verified person.</Text></div></header>
+              <div className="dwella-verification-state">
+                <span>{currentStatus === "approved" ? <CheckmarkCircle24Regular /> : <Shield24Regular />}</span>
+                <div>
+                  <Title3>{displayStatus(currentStatus)}</Title3>
+                  <Text>{currentStatus === "pending" ? "Your submitted details are awaiting review." : currentStatus === "approved" ? "Your identity has been verified." : "Submit your legal name and identity document for review."}</Text>
+                  {user?.identity_verification?.rejection_reason ? <div className="dwella-alert danger">{user.identity_verification.rejection_reason}</div> : null}
                 </div>
-                <footer><button className="dwella-primary-action compact" disabled={verificationMutation.isPending}><Upload size={16} />{verificationMutation.isPending ? "Submitting..." : "Submit Verification"}</button></footer>
-              </>
-            ) : null}
-          </form>
+              </div>
+              {canSubmitVerification ? (
+                <>
+                  <div className="dwella-form-grid two">
+                    <Field label="Legal name"><Input value={verification.legalName} onChange={(_, data) => setVerification({ ...verification, legalName: data.value })} /></Field>
+                    <Field label="Document type"><Dropdown selectedOptions={[verification.documentType]} value={documentLabel(verification.documentType)} onOptionSelect={(_, data) => setVerification({ ...verification, documentType: data.optionValue })}>{documentTypes.map((item) => <Option key={item.value} value={item.value}>{item.label}</Option>)}</Dropdown></Field>
+                    <Field label="Document number"><Input value={verification.documentNumber} onChange={(_, data) => setVerification({ ...verification, documentNumber: data.value })} /></Field>
+                    <Field label="Document image">
+                      <input ref={documentInputRef} hidden type="file" accept="image/*" onChange={(event) => setVerification({ ...verification, documentImage: event.target.files?.[0] || null })} />
+                      <Button appearance="secondary" icon={<ArrowUpload24Regular />} onClick={() => documentInputRef.current?.click()}>{verification.documentImage?.name || "Choose document"}</Button>
+                    </Field>
+                  </div>
+                  <footer><Button appearance="primary" type="submit" icon={<ArrowUpload24Regular />} disabled={verificationMutation.isPending}>{verificationMutation.isPending ? "Submitting..." : "Submit Verification"}</Button></footer>
+                </>
+              ) : null}
+            </form>
+          </Card>
         </div>
       </section>
     </div>

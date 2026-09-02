@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Key, Shield, ShieldOff } from "react-feather";
+import { Button, Card, Field, Input, Text, Title3 } from "@fluentui/react-components";
+import { Key24Regular, Shield24Regular, ShieldDismiss24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useCurrentUserQuery } from "../../Services/queries";
@@ -28,49 +29,37 @@ const Security = () => {
 
   return (
     <div className="dwella-screen dwella-security-screen">
-      <section className="dwella-card dwella-panel security-panel">
+      <Card className="dwella-card dwella-panel security-panel" appearance="outline">
         <header className="dwella-panel-heading">
-          <div>
-            <h2>Account Protection</h2>
-            <p>Manage sign-in protections for your admin account.</p>
-          </div>
-          <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>
-            {user?.has_two_factor ? <Shield size={22} /> : <ShieldOff size={22} />}
-          </span>
+          <div><Title3>Account Protection</Title3><Text>Manage sign-in protections for your admin account.</Text></div>
+          <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>{user?.has_two_factor ? <Shield24Regular /> : <ShieldDismiss24Regular />}</span>
         </header>
         <div className="dwella-security-row">
           <div>
-            <h3>Two-Factor Authentication</h3>
-            <p>{user?.has_two_factor ? "2FA is enabled for this account." : "Add an authenticator code before account access is granted."}</p>
+            <Title3>Two-Factor Authentication</Title3>
+            <Text>{user?.has_two_factor ? "2FA is enabled for this account." : "Add an authenticator code before account access is granted."}</Text>
           </div>
           {user?.has_two_factor ? (
-            <button className="dwella-danger-action" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()} type="button">
-              Disable
-            </button>
+            <Button appearance="primary" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()}>Disable</Button>
           ) : (
-            <button className="dwella-primary-action compact" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()} type="button">
-              {setupMutation.isPending ? "Starting..." : "Set Up 2FA"}
-            </button>
+            <Button appearance="primary" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set Up 2FA"}</Button>
           )}
         </div>
 
         {setup ? (
           <div className="dwella-setup-box">
-            <Key size={18} />
+            <Key24Regular />
             <div>
-              <p><strong>Secret:</strong> <code>{setup.secret}</code></p>
-              <p><strong>Authenticator URI:</strong> <code>{setup.provisioning_uri}</code></p>
-              <label className="dwella-field">
-                <span>6-digit code</span>
-                <input inputMode="numeric" maxLength="6" value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} />
-              </label>
-              <button className="dwella-primary-action compact" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate({ code })} type="button">
-                {verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}
-              </button>
+              <Text><strong>Secret:</strong> <code>{setup.secret}</code></Text>
+              <Text><strong>Authenticator URI:</strong> <code>{setup.provisioning_uri}</code></Text>
+              <Field label="6-digit code">
+                <Input inputMode="numeric" maxLength={6} value={code} onChange={(_, data) => setCode(data.value.replace(/\D/g, ""))} />
+              </Field>
+              <Button appearance="primary" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate({ code })}>{verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}</Button>
             </div>
           </div>
         ) : null}
-      </section>
+      </Card>
     </div>
   );
 };

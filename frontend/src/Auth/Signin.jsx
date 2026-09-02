@@ -1,32 +1,18 @@
 import React, { useMemo, useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, Shield } from "react-feather";
+import { Button, Card, Field, Input, Text, Title1, Title3 } from "@fluentui/react-components";
+import { ArrowLeft24Regular, Eye24Regular, EyeOff24Regular, LockClosed24Regular, Mail24Regular, Shield24Regular } from "@fluentui/react-icons";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
-import {
-  useLoginMutation,
-  usePasswordResetConfirmMutation,
-  usePasswordResetRequestMutation,
-  useTwoFactorLoginMutation,
-} from "../Services/mutations";
+import { useLoginMutation, usePasswordResetConfirmMutation, usePasswordResetRequestMutation, useTwoFactorLoginMutation } from "../Services/mutations";
 
-const disposableDomains = new Set([
-  "10minutemail.com",
-  "guerrillamail.com",
-  "mailinator.com",
-  "tempmail.com",
-  "temp-mail.org",
-  "throwawaymail.com",
-  "yopmail.com",
-]);
-
+const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
 const validateEmail = (value) => {
   const email = value.trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Enter a valid email address.";
   if (disposableDomains.has(email.split("@").pop())) return "Use a permanent email address.";
   return "";
 };
-
 const validatePassword = (value) => {
   if (value.length < 10) return "Password must be at least 10 characters.";
   if (/^\d+$/.test(value)) return "Password cannot be entirely numeric.";
@@ -88,21 +74,18 @@ const Signin = () => {
     if (!password) return toast.error("Enter your password.");
     loginMutation.mutate({ email: email.trim().toLowerCase(), password });
   };
-
   const submitResetRequest = (event) => {
     event.preventDefault();
     const emailError = validateEmail(email);
     if (emailError) return toast.error(emailError);
     resetRequestMutation.mutate({ email: email.trim().toLowerCase() });
   };
-
   const submitResetConfirm = (event) => {
     event.preventDefault();
     const passwordError = validatePassword(resetPassword);
     if (passwordError) return toast.error(passwordError);
     resetConfirmMutation.mutate({ uid: resetUid, token: resetToken, password: resetPassword });
   };
-
   const submitTwoFactor = (event) => {
     event.preventDefault();
     if (!/^\d{6}$/.test(twoFactorCode)) return toast.error("Enter the 6-digit code from your authenticator app.");
@@ -113,93 +96,52 @@ const Signin = () => {
     <main className="dwella-auth-page">
       <section className="dwella-auth-hero">
         <div className="dwella-auth-brand">
-          <span>
-            <img src="/assets/images/logo/dwella-icon.png" alt="" />
-          </span>
-          <div>
-            <strong>Dwella Suite</strong>
-            <small>Property OS</small>
-          </div>
+          <span><img src="/assets/images/logo/dwella-icon.png" alt="" /></span>
+          <div><strong>Dwella Suite</strong><small>Property OS</small></div>
         </div>
         <div>
-          <p className="dwella-kicker">Built for property operators</p>
-          <h1>One calm workspace for the messy business of managing property.</h1>
-          <p>
-            Track portfolio health, tenants, leases, maintenance, payments, reports, and admin security
-            without carrying template clutter into the product.
-          </p>
+          <Text className="dwella-kicker">Built for property operators</Text>
+          <Title1>One calm workspace for the messy business of managing property.</Title1>
+          <Text>Track portfolio health, tenants, leases, maintenance, payments, reports, and admin security without carrying template clutter into the product.</Text>
         </div>
       </section>
 
       <section className="dwella-auth-panel">
-        <form className="dwella-auth-card" onSubmit={mode === "forgot" ? submitResetRequest : mode === "reset-confirm" ? submitResetConfirm : mode === "2fa" ? submitTwoFactor : submitLogin}>
-          <div className="dwella-auth-card-header">
-            <span>{mode === "2fa" ? <Shield size={18} /> : <Lock size={18} />}</span>
-            <div>
-              <h2>{copy[0]}</h2>
-              <p>{copy[1]}</p>
+        <Card className="dwella-auth-card" appearance="outline">
+          <form onSubmit={mode === "forgot" ? submitResetRequest : mode === "reset-confirm" ? submitResetConfirm : mode === "2fa" ? submitTwoFactor : submitLogin}>
+            <div className="dwella-auth-card-header">
+              <span>{mode === "2fa" ? <Shield24Regular /> : <LockClosed24Regular />}</span>
+              <div><Title3>{copy[0]}</Title3><Text>{copy[1]}</Text></div>
             </div>
-          </div>
 
-          {mode === "2fa" ? (
-            <label className="dwella-field">
-              <span>Authentication code</span>
-              <input inputMode="numeric" maxLength="6" value={twoFactorCode} onChange={(event) => setTwoFactorCode(event.target.value.replace(/\D/g, ""))} />
-            </label>
-          ) : mode === "reset-confirm" ? (
-            <label className="dwella-field">
-              <span>New password</span>
-              <div className="dwella-password-field">
-                <input type={showPassword ? "text" : "password"} value={resetPassword} onChange={(event) => setResetPassword(event.target.value)} />
-                <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </label>
-          ) : (
-            <>
-              <label className="dwella-field">
-                <span>Email address</span>
-                <div className="dwella-input-icon">
-                  <Mail size={16} />
-                  <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-                </div>
-              </label>
-              {mode === "login" ? (
-                <label className="dwella-field">
-                  <span>Password</span>
-                  <div className="dwella-password-field">
-                    <input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} />
-                    <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"}>
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
-              ) : null}
-            </>
-          )}
+            {mode === "2fa" ? (
+              <Field label="Authentication code"><Input inputMode="numeric" maxLength={6} value={twoFactorCode} onChange={(_, data) => setTwoFactorCode(data.value.replace(/\D/g, ""))} /></Field>
+            ) : mode === "reset-confirm" ? (
+              <Field label="New password"><Input type={showPassword ? "text" : "password"} value={resetPassword} onChange={(_, data) => setResetPassword(data.value)} contentAfter={<Button appearance="transparent" icon={showPassword ? <EyeOff24Regular /> : <Eye24Regular />} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} />} /></Field>
+            ) : (
+              <>
+                <Field label="Email address"><Input type="email" contentBefore={<Mail24Regular />} value={email} onChange={(_, data) => setEmail(data.value)} /></Field>
+                {mode === "login" ? <Field label="Password"><Input type={showPassword ? "text" : "password"} value={password} onChange={(_, data) => setPassword(data.value)} contentAfter={<Button appearance="transparent" icon={showPassword ? <EyeOff24Regular /> : <Eye24Regular />} onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} />} /></Field> : null}
+              </>
+            )}
 
-          <button className="dwella-primary-action" type="submit" disabled={loginMutation.isPending || twoFactorMutation.isPending || resetRequestMutation.isPending || resetConfirmMutation.isPending}>
-            {mode === "forgot"
-              ? resetRequestMutation.isPending ? "Sending..." : "Send reset link"
-              : mode === "reset-confirm"
-                ? resetConfirmMutation.isPending ? "Saving..." : "Set password"
-                : mode === "2fa"
-                  ? twoFactorMutation.isPending ? "Verifying..." : "Verify and continue"
-                  : loginMutation.isPending ? "Signing in..." : "Sign in"}
-          </button>
+            <Button appearance="primary" type="submit" disabled={loginMutation.isPending || twoFactorMutation.isPending || resetRequestMutation.isPending || resetConfirmMutation.isPending}>
+              {mode === "forgot"
+                ? resetRequestMutation.isPending ? "Sending..." : "Send reset link"
+                : mode === "reset-confirm"
+                  ? resetConfirmMutation.isPending ? "Saving..." : "Set password"
+                  : mode === "2fa"
+                    ? twoFactorMutation.isPending ? "Verifying..." : "Verify and continue"
+                    : loginMutation.isPending ? "Signing in..." : "Sign in"}
+            </Button>
 
-          {mode === "login" ? (
-            <button className="dwella-text-action" type="button" onClick={() => setMode("forgot")}>
-              Forgot password?
-            </button>
-          ) : (
-            <button className="dwella-text-action" type="button" onClick={() => setMode("login")}>
-              <ArrowLeft size={15} />
-              Back to sign in
-            </button>
-          )}
-        </form>
+            {mode === "login" ? (
+              <Button appearance="transparent" onClick={() => setMode("forgot")}>Forgot password?</Button>
+            ) : (
+              <Button appearance="transparent" icon={<ArrowLeft24Regular />} onClick={() => setMode("login")}>Back to sign in</Button>
+            )}
+          </form>
+        </Card>
       </section>
     </main>
   );

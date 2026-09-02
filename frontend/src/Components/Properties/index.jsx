@@ -1,20 +1,37 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Grid, Home, List, MapPin, Plus, Search, Sliders, X } from "react-feather";
+import React, { useMemo, useState } from "react";
+import {
+  Badge,
+  Button,
+  Card,
+  Caption1,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+  Dropdown,
+  Field,
+  Input,
+  Option,
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableHeaderCell,
+  TableRow,
+  Text,
+  Textarea,
+  Title2,
+  Title3,
+} from "@fluentui/react-components";
+import { Add24Regular, Building24Regular, Dismiss24Regular, Grid24Regular, Location24Regular, Search24Regular, Table24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useCreatePropertyMutation } from "../../Services/mutations";
 import { usePropertiesQuery } from "../../Services/queries";
 
-const initialForm = {
-  name: "",
-  property_type: "apartment",
-  management_status: "managed",
-  address: "",
-  town: "",
-  province: "",
-  description: "",
-};
-
+const initialForm = { name: "", property_type: "apartment", management_status: "managed", address: "", town: "", province: "", description: "" };
 const propertyTypes = [
   { value: "", label: "All types" },
   { value: "apartment", label: "Apartment" },
@@ -23,29 +40,28 @@ const propertyTypes = [
   { value: "mixed_use", label: "Mixed Use" },
   { value: "land", label: "Land" },
 ];
-
 const managementStatuses = [
   { value: "", label: "All statuses" },
   { value: "managed", label: "Managed" },
   { value: "prospect", label: "Prospect" },
   { value: "archived", label: "Archived" },
 ];
+const orderOptions = [
+  { value: "name", label: "Name A-Z" },
+  { value: "-created_at", label: "Newest" },
+  { value: "management_status", label: "Status" },
+];
 
 const labelize = (value) => String(value || "Not set").replace(/_/g, " ");
+const optionLabel = (items, value) => items.find((item) => item.value === value)?.label || "";
+const statusIntent = (value) => value === "managed" ? "success" : value === "prospect" ? "warning" : "subtle";
 
 const Stat = ({ icon: Icon, label, value }) => (
-  <article className="dwella-card dwella-property-stat">
-    <Icon size={18} />
-    <span>{label}</span>
-    <strong>{value}</strong>
-  </article>
-);
-
-const Field = ({ label, children }) => (
-  <label className="dwella-field">
-    <span>{label}</span>
-    {children}
-  </label>
+  <Card className="dwella-card dwella-property-stat" appearance="outline">
+    <Icon />
+    <Text size={200}>{label}</Text>
+    <Title2>{value}</Title2>
+  </Card>
 );
 
 const Properties = () => {
@@ -54,13 +70,9 @@ const Properties = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(initialForm);
 
-  const propertiesQuery = usePropertiesQuery(filters, {
-    placeholderData: (previousData) => previousData,
-    staleTime: 45_000,
-  });
+  const propertiesQuery = usePropertiesQuery(filters, { placeholderData: (previousData) => previousData, staleTime: 45_000 });
   const properties = propertiesQuery.data?.results || [];
   const pagination = propertiesQuery.data?.pagination;
-
   const createPropertyMutation = useCreatePropertyMutation({
     onSuccess: () => {
       toast.success("Property added.");
@@ -80,15 +92,7 @@ const Properties = () => {
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
   const updateForm = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const resetFilters = () => setFilters({ search: "", property_type: "", management_status: "", ordering: "name" });
-
-  useEffect(() => {
-    if (!modalOpen) return undefined;
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setModalOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [modalOpen]);
+  const dropdownHandler = (key) => (_, data) => updateFilter(key, data.optionValue ?? "");
 
   const submitProperty = (event) => {
     event.preventDefault();
@@ -107,113 +111,92 @@ const Properties = () => {
   return (
     <div className="dwella-screen dwella-properties-screen">
       <section className="dwella-metric-grid">
-        <Stat icon={Home} label="Total properties" value={propertiesQuery.isLoading ? "..." : metrics.total} />
-        <Stat icon={Sliders} label="Managed" value={propertiesQuery.isLoading ? "..." : metrics.managed} />
-        <Stat icon={Plus} label="Prospects" value={propertiesQuery.isLoading ? "..." : metrics.prospects} />
-        <Stat icon={MapPin} label="Towns" value={propertiesQuery.isLoading ? "..." : metrics.towns} />
+        <Stat icon={Building24Regular} label="Total properties" value={propertiesQuery.isLoading ? "..." : metrics.total} />
+        <Stat icon={Grid24Regular} label="Managed" value={propertiesQuery.isLoading ? "..." : metrics.managed} />
+        <Stat icon={Add24Regular} label="Prospects" value={propertiesQuery.isLoading ? "..." : metrics.prospects} />
+        <Stat icon={Location24Regular} label="Towns" value={propertiesQuery.isLoading ? "..." : metrics.towns} />
       </section>
 
-      <section className="dwella-card dwella-panel">
+      <Card className="dwella-card dwella-panel" appearance="outline">
         <header className="dwella-panel-heading">
-          <div>
-            <h2>Property Portfolio</h2>
-            <p>Search, filter, and manage buildings, homes, and commercial sites.</p>
-          </div>
-          <button className="dwella-primary-action compact" type="button" onClick={() => setModalOpen(true)}>
-            <Plus size={16} />
-            Add Property
-          </button>
+          <div><Title3 as="h2">Property Portfolio</Title3><Text size={200}>Search, filter, and manage buildings, homes, and commercial sites.</Text></div>
+          <Button appearance="primary" icon={<Add24Regular />} onClick={() => setModalOpen(true)}>Add Property</Button>
         </header>
 
         {propertiesQuery.isError ? <div className="dwella-alert danger">Unable to load properties: {propertiesQuery.error.message}</div> : null}
 
         <div className="dwella-property-toolbar">
-          <label className="dwella-search-field">
-            <Search size={15} />
-            <input value={filters.search} onChange={(event) => updateFilter("search", event.target.value)} placeholder="Search name, address, town..." />
-          </label>
-          <select value={filters.property_type} onChange={(event) => updateFilter("property_type", event.target.value)}>
-            {propertyTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
-          </select>
-          <select value={filters.management_status} onChange={(event) => updateFilter("management_status", event.target.value)}>
-            {managementStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-          </select>
-          <select value={filters.ordering} onChange={(event) => updateFilter("ordering", event.target.value)}>
-            <option value="name">Name A-Z</option>
-            <option value="-created_at">Newest</option>
-            <option value="management_status">Status</option>
-          </select>
-          <button className="dwella-icon-button" onClick={resetFilters} type="button" aria-label="Clear filters"><X size={16} /></button>
+          <Input contentBefore={<Search24Regular />} value={filters.search} onChange={(_, data) => updateFilter("search", data.value)} placeholder="Search name, address, town..." />
+          <Dropdown selectedOptions={[filters.property_type]} value={optionLabel(propertyTypes, filters.property_type)} onOptionSelect={dropdownHandler("property_type")}>{propertyTypes.map((type) => <Option key={type.value || "all"} value={type.value}>{type.label}</Option>)}</Dropdown>
+          <Dropdown selectedOptions={[filters.management_status]} value={optionLabel(managementStatuses, filters.management_status)} onOptionSelect={dropdownHandler("management_status")}>{managementStatuses.map((status) => <Option key={status.value || "all"} value={status.value}>{status.label}</Option>)}</Dropdown>
+          <Dropdown selectedOptions={[filters.ordering]} value={optionLabel(orderOptions, filters.ordering)} onOptionSelect={dropdownHandler("ordering")}>{orderOptions.map((option) => <Option key={option.value} value={option.value}>{option.label}</Option>)}</Dropdown>
+          <Button appearance="subtle" icon={<Dismiss24Regular />} onClick={resetFilters} aria-label="Clear filters" />
           <div className="dwella-segment">
-            <button className={viewMode === "cards" ? "active" : ""} onClick={() => setViewMode("cards")} type="button" aria-label="Card view"><Grid size={16} /></button>
-            <button className={viewMode === "table" ? "active" : ""} onClick={() => setViewMode("table")} type="button" aria-label="Table view"><List size={16} /></button>
+            <Button appearance={viewMode === "cards" ? "primary" : "subtle"} icon={<Grid24Regular />} onClick={() => setViewMode("cards")} aria-label="Card view" />
+            <Button appearance={viewMode === "table" ? "primary" : "subtle"} icon={<Table24Regular />} onClick={() => setViewMode("table")} aria-label="Table view" />
           </div>
         </div>
 
         {viewMode === "cards" ? (
           <div className="dwella-property-grid">
             {properties.map((property) => (
-              <article className="dwella-property-card" key={property.id}>
-                <div><span>{labelize(property.property_type)}</span><em className={property.management_status}>{labelize(property.management_status)}</em></div>
-                <h3>{property.name}</h3>
-                <p>{property.address}</p>
-                <small>{[property.town, property.province].filter(Boolean).join(", ") || "Location not set"}</small>
-              </article>
+              <Card className="dwella-property-card" key={property.id} appearance="filled-alternative">
+                <div><Caption1>{labelize(property.property_type)}</Caption1><Badge appearance="tint" color={statusIntent(property.management_status)}>{labelize(property.management_status)}</Badge></div>
+                <Title3 as="h3">{property.name}</Title3>
+                <Text>{property.address}</Text>
+                <Caption1>{[property.town, property.province].filter(Boolean).join(", ") || "Location not set"}</Caption1>
+              </Card>
             ))}
           </div>
         ) : (
           <div className="dwella-table-wrap">
-            <table className="dwella-table">
-              <thead><tr><th>Name</th><th>Type</th><th>Town</th><th>Province</th><th>Status</th><th>Active</th></tr></thead>
-              <tbody>
+            <Table className="dwella-table" aria-label="Properties">
+              <TableHeader><TableRow><TableHeaderCell>Name</TableHeaderCell><TableHeaderCell>Type</TableHeaderCell><TableHeaderCell>Town</TableHeaderCell><TableHeaderCell>Province</TableHeaderCell><TableHeaderCell>Status</TableHeaderCell><TableHeaderCell>Active</TableHeaderCell></TableRow></TableHeader>
+              <TableBody>
                 {properties.map((property) => (
-                  <tr key={property.id}>
-                    <td><strong>{property.name}</strong><small>{property.address}</small></td>
-                    <td>{labelize(property.property_type)}</td>
-                    <td>{property.town || "Not set"}</td>
-                    <td>{property.province || "Not set"}</td>
-                    <td><span className={`dwella-chip ${property.management_status}`}>{labelize(property.management_status)}</span></td>
-                    <td><span className={`dwella-chip ${property.is_active ? "managed" : "archived"}`}>{property.is_active ? "Active" : "Inactive"}</span></td>
-                  </tr>
+                  <TableRow key={property.id}>
+                    <TableCell><strong>{property.name}</strong><Caption1>{property.address}</Caption1></TableCell>
+                    <TableCell>{labelize(property.property_type)}</TableCell>
+                    <TableCell>{property.town || "Not set"}</TableCell>
+                    <TableCell>{property.province || "Not set"}</TableCell>
+                    <TableCell><Badge appearance="tint" color={statusIntent(property.management_status)}>{labelize(property.management_status)}</Badge></TableCell>
+                    <TableCell><Badge appearance="tint" color={property.is_active ? "success" : "subtle"}>{property.is_active ? "Active" : "Inactive"}</Badge></TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
 
         {!propertiesQuery.isLoading && properties.length === 0 ? (
-          <div className="dwella-empty-state">
-            <Home size={24} />
-            <h3>No properties found</h3>
-            <p>Add your first managed property or clear filters to see more records.</p>
-            <button className="dwella-primary-action compact" onClick={() => setModalOpen(true)} type="button"><Plus size={16} />Add Property</button>
-          </div>
+          <div className="dwella-empty-state"><Building24Regular /><Title3>No properties found</Title3><Text>Add your first managed property or clear filters to see more records.</Text><Button appearance="primary" icon={<Add24Regular />} onClick={() => setModalOpen(true)}>Add Property</Button></div>
         ) : null}
-      </section>
+      </Card>
 
-      {modalOpen ? (
-        <div className="dwella-modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setModalOpen(false)}>
-          <form className="dwella-modal" onSubmit={submitProperty}>
-            <header>
-              <div><h2>Add Property</h2><p>Create a new portfolio record.</p></div>
-              <button type="button" onClick={() => setModalOpen(false)} aria-label="Close modal"><X size={18} /></button>
-            </header>
-            <div className="dwella-form-grid">
-              <Field label="Property name"><input value={form.name} onChange={(event) => updateForm("name", event.target.value)} /></Field>
-              <Field label="Type"><select value={form.property_type} onChange={(event) => updateForm("property_type", event.target.value)}>{propertyTypes.filter((type) => type.value).map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></Field>
-              <Field label="Status"><select value={form.management_status} onChange={(event) => updateForm("management_status", event.target.value)}>{managementStatuses.filter((status) => status.value).map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></Field>
-              <Field label="Address"><input value={form.address} onChange={(event) => updateForm("address", event.target.value)} /></Field>
-              <Field label="Town"><input value={form.town} onChange={(event) => updateForm("town", event.target.value)} /></Field>
-              <Field label="Province"><input value={form.province} onChange={(event) => updateForm("province", event.target.value)} /></Field>
-              <Field label="Description"><textarea rows="3" value={form.description} onChange={(event) => updateForm("description", event.target.value)} /></Field>
-            </div>
-            <footer>
-              <button className="dwella-secondary-action" type="button" onClick={() => setModalOpen(false)}>Cancel</button>
-              <button className="dwella-primary-action compact" type="submit" disabled={createPropertyMutation.isPending}>{createPropertyMutation.isPending ? "Saving..." : "Save Property"}</button>
-            </footer>
+      <Dialog open={modalOpen} onOpenChange={(_, data) => setModalOpen(data.open)}>
+        <DialogSurface className="dwella-fluent-dialog">
+          <form onSubmit={submitProperty}>
+            <DialogBody>
+              <DialogTitle>Add Property</DialogTitle>
+              <DialogContent>
+                <div className="dwella-form-grid">
+                  <Field label="Property name"><Input value={form.name} onChange={(_, data) => updateForm("name", data.value)} /></Field>
+                  <Field label="Type"><Dropdown selectedOptions={[form.property_type]} value={optionLabel(propertyTypes, form.property_type)} onOptionSelect={(_, data) => updateForm("property_type", data.optionValue)}>{propertyTypes.filter((type) => type.value).map((type) => <Option key={type.value} value={type.value}>{type.label}</Option>)}</Dropdown></Field>
+                  <Field label="Status"><Dropdown selectedOptions={[form.management_status]} value={optionLabel(managementStatuses, form.management_status)} onOptionSelect={(_, data) => updateForm("management_status", data.optionValue)}>{managementStatuses.filter((status) => status.value).map((status) => <Option key={status.value} value={status.value}>{status.label}</Option>)}</Dropdown></Field>
+                  <Field label="Address"><Input value={form.address} onChange={(_, data) => updateForm("address", data.value)} /></Field>
+                  <Field label="Town"><Input value={form.town} onChange={(_, data) => updateForm("town", data.value)} /></Field>
+                  <Field label="Province"><Input value={form.province} onChange={(_, data) => updateForm("province", data.value)} /></Field>
+                  <Field label="Description"><Textarea rows={3} value={form.description} onChange={(_, data) => updateForm("description", data.value)} /></Field>
+                </div>
+              </DialogContent>
+              <DialogActions>
+                <Button appearance="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
+                <Button appearance="primary" type="submit" disabled={createPropertyMutation.isPending}>{createPropertyMutation.isPending ? "Saving..." : "Save Property"}</Button>
+              </DialogActions>
+            </DialogBody>
           </form>
-        </div>
-      ) : null}
+        </DialogSurface>
+      </Dialog>
     </div>
   );
 };

@@ -1,20 +1,18 @@
 import React from "react";
-import { ArrowRight, Clock } from "react-feather";
+import { Button, Card, Text, Title2 } from "@fluentui/react-components";
+import { ArrowRight24Regular, Clock24Regular } from "@fluentui/react-icons";
 
 const ModulePlaceholder = ({ title, description }) => (
   <div className="dwella-screen">
-    <section className="dwella-card dwella-module-placeholder">
-      <span><Clock size={22} /></span>
+    <Card className="dwella-card dwella-module-placeholder" appearance="outline">
+      <span><Clock24Regular /></span>
       <div>
-        <p className="dwella-kicker">Module workspace</p>
-        <h2>{title}</h2>
-        <p>{description}</p>
+        <Text className="dwella-kicker">Module workspace</Text>
+        <Title2>{title}</Title2>
+        <Text>{description}</Text>
       </div>
-      <button className="dwella-secondary-action" type="button">
-        Coming next
-        <ArrowRight size={15} />
-      </button>
-    </section>
+      <Button appearance="secondary" icon={<ArrowRight24Regular />} iconPosition="after">Coming next</Button>
+    </Card>
   </div>
 );
 

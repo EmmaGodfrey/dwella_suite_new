@@ -1,37 +1,39 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { Avatar, Button, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, Text, Title2 } from "@fluentui/react-components";
 import {
-  Bell,
-  Briefcase,
-  ChevronDown,
-  CreditCard,
-  FileText,
-  Home,
-  LogOut,
-  Menu,
-  Moon,
-  Settings,
-  Shield,
-  Sun,
-  Tool,
-  User,
-  Users,
-  X,
-} from "react-feather";
+  Alert24Regular,
+  Building24Regular,
+  ChevronDown24Regular,
+  Dismiss24Regular,
+  DocumentText24Regular,
+  Home24Regular,
+  PanelLeft24Regular,
+  Payment24Regular,
+  People24Regular,
+  Person24Regular,
+  Settings24Regular,
+  Shield24Regular,
+  SignOut24Regular,
+  WeatherMoon24Regular,
+  WeatherSunny24Regular,
+  Wrench24Regular,
+} from "@fluentui/react-icons";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
+import { DwellaThemeContext } from "../App";
 import { getApiBaseUrl } from "../Services/apiClient";
 import { logout } from "../Services/auth";
 import { queryClient } from "../Services/queryClient";
 import { useCurrentUserQuery } from "../Services/queries";
 
 const navigation = [
-  { to: "/dashboard", label: "Dashboard", icon: Home },
-  { to: "/properties", label: "Properties", icon: Briefcase },
-  { to: "/tenants", label: "Tenants", icon: Users },
-  { to: "/leases", label: "Leases", icon: FileText },
-  { to: "/billing", label: "Billing", icon: CreditCard },
-  { to: "/maintenance", label: "Maintenance", icon: Tool },
-  { to: "/reports", label: "Reports", icon: Settings },
+  { to: "/dashboard", label: "Dashboard", icon: Home24Regular },
+  { to: "/properties", label: "Properties", icon: Building24Regular },
+  { to: "/tenants", label: "Tenants", icon: People24Regular },
+  { to: "/leases", label: "Leases", icon: DocumentText24Regular },
+  { to: "/billing", label: "Billing", icon: Payment24Regular },
+  { to: "/maintenance", label: "Maintenance", icon: Wrench24Regular },
+  { to: "/reports", label: "Reports", icon: Settings24Regular },
 ];
 
 const pageMeta = {
@@ -56,12 +58,7 @@ const getCachedUser = () => {
 
 const initialsFor = (user) => {
   const source = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "DS";
-  return source
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+  return source.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
 };
 
 const resolveMediaUrl = (value) => {
@@ -75,15 +72,9 @@ const AppLayout = () => {
   const location = useLocation();
   const cachedUser = getCachedUser();
   const { data: user = cachedUser } = useCurrentUserQuery({ staleTime: 60_000 });
+  const { darkMode, setDarkMode } = useContext(DwellaThemeContext);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("dwella_sidebar_collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("dwella_theme") === "dark");
-
-  useEffect(() => {
-    document.body.classList.toggle("dark-only", darkMode);
-    localStorage.setItem("dwella_theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
 
   useEffect(() => {
     localStorage.setItem("dwella_sidebar_collapsed", String(collapsed));
@@ -91,7 +82,6 @@ const AppLayout = () => {
 
   useEffect(() => {
     setMobileOpen(false);
-    setAccountOpen(false);
   }, [location.pathname]);
 
   const meta = pageMeta[location.pathname] || ["Dwella Suite", "Property operations workspace."];
@@ -114,24 +104,17 @@ const AppLayout = () => {
       <aside className="dwella-sidebar">
         <div className="dwella-sidebar-brand">
           <Link to="/dashboard" aria-label="Dwella Suite dashboard">
-            <span className="dwella-brand-mark">
-              <img src="/assets/images/logo/dwella-icon.png" alt="" />
-            </span>
-            <span className="dwella-brand-copy">
-              <strong>Dwella Suite</strong>
-              <small>Property OS</small>
-            </span>
+            <span className="dwella-brand-mark"><img src="/assets/images/logo/dwella-icon.png" alt="" /></span>
+            <span className="dwella-brand-copy"><strong>Dwella Suite</strong><small>Property OS</small></span>
           </Link>
-          <button className="dwella-sidebar-close" type="button" onClick={() => setMobileOpen(false)} aria-label="Close navigation">
-            <X size={18} />
-          </button>
+          <Button className="dwella-sidebar-close" appearance="subtle" icon={<Dismiss24Regular />} onClick={() => setMobileOpen(false)} aria-label="Close navigation" />
         </div>
 
         <nav className="dwella-sidebar-nav" aria-label="Main navigation">
-          <span className="dwella-nav-section">Workspace</span>
+          <Text className="dwella-nav-section">Workspace</Text>
           {navigation.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} className={({ isActive }) => `dwella-nav-item${isActive ? " active" : ""}`} title={collapsed ? label : undefined}>
-              <Icon size={18} />
+              <Icon />
               <span>{label}</span>
             </NavLink>
           ))}
@@ -139,14 +122,13 @@ const AppLayout = () => {
 
         <div className="dwella-sidebar-footer">
           <div className="dwella-plan-card">
-            <span>Active workspace</span>
+            <Text>Active workspace</Text>
             <strong>Dwella operations</strong>
             <small>Core property tools enabled</small>
           </div>
-          <button className="dwella-collapse-button" type="button" onClick={() => setCollapsed((value) => !value)}>
-            <Menu size={17} />
+          <Button className="dwella-collapse-button" appearance="subtle" icon={<PanelLeft24Regular />} onClick={() => setCollapsed((value) => !value)}>
             <span>{collapsed ? "Expand" : "Collapse"} sidebar</span>
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -154,48 +136,31 @@ const AppLayout = () => {
 
       <div className="dwella-main-frame">
         <header className="dwella-topbar">
-          <button className="dwella-mobile-menu" type="button" onClick={() => setMobileOpen(true)} aria-label="Open navigation">
-            <Menu size={20} />
-          </button>
+          <Button className="dwella-mobile-menu" appearance="subtle" icon={<PanelLeft24Regular />} onClick={() => setMobileOpen(true)} aria-label="Open navigation" />
           <div className="dwella-page-title">
-            <span>Dwella Suite</span>
-            <h1>{meta[0]}</h1>
-            <p>{meta[1]}</p>
+            <Text>Dwella Suite</Text>
+            <Title2 as="h1">{meta[0]}</Title2>
+            <Text>{meta[1]}</Text>
           </div>
           <div className="dwella-topbar-actions">
-            <button className="dwella-icon-action" type="button" aria-label="Notifications">
-              <Bell size={18} />
-              <i />
-            </button>
-            <button className="dwella-icon-action" type="button" onClick={() => setDarkMode((value) => !value)} aria-label="Toggle theme">
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <div className="dwella-user-menu">
-              <button className="dwella-user-trigger" type="button" onClick={() => setAccountOpen((value) => !value)}>
-                <span className="dwella-user-avatar">{avatarUrl ? <img src={avatarUrl} alt={fullName} /> : initialsFor(user)}</span>
-                <span>
-                  <strong>{fullName}</strong>
-                  <small>{verificationStatus === "approved" ? "Verified admin" : "Profile verification"}</small>
-                </span>
-                <ChevronDown size={15} />
-              </button>
-              {accountOpen ? (
-                <div className="dwella-user-dropdown">
-                  <Link to="/profile">
-                    <User size={16} />
-                    Profile
-                  </Link>
-                  <Link to="/security">
-                    <Shield size={16} />
-                    Security
-                  </Link>
-                  <button type="button" onClick={handleLogout}>
-                    <LogOut size={16} />
-                    Log out
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            <Button className="dwella-icon-action" appearance="subtle" icon={<Alert24Regular />} aria-label="Notifications" />
+            <Button className="dwella-icon-action" appearance="subtle" icon={darkMode ? <WeatherSunny24Regular /> : <WeatherMoon24Regular />} onClick={() => setDarkMode((value) => !value)} aria-label="Toggle theme" />
+            <Menu positioning="below-end">
+              <MenuTrigger disableButtonEnhancement>
+                <Button className="dwella-user-trigger" appearance="subtle">
+                  <Avatar name={fullName} image={avatarUrl ? { src: avatarUrl } : undefined} initials={initialsFor(user)} size={32} />
+                  <span><strong>{fullName}</strong><small>{verificationStatus === "approved" ? "Verified admin" : "Profile verification"}</small></span>
+                  <ChevronDown24Regular />
+                </Button>
+              </MenuTrigger>
+              <MenuPopover className="dwella-user-dropdown">
+                <MenuList>
+                  <MenuItem icon={<Person24Regular />} onClick={() => navigate("/profile")}>Profile</MenuItem>
+                  <MenuItem icon={<Shield24Regular />} onClick={() => navigate("/security")}>Security</MenuItem>
+                  <MenuItem icon={<SignOut24Regular />} onClick={handleLogout}>Log out</MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
           </div>
         </header>
 
