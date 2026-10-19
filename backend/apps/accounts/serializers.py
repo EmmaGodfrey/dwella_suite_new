@@ -5,6 +5,7 @@ from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 
+from apps.common.permissions import get_user_access
 from apps.organizations.serializers import OrganizationMembershipSerializer
 
 from .models import IdentityVerification, UserProfile
@@ -68,6 +69,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True,
     )
+    access = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -78,13 +80,23 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "is_staff",
+            "is_superuser",
             "is_active",
             "has_two_factor",
             "profile",
             "identity_verification",
             "memberships",
+            "access",
         ]
-        read_only_fields = ["id", "is_staff", "is_active", "profile", "memberships"]
+        read_only_fields = [
+            "id",
+            "is_staff",
+            "is_superuser",
+            "is_active",
+            "profile",
+            "memberships",
+            "access",
+        ]
 
     def get_has_two_factor(self, obj):
         return hasattr(obj, "two_factor_device") and obj.two_factor_device.is_confirmed
@@ -96,6 +108,9 @@ class CurrentUserSerializer(serializers.ModelSerializer):
     def get_identity_verification(self, obj):
         verification, _ = IdentityVerification.objects.get_or_create(user=obj)
         return IdentityVerificationSerializer(verification, context=self.context).data
+
+    def get_access(self, obj):
+        return get_user_access(obj)
 
 
 class CurrentUserUpdateSerializer(serializers.ModelSerializer):

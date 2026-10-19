@@ -30,6 +30,7 @@ class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
         MANAGER = "manager", "Manager"
         STAFF = "staff", "Staff"
         VIEWER = "viewer", "Viewer"
+        TENANT = "tenant", "Tenant"
 
     organization = models.ForeignKey(
         Organization,

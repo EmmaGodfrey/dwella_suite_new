@@ -13,6 +13,8 @@ from django.utils.http import urlsafe_base64_encode
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
+from apps.organizations.models import Organization, OrganizationMembership
+
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import _hotp
 
@@ -176,6 +178,51 @@ def test_current_user_requires_authentication():
 
     assert response.status_code == 403
     assert response.json()["response_code"] == 403
+
+
+@pytest.mark.django_db
+def test_current_user_exposes_landlord_capabilities(user):
+    organization = Organization.objects.create(name="Landlord Portfolio")
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=user,
+        role=OrganizationMembership.Role.OWNER,
+    )
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    response = client.get("/api/v1/accounts/me/")
+
+    assert response.status_code == 200
+    access = response.json()["response_data"]["access"]
+    assert access["persona"] == "landlord"
+    assert access["role"] == "owner"
+    assert access["can_manage_properties"] is True
+    assert access["organization_id"] == str(organization.public_id)
+
+
+@pytest.mark.django_db
+def test_current_user_exposes_platform_admin_and_tenant_capabilities(user):
+    user.is_staff = True
+    user.save(update_fields=["is_staff"])
+    client = APIClient()
+    client.force_authenticate(user=user)
+    admin_access = client.get("/api/v1/accounts/me/").json()["response_data"]["access"]
+    assert admin_access["persona"] == "platform_admin"
+    assert admin_access["can_manage_properties"] is False
+
+    user.is_staff = False
+    user.save(update_fields=["is_staff"])
+    organization = Organization.objects.create(name="Tenant Portfolio")
+    OrganizationMembership.objects.create(
+        organization=organization,
+        user=user,
+        role=OrganizationMembership.Role.TENANT,
+    )
+    tenant_access = client.get("/api/v1/accounts/me/").json()["response_data"]["access"]
+    assert tenant_access["persona"] == "tenant"
+    assert tenant_access["can_view_portfolio"] is False
+    assert tenant_access["can_manage_properties"] is False
 
 
 @pytest.mark.django_db
