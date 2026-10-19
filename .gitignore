@@ -39,3 +39,8 @@ Desktop.ini
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Local test and screenshot output
+backend/.pytest_tmp*/
+output/
+frontend/output/
