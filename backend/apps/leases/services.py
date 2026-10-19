@@ -2,7 +2,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from apps.organizations.models import Organization
+from apps.common.references import next_reference
 from apps.properties.models import Unit
 from apps.tenants.models import Tenant
 
@@ -13,14 +13,7 @@ UNIT_TAKEN_MESSAGE = "This unit already has an open lease."
 
 def next_lease_reference(organization):
     """Return the next `LSE-0001` style reference. Call inside a transaction."""
-    # Locking the organization row serialises reference allocation, so two
-    # leases created at once cannot both take the same number.
-    Organization.objects.select_for_update().get(pk=organization.pk)
-    references = Lease.objects.filter(organization=organization).values_list("reference", flat=True)
-    highest = max(
-        (int(ref.split("-")[-1]) for ref in references if ref.split("-")[-1].isdigit()), default=0
-    )
-    return f"LSE-{highest + 1:04d}"
+    return next_reference(organization, Lease, "LSE")
 
 
 def create_lease(*, organization, activate=False, **fields):

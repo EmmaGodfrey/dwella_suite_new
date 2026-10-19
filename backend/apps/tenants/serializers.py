@@ -15,6 +15,7 @@ LEASE_PRIORITY = {Lease.Status.ACTIVE: 0, Lease.Status.PENDING_SIGNATURE: 1, Lea
 
 class TenantSerializer(OrganizationScopedSerializer):
     current_lease = serializers.SerializerMethodField()
+    balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
     lease = TenantLeaseSerializer(write_only=True, required=False)
 
     class Meta:
@@ -29,6 +30,7 @@ class TenantSerializer(OrganizationScopedSerializer):
             "status",
             "notes",
             "current_lease",
+            "balance",
             "lease",
             "is_active",
             "created_at",
