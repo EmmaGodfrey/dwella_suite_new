@@ -87,7 +87,10 @@ class PropertyDashboardSummaryView(APIView):
                 "landlords": OrganizationMembership.objects.filter(
                     is_active=True,
                     role=OrganizationMembership.Role.OWNER,
-                ).values("user_id").distinct().count(),
+                )
+                .values("user_id")
+                .distinct()
+                .count(),
             }
         else:
             properties = Property.objects.for_organization(organization)
@@ -145,7 +148,8 @@ class PropertyDashboardSummaryView(APIView):
                 "organization_name": property_obj.organization.display_name
                 or property_obj.organization.name,
                 "cover_image": request.build_absolute_uri(property_obj.cover_image.url)
-                if property_obj.cover_image else None,
+                if property_obj.cover_image
+                else None,
             }
             for property_obj in properties.annotate(units_count=Count("units"))
             .select_related("organization")
@@ -254,10 +258,21 @@ class PropertyViewSet(OrganizationScopedModelViewSet):
 
 class UnitFilter(filters.FilterSet):
     property = filters.UUIDFilter(field_name="property__public_id")
+    # Units a new lease can be written for: vacant, and not already held by a
+    # draft or unsigned lease (those leave the unit "vacant" until they start).
+    available = filters.BooleanFilter(method="filter_available")
 
     class Meta:
         model = Unit
-        fields = ["property", "occupancy_status", "is_active"]
+        fields = ["property", "occupancy_status", "is_active", "available"]
+
+    def filter_available(self, queryset, name, value):
+        from apps.leases.models import Lease
+
+        held = Q(leases__status__in=Lease.OPEN_STATUSES)
+        if value:
+            return queryset.filter(occupancy_status=Unit.OccupancyStatus.VACANT).exclude(held)
+        return queryset.filter(held | ~Q(occupancy_status=Unit.OccupancyStatus.VACANT)).distinct()
 
 
 class UnitViewSet(OrganizationScopedModelViewSet):

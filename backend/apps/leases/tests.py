@@ -271,3 +271,15 @@ def test_lease_filters_by_property_and_status(manager, tenant, unit):
     ]
     assert len(by_property) == 1
     assert manager.get("/api/v1/leases/?status=active").json()["response_data"] == []
+
+
+@pytest.mark.django_db
+def test_available_units_exclude_units_held_by_open_leases(manager, tenant, unit, org):
+    free = Unit.objects.create(
+        organization=org, property=unit.property, name="3A", rent_amount="3900"
+    )
+    manager.post("/api/v1/leases/", lease_payload(tenant, unit), format="json")  # draft holds 2A
+
+    available = manager.get("/api/v1/properties/units/?available=true").json()["response_data"]
+    assert [row["name"] for row in available] == [free.name]
+    assert available[0]["property_name"] == "Mutendere Court"

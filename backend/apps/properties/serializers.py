@@ -69,6 +69,7 @@ class UnitSerializer(OrganizationScopedSerializer):
     property = serializers.SlugRelatedField(
         slug_field="public_id", queryset=Property.objects.none()
     )
+    property_name = serializers.CharField(source="property.name", read_only=True)
 
     def get_fields(self):
         fields = super().get_fields()
@@ -83,6 +84,7 @@ class UnitSerializer(OrganizationScopedSerializer):
             "id",
             "organization_id",
             "property",
+            "property_name",
             "name",
             "bedrooms",
             "bathrooms",
