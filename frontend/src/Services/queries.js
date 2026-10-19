@@ -66,6 +66,15 @@ export function usePropertiesQuery(filters = {}, options = {}) {
   });
 }
 
+export function usePropertyQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.property(id),
+    queryFn: () => apiRequest(`/properties/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}
+
 export function usePropertyOwnersQuery(filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.propertyOwners(filters),

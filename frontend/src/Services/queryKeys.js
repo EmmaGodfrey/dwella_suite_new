@@ -4,6 +4,7 @@ export const queryKeys = {
   dashboardSummary: ["properties", "dashboard"],
   organizations: ["organizations"],
   properties: (filters = {}) => ["properties", filters],
+  property: (id) => ["properties", "detail", id],
   propertyOwners: (filters = {}) => ["properties", "owners", filters],
   units: (filters = {}) => ["properties", "units", filters],
 };

@@ -119,9 +119,25 @@ export function useIdentityVerificationMutation(options = {}) {
   });
 }
 
-export function useCreatePropertyMutation(options = {}) {
+export function useSavePropertyMutation(options = {}) {
   return useMutation({
-    mutationFn: (payload) => api.post("/properties/", payload),
+    mutationKey: ["saveProperty"],
+    mutationFn: ({ id, payload }) => id ? api.patch(`/properties/${id}/`, payload) : api.post("/properties/", payload),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useSaveUnitMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["saveUnit"],
+    mutationFn: ({ id, payload }) => id
+      ? api.patch(`/properties/units/${id}/`, payload)
+      : api.post("/properties/units/", payload),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });

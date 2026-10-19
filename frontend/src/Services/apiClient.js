@@ -5,6 +5,15 @@ export function getApiBaseUrl() {
   return API_BASE_URL.replace(/\/$/, "");
 }
 
+// The API serializes media as an absolute URL only when a request is in
+// serializer context; otherwise it returns a bare path that would resolve
+// against the frontend origin. Normalise both forms.
+export function resolveMediaUrl(value) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${getApiBaseUrl().replace(/\/api\/v1$/, "")}${value.startsWith("/") ? value : `/${value}`}`;
+}
+
 export function getAuthToken() {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
