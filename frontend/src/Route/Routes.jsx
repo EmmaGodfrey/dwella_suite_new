@@ -1,5 +1,8 @@
 //Pages
 import Dashboard from "../Components/Dashboard";
+import LeaseDetail from "../Components/Leases/LeaseDetail";
+import Leases from "../Components/Leases";
+import Tenants from "../Components/Tenants";
 import ModulePlaceholder from "../Components/ModulePlaceholder";
 import Properties from "../Components/Properties";
 import Profile from "../Components/Profile";
@@ -22,13 +25,19 @@ export const routes = [
     path: `/tenants`,
     title: "Tenants",
     description: "Tenant CRM, occupancy records, and communication history.",
-    Component: <ModulePlaceholder description="Tenant CRM, occupancy records, and communication history." />,
+    Component: <Tenants />,
   },
   {
     path: `/leases`,
     title: "Leases",
     description: "Lease terms, renewals, deposits, and documents.",
-    Component: <ModulePlaceholder description="Lease terms, renewals, deposits, and documents." />,
+    Component: <Leases />,
+  },
+  {
+    path: `/leases/:id`,
+    title: "Lease",
+    description: "Lease terms and history.",
+    Component: <LeaseDetail />,
   },
   {
     path: `/billing`,

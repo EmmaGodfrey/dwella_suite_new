@@ -7,4 +7,8 @@ export const queryKeys = {
   property: (id) => ["properties", "detail", id],
   propertyOwners: (filters = {}) => ["properties", "owners", filters],
   units: (filters = {}) => ["properties", "units", filters],
+  tenants: (filters = {}) => ["tenants", filters],
+  tenant: (id) => ["tenants", "detail", id],
+  leases: (filters = {}) => ["leases", filters],
+  lease: (id) => ["leases", "detail", id],
 };

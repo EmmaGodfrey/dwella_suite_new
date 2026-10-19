@@ -61,7 +61,9 @@ export function getPageMeta(pathname, user) {
   if (access.persona === "platform_admin" && pathname === "/dashboard") {
     return ["Administration", "Landlord activity and platform portfolio oversight."];
   }
-  return pageMeta[pathname] || ["Dwella Suite", "Property operations workspace."];
+  // Detail pages (`/leases/<id>`) take their section's title.
+  const section = Object.keys(pageMeta).find((path) => pathname.startsWith(`${path}/`));
+  return pageMeta[pathname] || pageMeta[section] || ["Dwella Suite", "Property operations workspace."];
 }
 
 export function canAccessPath(pathname, user) {

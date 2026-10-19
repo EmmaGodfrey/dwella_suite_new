@@ -90,3 +90,37 @@ export function useUnitsQuery(filters = {}, options = {}) {
     ...options,
   });
 }
+
+export function useTenantsQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.tenants(filters),
+    queryFn: () => apiRequest(`/tenants/${toSearchParams(filters)}`),
+    ...options,
+  });
+}
+
+export function useTenantQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.tenant(id),
+    queryFn: () => apiRequest(`/tenants/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}
+
+export function useLeasesQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.leases(filters),
+    queryFn: () => apiRequest(`/leases/${toSearchParams(filters)}`),
+    ...options,
+  });
+}
+
+export function useLeaseQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.lease(id),
+    queryFn: () => apiRequest(`/leases/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}

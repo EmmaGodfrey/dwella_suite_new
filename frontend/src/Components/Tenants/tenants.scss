@@ -1,0 +1,71 @@
+.dwella-tenants-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 20px;
+}
+
+.dwella-tenant-profile {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-tenant-profile > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dwella-tenant-profile > header > div {
+  flex: 1;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dwella-tenant-profile h2 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dwella-tenant-profile section {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-tenant-profile h3 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 600;
+}
+
+.dwella-contact-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 1080px) {
+  .dwella-tenants-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dwella-tenant-profile {
+    position: static;
+  }
+}

@@ -64,6 +64,29 @@ export const useFormErrors = () => {
     return false;
   }, []);
 
+  // Puts the API's field errors (`error.data`, from apiClient) on the matching
+  // fields. Nested serializers come back nested, so `{lease: {unit: [...]}}` is
+  // flattened to the `lease.unit` field name. Returns false when none matched,
+  // so the caller can fall back to a toast.
+  const showServerErrors = useCallback((data, knownFields) => {
+    if (!data || typeof data !== "object") return false;
+    const found = {};
+    const walk = (value, prefix) => {
+      if (Array.isArray(value)) {
+        if (typeof value[0] === "string" && knownFields.includes(prefix)) found[prefix] = value[0];
+        return;
+      }
+      if (value && typeof value === "object") {
+        Object.entries(value).forEach(([key, inner]) => walk(inner, prefix ? `${prefix}.${key}` : key));
+      }
+    };
+    walk(data, "");
+    if (!Object.keys(found).length) return false;
+    setErrors(found);
+    toast.error(Object.keys(found).length === 1 ? "Fix the highlighted field." : `Fix the ${Object.keys(found).length} highlighted fields.`);
+    return true;
+  }, []);
+
   const fieldProps = useCallback(
     (name) => ({
       validationState: errors[name] ? "error" : "none",
@@ -73,5 +96,5 @@ export const useFormErrors = () => {
     [errors]
   );
 
-  return { errors, validate, clearError, clearAll, fieldProps };
+  return { errors, validate, clearError, clearAll, fieldProps, showServerErrors };
 };

@@ -1,0 +1,17 @@
+.dwella-lease-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.dwella-lease-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 20px;
+}
+
+@media (max-width: 1080px) {
+  .dwella-lease-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

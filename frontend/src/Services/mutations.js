@@ -146,3 +146,48 @@ export function useSaveUnitMutation(options = {}) {
     onError: options.onError,
   });
 }
+
+// A lease touches the unit's occupancy and the tenant's status, so every lease
+// or tenant write refreshes all three lists plus the dashboard figures.
+const invalidateTenancy = () => {
+  queryClient.invalidateQueries({ queryKey: ["tenants"] });
+  queryClient.invalidateQueries({ queryKey: ["leases"] });
+  queryClient.invalidateQueries({ queryKey: ["properties"] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
+};
+
+export function useSaveTenantMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["saveTenant"],
+    mutationFn: ({ id, payload }) => id ? api.patch(`/tenants/${id}/`, payload) : api.post("/tenants/", payload),
+    onSuccess: (data, variables, context) => {
+      invalidateTenancy();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useSaveLeaseMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["saveLease"],
+    mutationFn: ({ id, payload }) => id ? api.patch(`/leases/${id}/`, payload) : api.post("/leases/", payload),
+    onSuccess: (data, variables, context) => {
+      invalidateTenancy();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useLeaseActionMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["leaseAction"],
+    mutationFn: ({ id, action }) => api.post(`/leases/${id}/${action}/`),
+    onSuccess: (data, variables, context) => {
+      invalidateTenancy();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}

@@ -52,7 +52,12 @@ export async function apiRequest(path, options = {}) {
       typeof payload === "object"
         ? payload.response_message || payload.detail || payload.message
         : payload;
-    throw new Error(message || "Request failed");
+    const error = new Error(message || "Request failed");
+    // Field-level validation errors arrive in `response_data`; forms read them
+    // from here to mark the offending field instead of only toasting.
+    error.status = response.status;
+    error.data = typeof payload === "object" ? payload.response_data : undefined;
+    throw error;
   }
 
   if (payload && typeof payload === "object" && "response_data" in payload) {
