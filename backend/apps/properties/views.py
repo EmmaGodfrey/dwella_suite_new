@@ -2,11 +2,13 @@ from decimal import Decimal
 
 from django.db.models import Avg, Count, Q, Sum
 from django.db.models.functions import Coalesce
+from django_filters import rest_framework as filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import IsOrganizationMember
+from apps.common.permissions import CanViewPortfolio, get_active_membership, get_user_access
 from apps.common.viewsets import OrganizationScopedModelViewSet
+from apps.organizations.models import Organization, OrganizationMembership
 
 from .models import Property, PropertyOwner, Unit
 from .serializers import PropertyOwnerSerializer, PropertySerializer, UnitSerializer
@@ -23,23 +25,22 @@ def percentage(part, whole):
 
 
 class PropertyDashboardSummaryView(APIView):
-    permission_classes = [IsOrganizationMember]
+    permission_classes = [CanViewPortfolio]
 
     def get_organization(self):
-        membership = (
-            self.request.user.organization_memberships.filter(is_active=True)
-            .select_related("organization")
-            .order_by("created_at")
-            .first()
-        )
+        membership = get_active_membership(self.request.user)
         return membership.organization if membership else None
 
     def get(self, request):
+        access = get_user_access(request.user)
         organization = self.get_organization()
-        if organization is None:
+        is_platform_admin = access["persona"] == "platform_admin"
+        if organization is None and not is_platform_admin:
             return Response(
                 {
+                    "access": access,
                     "organization": None,
+                    "platform": {"organizations": 0, "landlords": 0},
                     "properties": {
                         "total": 0,
                         "active": 0,
@@ -56,6 +57,7 @@ class PropertyDashboardSummaryView(APIView):
                         "maintenance": 0,
                         "reserved": 0,
                         "occupancy_rate": 0,
+                        "by_status": [],
                     },
                     "finance": {
                         "monthly_rent_roll": 0,
@@ -72,8 +74,30 @@ class PropertyDashboardSummaryView(APIView):
                 }
             )
 
-        properties = Property.objects.for_organization(organization)
-        units = Unit.objects.for_organization(organization).select_related("property")
+        if is_platform_admin:
+            properties = Property.objects.select_related("organization")
+            units = Unit.objects.select_related("property", "organization")
+            organization_data = {
+                "id": None,
+                "name": "Dwella Suite",
+                "display_name": "All landlord portfolios",
+            }
+            platform_data = {
+                "organizations": Organization.objects.count(),
+                "landlords": OrganizationMembership.objects.filter(
+                    is_active=True,
+                    role=OrganizationMembership.Role.OWNER,
+                ).values("user_id").distinct().count(),
+            }
+        else:
+            properties = Property.objects.for_organization(organization)
+            units = Unit.objects.for_organization(organization).select_related("property")
+            organization_data = {
+                "id": str(organization.public_id),
+                "name": organization.name,
+                "display_name": organization.display_name,
+            }
+            platform_data = None
 
         property_totals = properties.aggregate(
             total=Count("id"),
@@ -118,8 +142,13 @@ class PropertyDashboardSummaryView(APIView):
                 "town": property_obj.town,
                 "address": property_obj.address,
                 "units_count": property_obj.units_count,
+                "organization_name": property_obj.organization.display_name
+                or property_obj.organization.name,
+                "cover_image": request.build_absolute_uri(property_obj.cover_image.url)
+                if property_obj.cover_image else None,
             }
             for property_obj in properties.annotate(units_count=Count("units"))
+            .select_related("organization")
             .order_by("-created_at")[:5]
         ]
 
@@ -136,11 +165,9 @@ class PropertyDashboardSummaryView(APIView):
 
         return Response(
             {
-                "organization": {
-                    "id": str(organization.public_id),
-                    "name": organization.name,
-                    "display_name": organization.display_name,
-                },
+                "access": access,
+                "organization": organization_data,
+                "platform": platform_data,
                 "properties": {
                     "total": property_total,
                     "active": property_totals["active"],
@@ -210,15 +237,32 @@ class PropertyOwnerViewSet(OrganizationScopedModelViewSet):
 
 class PropertyViewSet(OrganizationScopedModelViewSet):
     serializer_class = PropertySerializer
-    queryset = Property.objects.select_related("owner")
+    queryset = Property.objects.select_related("owner").annotate(
+        units_count=Count("units"),
+        occupied_units=Count("units", filter=Q(units__occupancy_status="occupied")),
+        monthly_rent=Coalesce(Sum("units__rent_amount"), Decimal("0")),
+        occupied_rent=Coalesce(
+            Sum("units__rent_amount", filter=Q(units__occupancy_status="occupied")),
+            Decimal("0"),
+        ),
+    )
+    ordering = ["name", "public_id"]
     filterset_fields = ["property_type", "management_status", "town", "is_active"]
     search_fields = ["name", "address", "town", "province"]
     ordering_fields = ["name", "created_at", "management_status"]
 
 
+class UnitFilter(filters.FilterSet):
+    property = filters.UUIDFilter(field_name="property__public_id")
+
+    class Meta:
+        model = Unit
+        fields = ["property", "occupancy_status", "is_active"]
+
+
 class UnitViewSet(OrganizationScopedModelViewSet):
     serializer_class = UnitSerializer
     queryset = Unit.objects.select_related("property")
-    filterset_fields = ["property", "occupancy_status", "is_active"]
+    filterset_class = UnitFilter
     search_fields = ["name", "property__name"]
     ordering_fields = ["name", "rent_amount", "created_at"]

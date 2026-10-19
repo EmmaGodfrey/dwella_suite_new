@@ -1,8 +1,15 @@
+from uuid import uuid4
+
 from django.db import models
 
 from apps.common.models import OrganizationScopedModel
 
 from .managers import PropertyManager
+
+
+def property_cover_path(instance, filename):
+    extension = filename.rsplit(".", 1)[-1].lower()
+    return f"properties/covers/{uuid4().hex}.{extension}"
 
 
 class PropertyOwner(OrganizationScopedModel):
@@ -52,6 +59,7 @@ class Property(OrganizationScopedModel):
     town = models.CharField(max_length=120, blank=True)
     province = models.CharField(max_length=120, blank=True)
     description = models.TextField(blank=True)
+    cover_image = models.ImageField(upload_to=property_cover_path, blank=True, null=True)
 
     objects = PropertyManager()
 
