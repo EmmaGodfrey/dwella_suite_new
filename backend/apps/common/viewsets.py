@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.permissions import SAFE_METHODS
 
 from .permissions import CanManagePortfolio, CanViewPortfolio, get_active_membership
 
@@ -17,10 +18,10 @@ class OrganizationScopedModelViewSet(viewsets.ModelViewSet):
         return membership.organization if membership else None
 
     def get_permissions(self):
+        # Keyed on the HTTP method rather than the action name so custom
+        # write actions (`@action(methods=["post"])`) need manage rights too.
         permission_classes = (
-            [CanManagePortfolio]
-            if self.action in {"create", "update", "partial_update", "destroy"}
-            else [CanViewPortfolio]
+            [CanViewPortfolio] if self.request.method in SAFE_METHODS else [CanManagePortfolio]
         )
         return [permission() for permission in permission_classes]
 
