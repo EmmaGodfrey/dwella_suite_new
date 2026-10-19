@@ -1,20 +1,19 @@
 import React from "react";
-import { Button, Text, Title2 } from "@fluentui/react-components";
-import { ArrowRight24Regular, Clock24Regular } from "@fluentui/react-icons";
+import "./modulePlaceholder.scss";
+import { Clock20Regular } from "@fluentui/react-icons";
 
-import { PageSection } from "../../shared/components";
-
-const ModulePlaceholder = ({ title, description }) => (
+// The topbar already names the module and describes it, so this says the one
+// thing it cannot: the workspace is not built yet. It said so three ways
+// before -- an eyebrow, a heading, and a badge -- for a single fact.
+const ModulePlaceholder = ({ description }) => (
   <div className="dwella-screen">
-    <PageSection className="dwella-module-placeholder">
-      <span><Clock24Regular /></span>
+    <section className="dwella-module-placeholder">
+      <Clock20Regular />
       <div>
-        <Text className="dwella-kicker">Module workspace</Text>
-        <Title2>{title}</Title2>
-        <Text>{description}</Text>
+        <strong>Not available yet</strong>
+        <p>{description}</p>
       </div>
-      <Button appearance="secondary" icon={<ArrowRight24Regular />} iconPosition="after">Coming next</Button>
-    </PageSection>
+    </section>
   </div>
 );
 

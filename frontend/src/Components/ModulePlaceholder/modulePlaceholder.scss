@@ -1,0 +1,33 @@
+.dwella-module-placeholder {
+  width: min(680px, 100%);
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px 20px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-module-placeholder > svg {
+  margin-top: 1px;
+  color: var(--dwella-muted);
+}
+
+.dwella-module-placeholder strong {
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  font-weight: 700;
+}
+
+.dwella-module-placeholder p {
+  max-width: 62ch;
+  margin: 3px 0 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+body.dark-only .dwella-module-placeholder {
+  box-shadow: none;
+}

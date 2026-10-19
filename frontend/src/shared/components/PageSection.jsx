@@ -1,17 +1,27 @@
 import React from "react";
-import { Card, Text, Title3 } from "@fluentui/react-components";
 
-export const PageSection = ({ title, note, actions, children, className = "", as: Heading = "h2" }) => (
-  <Card className={`dwella-card dwella-panel dwella-section ${className}`.trim()} appearance="outline">
-    {(title || note || actions) ? (
+// Plain heading/paragraph rather than Fluent's Title3/Text: those force
+// `display: inline`, which ran the title and note together on one line.
+export const PageSection = ({
+  title,
+  note,
+  actions,
+  children,
+  className = "",
+  as: Heading = "h2",
+}) => (
+  <section className={`dwella-panel ${className}`.trim()}>
+    {title || note || actions ? (
       <header className="dwella-panel-heading">
         <div>
-          {title ? <Title3 as={Heading}>{title}</Title3> : null}
-          {note ? <Text size={200}>{note}</Text> : null}
+          {title ? (
+            <Heading className="dwella-panel-title">{title}</Heading>
+          ) : null}
+          {note ? <p className="dwella-panel-note">{note}</p> : null}
         </div>
         {actions ? <div className="dwella-panel-actions">{actions}</div> : null}
       </header>
     ) : null}
     {children}
-  </Card>
+  </section>
 );
