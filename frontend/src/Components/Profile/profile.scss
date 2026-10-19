@@ -1,0 +1,144 @@
+.dwella-profile-screen {
+  width: min(1120px, 100%);
+  margin-inline: auto;
+}
+
+// `align-items: start` matters here: grid items stretch by default, so the
+// short summary was being pulled to the full height of the much taller form
+// column and left with a large void under its content.
+.dwella-profile-grid {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.dwella-profile-summary {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 22px;
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+  text-align: center;
+}
+
+.dwella-profile-name {
+  margin-top: 14px;
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+}
+
+.dwella-profile-email {
+  max-width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dwella-profile-summary .fui-Button {
+  margin-top: 18px;
+}
+
+.dwella-profile-stack {
+  display: grid;
+  gap: 20px;
+}
+
+// Both sections are the same kind of thing -- a form about this account -- so
+// they share one surface treatment rather than being tinted apart.
+.dwella-profile-section {
+  padding: 20px;
+  background: var(--dwella-paper);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-profile-section footer {
+  margin-top: 2px;
+}
+
+// ---- Verification state -----------------------------------------------------
+
+.dwella-verification-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--dwella-wash);
+  border-radius: var(--radius-md);
+}
+
+.dwella-verification-state > span {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  color: var(--dwella-primary);
+  background: var(--dwella-primary-soft);
+  border-radius: var(--radius-lg);
+}
+
+.dwella-verification-state.is-approved > span {
+  color: var(--dwella-success);
+  background: var(--dwella-success-soft);
+}
+
+.dwella-verification-status {
+  display: block;
+  color: var(--dwella-ink);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dwella-verification-note {
+  max-width: 62ch;
+  margin: 3px 0 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-verification-state .dwella-alert {
+  margin-top: 12px;
+}
+
+body.dark-only .dwella-profile-section,
+body.dark-only .dwella-profile-summary {
+  box-shadow: none;
+}
+
+body.dark-only .dwella-profile-summary {
+  background: var(--dwella-paper);
+}
+
+@media (max-width: 900px) {
+  .dwella-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // Stacked, a sticky summary would sit on top of the form it belongs to.
+  .dwella-profile-summary {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-profile-section,
+  .dwella-profile-summary {
+    padding: 16px;
+  }
+}

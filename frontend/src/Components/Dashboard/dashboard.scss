@@ -1,0 +1,703 @@
+.dwella-dashboard-v2 {
+  width: min(1480px, 100%);
+  margin-inline: auto;
+  gap: 20px;
+}
+
+.dwella-dashboard-intro,
+.dwella-dashboard-section-heading,
+.dwella-property-roster-copy > div,
+.dwella-composition-list > div > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dwella-dashboard-intro h2 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dwella-dashboard-kicker {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dwella-tenant-status {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  max-width: 860px;
+  padding: 24px;
+  background: var(--dwella-primary-soft);
+  border-radius: var(--radius-md);
+}
+
+.dwella-tenant-status > svg {
+  width: 28px;
+  height: 28px;
+  padding: 8px;
+  color: var(--dwella-primary);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-sm);
+}
+
+.dwella-tenant-status strong,
+.dwella-tenant-actions strong {
+  display: block;
+  font-size: var(--fs-body);
+}
+
+.dwella-tenant-status p {
+  margin: 4px 0 0;
+  color: var(--dwella-muted);
+}
+
+.dwella-tenant-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 860px;
+}
+
+.dwella-tenant-actions button {
+  min-height: 128px;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 8px;
+  padding: 18px;
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dwella-tenant-actions button:hover,
+.dwella-tenant-actions button:focus-visible {
+  background: var(--dwella-primary-soft);
+}
+
+.dwella-tenant-actions button:focus-visible {
+  outline: 2px solid var(--dwella-primary);
+  outline-offset: 2px;
+}
+
+.dwella-tenant-actions button > svg {
+  color: var(--dwella-primary);
+}
+
+.dwella-tenant-actions span {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+// ---- Pulse band -------------------------------------------------------------
+// One focal figure, then a strip of supporting counts. Paper rather than navy:
+// the band leads through size and position, not a dark slab that out-shouts
+// every other section on the page.
+
+.dwella-portfolio-pulse {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  align-items: stretch;
+  padding: 24px 28px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-pulse-lead {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding-right: 32px;
+}
+
+.dwella-pulse-lead > span {
+  color: var(--dwella-muted);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-pulse-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.dwella-pulse-figure strong {
+  color: var(--dwella-ink);
+  font-family: var(--font-display);
+  font-size: clamp(var(--fs-stat-lg), 3.2vw, 44px);
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.dwella-pulse-figure small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+}
+
+// Flex-grow carries the two amounts, so the split is proportional without any
+// percentage maths in the component. The 2px gap keeps a zero-width side from
+// reading as a stray sliver.
+.dwella-pulse-bar {
+  height: 8px;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+  background: var(--dwella-line-soft);
+  border-radius: 4px;
+}
+
+.dwella-pulse-bar span {
+  flex-basis: 0;
+}
+
+.dwella-pulse-bar .is-occupied {
+  background: var(--dwella-secondary);
+}
+
+.dwella-pulse-bar .is-vacant {
+  background: var(--dwella-warning);
+}
+
+.dwella-pulse-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-pulse-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 500;
+}
+
+.dwella-pulse-legend li::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.dwella-pulse-legend .is-occupied {
+  color: var(--dwella-accent-text);
+}
+
+.dwella-pulse-legend .is-vacant {
+  color: var(--dwella-warning);
+}
+
+.dwella-pulse-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: center;
+  gap: 18px 24px;
+  margin: 0;
+  padding-left: 32px;
+  border-left: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-pulse-stat {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.dwella-pulse-stat dt {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-pulse-stat dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.dwella-pulse-stat strong {
+  color: var(--dwella-ink);
+  font-size: var(--fs-stat);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.dwella-pulse-stat small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-portfolio-pulse .dwella-figure-skeleton {
+  display: inline-block;
+  height: 0.8em;
+  vertical-align: baseline;
+}
+
+// ---- Columns ----------------------------------------------------------------
+
+.dwella-dashboard-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.65fr);
+  gap: 20px;
+}
+
+.dwella-dashboard-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+
+.dwella-property-roster,
+.dwella-rent-ladder {
+  padding: 4px 0;
+}
+
+.dwella-dashboard-section-heading {
+  min-height: 38px;
+  margin-bottom: 12px;
+}
+
+.dwella-dashboard-section-heading h3 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
+}
+
+.dwella-dashboard-section-heading p {
+  margin: 1px 0 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+// ---- Property roster --------------------------------------------------------
+
+.dwella-property-roster-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dwella-property-roster-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 13px;
+  padding: 10px;
+  color: var(--dwella-ink);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dwella-property-roster-item:hover {
+  background: var(--dwella-primary-soft);
+}
+
+.dwella-property-roster-item:focus-visible {
+  background: var(--dwella-primary-soft);
+  outline: 2px solid var(--dwella-primary);
+  outline-offset: -2px;
+}
+
+.dwella-property-roster-item:active {
+  transform: scale(0.985);
+}
+
+.dwella-property-roster-item > .dwella-property-photo {
+  width: 72px;
+  height: 68px;
+  border-radius: var(--radius-sm);
+}
+
+.dwella-property-roster-item.is-loading {
+  pointer-events: none;
+}
+
+.dwella-roster-photo-skeleton {
+  width: 72px;
+  height: 68px;
+}
+
+.dwella-property-roster-item.is-loading .dwella-property-roster-copy {
+  display: grid;
+  gap: 7px;
+}
+
+.dwella-property-roster-copy {
+  min-width: 0;
+}
+
+.dwella-property-roster-copy strong,
+.dwella-property-roster-copy p,
+.dwella-property-roster-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dwella-property-roster-copy > div > strong {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-property-roster-copy p {
+  margin: 4px 0 6px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-property-roster-copy > span {
+  display: block;
+  color: var(--dwella-muted);
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+}
+
+.dwella-property-roster-arrow {
+  color: var(--dwella-muted);
+}
+
+// ---- Side boards ------------------------------------------------------------
+// Both boards sit on paper. They were tinted green and gold before, which read
+// as a status the data never meant.
+
+.dwella-availability-board,
+.dwella-portfolio-composition {
+  padding: 20px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+body.dark-only .dwella-availability-board,
+body.dark-only .dwella-portfolio-composition {
+  box-shadow: none;
+}
+
+.dwella-availability-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 20px;
+}
+
+.dwella-availability-list > div {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto 42px;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-availability-list strong {
+  font-size: var(--fs-body);
+}
+
+.dwella-availability-list small {
+  color: var(--dwella-muted);
+  font-size: var(--fs-micro);
+  text-align: right;
+}
+
+.dwella-board-empty {
+  margin: 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--dwella-muted);
+  border-radius: 50%;
+}
+
+.dwella-status-dot.is-occupied {
+  background: var(--dwella-primary);
+}
+
+.dwella-status-dot.is-vacant {
+  background: var(--dwella-warning);
+}
+
+.dwella-status-dot.is-maintenance {
+  background: var(--dwella-danger);
+}
+
+.dwella-average-rent {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-average-rent span {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+}
+
+.dwella-average-rent strong {
+  font-size: var(--fs-lead);
+}
+
+// ---- Rent ladder ------------------------------------------------------------
+
+.dwella-rent-ladder-list {
+  display: grid;
+}
+
+.dwella-rent-ladder-list > div {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto minmax(86px, auto);
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+.dwella-rent-ladder-list > div:nth-child(odd) {
+  background: var(--dwella-paper);
+  border-radius: var(--radius-sm);
+}
+
+.dwella-rent-rank {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dwella-rent-ladder-list > div > div {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.dwella-rent-ladder-list > div > div strong,
+.dwella-rent-ladder-list > div > div small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dwella-rent-ladder-list strong {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-rent-ladder-list small {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-rent-ladder-list > div > strong:last-child {
+  text-align: right;
+}
+
+// ---- Composition ------------------------------------------------------------
+
+.dwella-composition-list {
+  display: grid;
+  gap: 13px;
+}
+
+.dwella-composition-list > div {
+  display: grid;
+  gap: 6px;
+}
+
+.dwella-composition-list > div > div {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-composition-list strong {
+  font-size: var(--fs-body);
+}
+
+.dwella-management-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-management-summary > div {
+  display: grid;
+  gap: 2px;
+}
+
+.dwella-management-summary strong {
+  font-size: var(--fs-stat-sm);
+  line-height: 1.2;
+}
+
+.dwella-management-summary span {
+  color: var(--dwella-muted);
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+}
+
+// ---- Empty states -----------------------------------------------------------
+
+.dwella-dashboard-empty {
+  padding: 24px;
+  color: var(--dwella-muted);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-dashboard-empty strong {
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+}
+
+.dwella-dashboard-empty p {
+  margin: 4px 0 12px;
+}
+
+.dwella-dashboard-empty.compact {
+  padding: 18px 10px;
+  background: transparent;
+}
+
+@media (max-width: 1180px) {
+  .dwella-portfolio-pulse {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .dwella-pulse-lead {
+    padding-right: 0;
+  }
+
+  .dwella-pulse-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    padding: 18px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--dwella-line-soft);
+  }
+
+  .dwella-property-roster-grid {
+    grid-template-columns: 1fr;
+  }
+
+  // `display: contents` promotes the sections to direct children of
+  // `.dwella-screen`, so `order` can interleave the two columns into one
+  // priority stack instead of running one column after the other.
+  .dwella-dashboard-columns,
+  .dwella-dashboard-column {
+    display: contents;
+  }
+
+  .dwella-property-roster {
+    order: 1;
+  }
+
+  .dwella-availability-board {
+    order: 2;
+  }
+
+  .dwella-rent-ladder {
+    order: 3;
+  }
+
+  .dwella-portfolio-composition {
+    order: 4;
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-dashboard-v2 {
+    gap: 16px;
+  }
+
+  .dwella-dashboard-intro {
+    align-items: flex-start;
+  }
+
+  .dwella-dashboard-intro .fui-Button {
+    flex-shrink: 0;
+  }
+
+  .dwella-tenant-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dwella-portfolio-pulse {
+    padding: 20px 18px;
+  }
+
+  .dwella-pulse-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dwella-property-roster-item {
+    grid-template-columns: 62px minmax(0, 1fr) 16px;
+  }
+
+  .dwella-property-roster-item > .dwella-property-photo,
+  .dwella-roster-photo-skeleton {
+    width: 62px;
+    height: 62px;
+  }
+
+  .dwella-rent-ladder-list > div {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+  }
+
+  .dwella-rent-ladder-list .dwella-status-badge {
+    display: none;
+  }
+}

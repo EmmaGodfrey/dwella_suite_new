@@ -1,0 +1,176 @@
+.dwella-security-screen {
+  width: min(900px, 100%);
+  margin-inline: auto;
+}
+
+.dwella-security-overview {
+  padding: 22px;
+  background: var(--dwella-paper);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-security-emblem {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--dwella-warning);
+  background: var(--dwella-warning-soft);
+  border-radius: var(--radius-lg);
+}
+
+// Here the tint is the message: gold means this account is one factor short,
+// green means it is covered. That is the one place colour carries state.
+.dwella-security-emblem.enabled {
+  color: var(--dwella-success);
+  background: var(--dwella-success-soft);
+}
+
+.dwella-security-status {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: var(--dwella-warning-soft);
+  border-radius: var(--radius-md);
+}
+
+.dwella-security-status.is-enabled {
+  background: var(--dwella-success-soft);
+}
+
+.dwella-security-status-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--dwella-primary);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+}
+
+.dwella-security-status h3,
+.dwella-setup-box h3 {
+  margin: 0;
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  font-weight: 700;
+}
+
+.dwella-security-status p,
+.dwella-setup-box p {
+  max-width: 62ch;
+  margin: 3px 0 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-security-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 4px;
+  padding: 16px 4px 2px;
+}
+
+.dwella-security-facts > div {
+  display: grid;
+  gap: 3px;
+}
+
+.dwella-security-facts span,
+.dwella-security-code span {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-security-facts strong {
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  text-transform: capitalize;
+}
+
+// ---- Authenticator setup ----------------------------------------------------
+
+.dwella-setup-box {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  background: var(--dwella-info-soft);
+  border-radius: var(--radius-md);
+}
+
+.dwella-setup-box > svg {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  color: var(--dwella-info);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-md);
+}
+
+.dwella-security-code {
+  display: grid;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-sm);
+}
+
+.dwella-security-code code {
+  overflow-wrap: anywhere;
+  color: var(--dwella-ink);
+  font-family: var(--fontFamilyMonospace, monospace);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-setup-box .fui-Field {
+  max-width: 200px;
+  margin-top: 16px;
+}
+
+.dwella-setup-box .fui-Field .fui-Input__input {
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+.dwella-setup-box .fui-Button {
+  margin-top: 12px;
+}
+
+body.dark-only .dwella-security-overview {
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .dwella-security-overview {
+    padding: 16px;
+  }
+
+  .dwella-security-status {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .dwella-security-status > .fui-Button {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+  }
+
+  .dwella-security-facts {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dwella-setup-box {
+    grid-template-columns: 1fr;
+  }
+}

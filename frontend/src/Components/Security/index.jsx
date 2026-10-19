@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Button, Field, Input, Text, Title3 } from "@fluentui/react-components";
-import { Key24Regular, Shield24Regular, ShieldDismiss24Regular } from "@fluentui/react-icons";
+import "./security.scss";
+import { Button, Field, Input } from "@fluentui/react-components";
+import { CheckmarkCircle24Regular, Key24Regular, Shield24Regular, ShieldDismiss24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useCurrentUserQuery } from "../../Services/queries";
@@ -31,35 +32,46 @@ const Security = () => {
   return (
     <div className="dwella-screen dwella-security-screen">
       <PageSection
-        className="security-panel"
-        title="Account Protection"
+        className="dwella-security-overview"
+        title="Account protection"
         note="Manage sign-in protections for your admin account."
         actions={
           <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>{user?.has_two_factor ? <Shield24Regular /> : <ShieldDismiss24Regular />}</span>
         }
       >
-        <div className="dwella-security-row">
+        <div className={`dwella-security-status ${user?.has_two_factor ? "is-enabled" : ""}`}>
+          <span className="dwella-security-status-icon">
+            {user?.has_two_factor ? <CheckmarkCircle24Regular /> : <Key24Regular />}
+          </span>
           <div>
-            <Title3>Two-Factor Authentication</Title3>
-            <Text>{user?.has_two_factor ? "2FA is enabled for this account." : "Add an authenticator code before account access is granted."}</Text>
+            <h3>Two-factor authentication</h3>
+            <p>{user?.has_two_factor ? "Authenticator verification is required when this account signs in." : "Require an authenticator code after the password step."}</p>
           </div>
           {user?.has_two_factor ? (
-            <Button appearance="primary" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()}>Disable</Button>
+            <Button appearance="secondary" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()}>Disable 2FA</Button>
           ) : (
-            <Button appearance="primary" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set Up 2FA"}</Button>
+            <Button appearance="primary" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set up 2FA"}</Button>
           )}
+        </div>
+
+        <div className="dwella-security-facts" aria-label="Account security details">
+          <div><span>Password</span><strong>Configured</strong></div>
+          <div><span>Identity review</span><strong>{user?.identity_verification?.status?.replace(/_/g, " ") || "Not submitted"}</strong></div>
+          <div><span>Second factor</span><strong>{user?.has_two_factor ? "Active" : "Not active"}</strong></div>
         </div>
 
         {setup ? (
           <div className="dwella-setup-box">
             <Key24Regular />
             <div>
-              <Text><strong>Secret:</strong> <code>{setup.secret}</code></Text>
-              <Text><strong>Authenticator URI:</strong> <code>{setup.provisioning_uri}</code></Text>
-              <Field label="6-digit code">
+              <h3>Connect your authenticator</h3>
+              <p>Enter this secret manually or use the provisioning URI in your authenticator app.</p>
+              <div className="dwella-security-code"><span>Secret</span><code>{setup.secret}</code></div>
+              <div className="dwella-security-code"><span>Authenticator URI</span><code>{setup.provisioning_uri}</code></div>
+              <Field label="6-digit code" hint="From your authenticator app.">
                 <Input inputMode="numeric" maxLength={6} value={code} onChange={(_, data) => setCode(data.value.replace(/\D/g, ""))} />
               </Field>
-              <Button appearance="primary" disabled={verifyMutation.isPending} onClick={() => verifyMutation.mutate({ code })}>{verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}</Button>
+              <Button appearance="primary" disabled={verifyMutation.isPending || code.length !== 6} onClick={() => verifyMutation.mutate({ code })}>{verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}</Button>
             </div>
           </div>
         ) : null}
