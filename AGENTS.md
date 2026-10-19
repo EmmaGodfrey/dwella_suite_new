@@ -35,3 +35,13 @@
 - Keep API calls inside `src/Services/`; screens should use query/mutation hooks.
 - Validate every user-facing form in the frontend while keeping backend validation authoritative.
 - Before finishing frontend changes, run a production build and sanity-check the flows touched so we do not regress existing features.
+
+## UI Skills
+
+For frontend work, read the relevant project skill before editing:
+
+- `.agents/skills/dwella-impeccable-ui/SKILL.md` for shaping, redesigning, critiquing, or polishing a complete surface.
+- `.agents/skills/dwella-taste-ui/SKILL.md` for visual hierarchy, typography, spacing, color, card/border restraint, forms, and anti-generic review.
+- `.agents/skills/dwella-design-engineering/SKILL.md` for motion, transitions, interaction feedback, and animation review.
+
+Use only the skills relevant to the request. The product brief, existing Dwella design system, Fluent UI conventions, and explicit user direction take precedence. Playwright is optional and should be used only when browser-level visual or interaction validation materially improves confidence.
