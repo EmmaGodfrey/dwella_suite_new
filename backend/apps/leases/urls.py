@@ -1,3 +1,11 @@
-﻿app_name = "leases"
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = []
+from .views import LeaseViewSet
+
+app_name = "leases"
+
+router = DefaultRouter()
+router.register("", LeaseViewSet, basename="lease")
+
+urlpatterns = [path("", include(router.urls))]
