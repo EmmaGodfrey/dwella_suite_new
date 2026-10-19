@@ -1,34 +1,144 @@
-@import 'react-toastify/dist/ReactToastify.css';
+@import "react-toastify/dist/ReactToastify.css";
 
+// Colour tokens mirror the Figma "Color" collection (Light / Dark modes) name
+// for name, so a value changed there has exactly one place to change here.
+// Navy is the logo's primary; green is the accent and is reserved for money
+// coming in, progress and positive actions -- never for large surfaces.
 :root {
-  --dwella-primary: #1c493f;
-  --dwella-primary-dark: #0a211d;
-  --dwella-primary-soft: #e7f0ed;
-  --dwella-secondary: #dfa63a;
-  --dwella-secondary-soft: #fff8e8;
-  --dwella-ink: #12231f;
-  --dwella-muted: #66756f;
-  --dwella-subtle: #8a9994;
-  --dwella-line: #d6dfdb;
-  --dwella-line-soft: #e8eeeb;
+  --dwella-primary: #1d417e;
+  --dwella-primary-hover: #173568;
+  --dwella-primary-dark: #122a52;
+  --dwella-primary-soft: #eef2f9;
+  --dwella-on-primary: #ffffff;
+  --dwella-link: #1d417e;
+  --dwella-secondary: #2ba053;
+  --dwella-secondary-soft: #eaf7ef;
+  // The logo green is too light for white button text (3.2:1), so filled
+  // green controls use this deeper step (4.6:1) and green text uses -text.
+  --dwella-accent-strong: #22854a;
+  --dwella-accent-hover: #1b6b3c;
+  --dwella-accent-text: #1b6b3c;
+  --dwella-ink: #111a2b;
+  --dwella-muted: #4b566c;
+  --dwella-subtle: #667189;
+  --dwella-line: #d5dce7;
+  --dwella-line-soft: #e7ebf2;
+  --dwella-focus: #2f5a9c;
   --dwella-paper: #ffffff;
-  --dwella-wash: #f7f9f8;
-  --dwella-danger: #c84f4f;
+  --dwella-raised: #f8fafc;
+  --dwella-wash: #f3f5f9;
+  --dwella-danger: #c2413b;
+  --dwella-danger-soft: #fcedec;
+  --dwella-success: #1b6b3c;
+  --dwella-success-soft: #eaf7ef;
+  --dwella-warning: #9a5f06;
+  --dwella-warning-soft: #fdf5e6;
+  --dwella-info: #2f5a9c;
+  --dwella-info-soft: #eef2f9;
+  --dwella-violet: #6a4c9c;
+  --dwella-violet-soft: #f3eef9;
+
+  // Inverted surfaces -- the sign-in hero and the dashboard pulse band -- stay
+  // navy in both themes, so their text cannot use the ink tokens.
+  --dwella-deep: #1d417e;
+  --dwella-deep-raised: #173568;
+  --dwella-on-dark: #f8fafc;
+  --dwella-on-dark-muted: #b3c5e3;
+  --dwella-on-dark-subtle: #8aa8db;
+  --dwella-on-dark-line: rgba(255, 255, 255, 0.14);
+
+  // Elevation. Cards get a crisp navy-tinted hairline instead of a blurry
+  // glow; buttons get a short lift plus a top highlight, which is the
+  // "slightly raised" edge from the design system.
+  --dwella-shadow-card: 0 0 0 1px rgba(29, 65, 126, 0.1), 0 1px 2px rgba(29, 65, 126, 0.05);
+  --dwella-shadow-raised: 0 1px 2px rgba(17, 26, 43, 0.08), inset 0 -1px 0 rgba(17, 26, 43, 0.06);
+  --dwella-shadow-raised-primary: 0 1px 2px rgba(17, 26, 43, 0.1), 0 2px 6px -1px rgba(29, 65, 126, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --dwella-shadow-raised-accent: 0 1px 2px rgba(17, 26, 43, 0.1), 0 2px 6px -1px rgba(34, 133, 74, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --dwella-shadow-overlay: 0 8px 24px -4px rgba(17, 26, 43, 0.14), 0 2px 6px -2px rgba(17, 26, 43, 0.08);
+
+  --font-display: "Montserrat", "Figtree", "Segoe UI", system-ui, sans-serif;
+
   --dwella-sidebar-width: 252px;
-  --dwella-sidebar-collapsed: 78px;
-  --fontFamilyBase: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --dwella-sidebar-collapsed: 76px;
+  --dwella-topbar-height: 60px;
+
+  // ---- Type scale -----------------------------------------------------------
+  // Eight steps, each carrying its own line height. Everything in the product
+  // picks a step; nothing sets a raw pixel size. `micro` is for badges and
+  // column labels only, never for a sentence.
+  --fs-micro: 11px;
+  --lh-micro: 16px;
+  --fs-small: 12px;
+  --lh-small: 18px;
+  --fs-body: 13px;
+  --lh-body: 20px;
+  --fs-lead: 14px;
+  --lh-lead: 21px;
+  --fs-h4: 15px;
+  --lh-h4: 22px;
+  --fs-h3: 17px;
+  --lh-h3: 24px;
+  --fs-h2: 20px;
+  --lh-h2: 28px;
+  --fs-h1: 26px;
+  --lh-h1: 33px;
+
+  // Numerals read smaller than words at the same size, so figures get their own
+  // steps rather than borrowing heading ones.
+  --fs-stat-sm: 18px;
+  --fs-stat: 22px;
+  --fs-stat-lg: 28px;
+  --fs-stat-xl: 36px;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --fontFamilyBase:
+    "Figtree", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+// Navy-based dark mode: deep navy surfaces, a lighter blue for primary
+// actions and links, and the brighter green for accents.
 body.dark-only {
-  --dwella-primary-soft: rgba(50, 113, 101, 0.2);
-  --dwella-secondary-soft: rgba(223, 166, 58, 0.14);
+  --dwella-primary: #8aa8db;
+  --dwella-primary-hover: #b3c5e3;
+  --dwella-primary-dark: #0a1730;
+  --dwella-primary-soft: rgba(90, 130, 196, 0.22);
+  --dwella-on-primary: #0a1426;
+  --dwella-link: #8aa8db;
+  --dwella-secondary: #3db06a;
+  --dwella-secondary-soft: rgba(61, 176, 106, 0.16);
+  --dwella-accent-strong: #3db06a;
+  --dwella-accent-hover: #65c68b;
+  --dwella-accent-text: #65c68b;
   --dwella-ink: #f8fafc;
-  --dwella-muted: #aab8b4;
-  --dwella-subtle: #7f908a;
-  --dwella-line: rgba(231, 240, 237, 0.14);
-  --dwella-line-soft: rgba(231, 240, 237, 0.09);
-  --dwella-paper: #151c1a;
-  --dwella-wash: #0f1514;
+  --dwella-muted: #b6c0d0;
+  --dwella-subtle: #8c97ab;
+  --dwella-line: #22324f;
+  --dwella-line-soft: #1a2a45;
+  --dwella-focus: #8aa8db;
+  --dwella-paper: #0f1c33;
+  --dwella-raised: #152542;
+  --dwella-wash: #0a1426;
+  --dwella-danger: #f08a84;
+  --dwella-danger-soft: #3a1716;
+  --dwella-success: #65c68b;
+  --dwella-success-soft: rgba(61, 176, 106, 0.16);
+  --dwella-warning: #e8bd5c;
+  --dwella-warning-soft: #33240a;
+  --dwella-info: #8aa8db;
+  --dwella-info-soft: rgba(90, 130, 196, 0.22);
+  --dwella-violet: #bba3dd;
+  --dwella-violet-soft: #241a36;
+  --dwella-deep: #0d1f3d;
+  --dwella-deep-raised: #122a52;
+  --dwella-on-dark-line: rgba(255, 255, 255, 0.08);
+  --dwella-shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --dwella-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --dwella-shadow-raised-primary: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --dwella-shadow-raised-accent: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  --dwella-shadow-overlay: 0 12px 32px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 * {
@@ -42,17 +152,28 @@ body,
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  overflow: hidden;
 }
 
 body {
   color: var(--dwella-ink);
   background: var(--dwella-wash);
   font-family: var(--fontFamilyBase);
-  font-size: 13px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
+}
+
+// Tabular figures stop money columns and rank numbers from changing width as
+// their digits change, which is what made the rent lists jitter while fetching.
+strong,
+b,
+code {
+  font-variant-numeric: tabular-nums;
 }
 
 .dwella-route-loading {
@@ -63,196 +184,340 @@ a {
   background: var(--dwella-wash);
 }
 
+// ---- App shell --------------------------------------------------------------
+
 .dwella-app-shell {
   min-height: 100vh;
-  background: linear-gradient(180deg, rgba(231, 240, 237, 0.72), transparent 360px), var(--dwella-wash);
+  background: var(--dwella-wash);
 }
 
-body.dark-only .dwella-app-shell {
-  background: linear-gradient(180deg, rgba(28, 73, 63, 0.18), transparent 360px), var(--dwella-wash);
-}
-
+// A light sidebar: navy is spent on the active item and the primary actions
+// in the page, so the frame itself stays quiet and the content leads.
 .dwella-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 10;
   width: var(--dwella-sidebar-width);
-  padding: 14px 12px;
+  padding: 16px 14px 12px;
   display: flex;
   flex-direction: column;
-  background: var(--dwella-primary-dark);
-  color: #f6fbf8;
-  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  gap: 4px;
+  background: var(--dwella-paper);
+  color: var(--dwella-ink);
+  box-shadow: 1px 0 0 var(--dwella-line-soft);
+  overflow: hidden;
+  transition:
+    width 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 240ms linear;
 }
 
 .dwella-sidebar-brand {
-  min-height: 66px;
+  min-height: 44px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 2px 0 14px 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 4px 12px;
 }
 
 .dwella-brand-link {
-  min-width: 0;
-  flex: 1;
-  display: flex;
+  flex: 0 0 auto;
+  display: inline-flex;
   align-items: center;
-  gap: 11px;
-  color: #fff;
+  gap: 9px;
   text-decoration: none;
+  border-radius: var(--radius-md);
+}
+
+.dwella-brand-link:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: 2px;
 }
 
 .dwella-brand-mark {
-  width: 50px;
-  height: 50px;
-  flex: 0 0 50px;
-  display: grid;
-  place-items: center;
-  background: #fff;
-  border-radius: 12px;
-}
-
-.dwella-brand-mark img {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 30px;
+  display: block;
   object-fit: contain;
 }
 
-.dwella-brand-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  transition: opacity 180ms ease, width 180ms ease;
+// The navy mark disappears on navy-black surfaces, so dark mode swaps in the
+// reversed file. `content` on an <img> replaces its source in every engine we
+// support and keeps the markup to one element.
+body.dark-only .dwella-brand-mark {
+  content: url("/assets/images/logo/dwella-mark-white.png");
 }
 
-.dwella-brand-copy strong {
-  color: #fff;
-  font-size: 16px;
+.dwella-brand-word {
+  color: var(--dwella-primary);
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1;
   font-weight: 700;
-  line-height: 50px;
+  letter-spacing: -0.01em;
 }
 
-.dwella-sidebar-toggle,
+.dwella-brand-word span {
+  color: var(--dwella-secondary);
+}
+
 .dwella-sidebar-close {
   width: 34px !important;
   min-width: 34px !important;
   height: 34px !important;
-  color: #b6ccc6 !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 9px !important;
+  display: none !important;
+  color: var(--dwella-muted) !important;
+  background: var(--dwella-paper) !important;
+  border: 1px solid var(--dwella-line) !important;
+  border-radius: 50% !important;
 }
 
 .dwella-sidebar-toggle {
-  margin-left: auto;
-  margin-top: 2px;
+  position: fixed !important;
+  top: 22px;
+  left: calc(var(--dwella-sidebar-width) - 16px);
+  z-index: 30;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  color: var(--dwella-muted) !important;
+  background: var(--dwella-paper) !important;
+  border: 1px solid var(--dwella-line) !important;
+  box-shadow: var(--dwella-shadow-raised);
+  overflow: visible !important;
+  transition:
+    left 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 180ms ease,
+    border-color 180ms ease;
 }
 
 .dwella-sidebar-toggle:hover,
 .dwella-sidebar-close:hover {
-  color: #fff !important;
-  background: rgba(255, 255, 255, 0.1) !important;
+  color: var(--dwella-ink) !important;
+  background: var(--dwella-raised) !important;
 }
 
-.dwella-sidebar-close {
-  display: none !important;
+.dwella-sidebar-toggle-glyph {
+  width: 18px;
+  height: 18px;
+  animation: dwella-sidebar-toggle-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.dwella-sidebar-nav {
-  flex: 1;
-  min-height: 0;
-  padding-top: 14px;
-  background: transparent !important;
-  color: inherit !important;
+// Which organisation the figures belong to. A static label, so it carries no
+// chevron or hover: it must not look like a switcher until it is one.
+.dwella-workspace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding: 9px 10px;
+  background: var(--dwella-raised);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--dwella-line-soft);
 }
 
-.dwella-nav-section {
-  display: block;
-  margin: 8px 10px 10px;
-  color: #66837c;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.dwella-workspace-avatar {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  display: grid;
+  place-items: center;
+  color: var(--dwella-accent-text);
+  background: var(--dwella-secondary-soft);
+  border-radius: 8px;
+  font-size: var(--fs-small);
+  font-weight: 700;
 }
 
-.dwella-sidebar-nav [role="tree"],
-.dwella-sidebar-nav [role="group"],
-.dwella-sidebar-nav .fui-NavDrawerBody {
-  display: flex !important;
-  flex: 0 0 auto !important;
-  flex-direction: column;
-  gap: 6px;
-  padding: 0 !important;
+.dwella-workspace-copy {
+  min-width: 0;
+  display: grid;
 }
 
-.dwella-sidebar-nav [role="treeitem"],
-.dwella-sidebar-nav .fui-NavItem {
-  min-height: 40px;
-  height: 40px;
-  margin: 0;
-  padding: 0 11px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 11px !important;
-  color: #91a7a1;
-  background: transparent !important;
-  border-radius: 9px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 600;
-  transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-
-.dwella-sidebar-nav [role="treeitem"]:hover,
-.dwella-sidebar-nav .fui-NavItem:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.07);
-  transform: translateX(2px);
-}
-
-.dwella-sidebar-nav [aria-selected="true"],
-.dwella-sidebar-nav [data-selected="true"],
-.dwella-sidebar-nav [aria-current="page"] {
-  color: #fff;
-  background: var(--dwella-primary) !important;
-  box-shadow: inset 3px 0 0 var(--dwella-secondary);
-}
-
-.dwella-sidebar-nav [role="treeitem"] svg,
-.dwella-sidebar-nav .fui-NavItem svg {
-  width: 19px;
-  height: 19px;
-  flex: 0 0 19px;
-}
-
-.dwella-sidebar-nav [role="treeitem"] span,
-.dwella-sidebar-nav .fui-NavItem span {
+.dwella-workspace-copy strong,
+.dwella-workspace-copy small,
+.dwella-account-copy strong,
+.dwella-account-copy small {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
+.dwella-workspace-copy strong {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+.dwella-workspace-copy small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+// Scoped past `.fui-NavSectionHeader`, whose Griffel rule is emitted after this
+// stylesheet and wins any single-class tie (same applies to the NavItem rules).
+.dwella-sidebar-nav .dwella-nav-section {
+  margin: 14px 12px 4px;
+  color: var(--dwella-subtle);
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// Collapsed, the section labels give way to a hairline between groups.
+.dwella-nav-divider {
+  width: 28px;
+  height: 1px;
+  margin: 10px auto;
+  background: var(--dwella-line-soft);
+}
+
+.dwella-sidebar-nav .fui-NavItem {
+  height: 38px;
+  padding: 0 12px !important;
+  gap: 12px !important;
+  align-items: center;
+  color: var(--dwella-muted);
+  background: transparent !important;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+// Fluent draws its own selection pill as a ::after in the gutter. The active
+// state here is a soft navy fill alone, so theirs is switched off.
+.dwella-sidebar-nav .fui-NavItem::after {
+  display: none;
+}
+
+.dwella-sidebar-nav .fui-NavItem:hover {
+  color: var(--dwella-ink);
+  background: var(--dwella-raised) !important;
+}
+
+.dwella-sidebar-nav .fui-NavItem:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: -2px;
+}
+
+.dwella-sidebar-nav .fui-NavItem[aria-current="page"] {
+  color: var(--dwella-primary);
+  background: var(--dwella-primary-soft) !important;
+}
+
+.dwella-sidebar-nav .dwella-nav-item-icon {
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  overflow: visible;
+  color: var(--dwella-subtle);
+}
+
+.dwella-sidebar-nav .fui-NavItem[aria-current="page"] .dwella-nav-item-icon,
+.dwella-sidebar-nav .fui-NavItem:hover .dwella-nav-item-icon {
+  color: inherit;
+}
+
+.dwella-sidebar-nav .dwella-nav-item-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dwella-sidebar-footer {
+  padding-top: 8px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-account {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  color: var(--dwella-ink);
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 160ms ease;
+}
+
+.dwella-account:hover {
+  background: var(--dwella-raised);
+}
+
+.dwella-account:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: -2px;
+}
+
+.dwella-account-copy {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+
+.dwella-account-copy strong {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+.dwella-account-copy small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-account-more {
+  flex: 0 0 auto;
+  color: var(--dwella-subtle);
+}
+
 .dwella-main-frame {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   margin-left: var(--dwella-sidebar-width);
+  max-width: calc(100vw - var(--dwella-sidebar-width));
   transition: margin-left 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dwella-topbar {
-  min-height: 74px;
-  position: sticky;
-  top: 0;
+  flex: 0 0 auto;
+  min-height: var(--dwella-topbar-height);
+  position: relative;
   z-index: 9;
   display: flex;
   align-items: center;
   gap: 18px;
-  padding: 12px 28px;
-  background: color-mix(in srgb, var(--dwella-paper) 90%, transparent);
-  border-bottom: 1px solid var(--dwella-line);
-  backdrop-filter: blur(14px);
+  padding: 9px 24px;
+  background: var(--dwella-paper);
+  box-shadow: 0 1px 0 var(--dwella-line-soft);
 }
 
 .dwella-mobile-menu {
@@ -263,28 +528,20 @@ body.dark-only .dwella-app-shell {
   min-width: 0;
 }
 
-.dwella-page-title > span:first-child {
-  display: block;
-  margin-bottom: 3px;
-  color: #9a7128;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
 .dwella-page-title h1 {
   margin: 0;
   color: var(--dwella-ink);
-  font-size: 22px;
-  font-weight: 750;
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
-.dwella-page-title > span:last-child {
-  display: block;
-  margin-top: 3px;
+.dwella-page-title p {
+  margin: 1px 0 0;
   color: var(--dwella-muted);
-  font-size: 12px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
 }
 
 .dwella-topbar-actions {
@@ -294,183 +551,153 @@ body.dark-only .dwella-app-shell {
   gap: 9px;
 }
 
-.dwella-icon-action,
-.dwella-user-trigger {
-  background: var(--dwella-paper) !important;
-  border: 1px solid var(--dwella-line) !important;
-  border-radius: 12px !important;
+.dwella-icon-action {
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 38px !important;
+  padding: 0 !important;
   color: var(--dwella-muted) !important;
+  background: transparent !important;
+  border: 1px solid var(--dwella-line-soft) !important;
+  border-radius: 10px !important;
 }
 
-.dwella-user-trigger {
-  min-height: 42px !important;
-  padding: 4px 8px 4px 5px !important;
+.dwella-icon-action:hover {
+  color: var(--dwella-ink) !important;
+  background: var(--dwella-raised) !important;
 }
 
-.dwella-user-trigger > span {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
+.dwella-icon-action:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: 2px;
 }
 
-.dwella-user-trigger strong {
-  max-width: 150px;
-  overflow: hidden;
+.dwella-user-dropdown {
+  min-width: 220px;
+  background: var(--dwella-paper) !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  box-shadow: var(--dwella-shadow-overlay) !important;
+}
+
+.dwella-user-card {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-user-card strong {
   color: var(--dwella-ink);
-  font-size: 12px;
-  line-height: 1.15;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-user-card small {
+  overflow: hidden;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.dwella-user-trigger small {
-  margin-top: 2px;
-  color: var(--dwella-muted);
-  font-size: 10px;
-}
-
-.dwella-user-dropdown {
-  min-width: 190px;
-  background: var(--dwella-paper) !important;
-  border: 1px solid var(--dwella-line) !important;
-  border-radius: 12px !important;
-}
-
 .dwella-content {
-  width: min(100%, 1500px);
-  margin: 0 auto;
-  padding: 26px 28px 48px;
+  flex: 1;
+  min-height: 0;
+  padding: 24px 28px 40px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .dwella-app-shell.is-collapsed .dwella-sidebar {
   width: var(--dwella-sidebar-collapsed);
+  padding-inline: 10px;
 }
 
 .dwella-app-shell.is-collapsed .dwella-main-frame {
   margin-left: var(--dwella-sidebar-collapsed);
-}
-
-.dwella-app-shell.is-collapsed .dwella-brand-copy,
-.dwella-app-shell.is-collapsed .dwella-nav-section,
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"] span:not(:first-child),
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem span:not(:first-child) {
-  width: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.dwella-app-shell.is-collapsed .dwella-sidebar-brand,
-.dwella-app-shell.is-collapsed .dwella-brand-link,
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"],
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem {
-  justify-content: center;
+  max-width: calc(100vw - var(--dwella-sidebar-collapsed));
 }
 
 .dwella-app-shell.is-collapsed .dwella-sidebar-brand {
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
+  justify-content: center;
   padding: 0 0 12px;
 }
 
-.dwella-app-shell.is-collapsed .dwella-brand-link {
-  flex: 0 0 auto;
+.dwella-app-shell.is-collapsed .dwella-workspace {
+  justify-content: center;
+  padding: 6px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dwella-app-shell.is-collapsed .dwella-sidebar-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.dwella-app-shell.is-collapsed .dwella-account {
+  width: auto;
 }
 
 .dwella-app-shell.is-collapsed .dwella-sidebar-toggle {
-  margin: 0;
+  left: calc(var(--dwella-sidebar-collapsed) - 16px);
 }
 
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"],
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem {
-  width: 54px;
-  min-width: 54px;
-  min-height: 40px;
-  padding: 0 !important;
-  font-size: 0 !important;
-  gap: 0 !important;
+@media (min-width: 901px) {
+  .dwella-app-shell.is-collapsed .dwella-sidebar-nav {
+    align-items: center !important;
+  }
+
+  .dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    margin-inline: auto !important;
+    padding: 0 !important;
+    justify-content: center !important;
+  }
 }
 
-.dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem svg {
-  width: 20px;
-  height: 20px;
+@keyframes dwella-sidebar-toggle-in {
+  from {
+    opacity: 0;
+    transform: translateX(3px) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
 }
+
+// ---- Primitives -------------------------------------------------------------
 
 .dwella-screen {
   display: grid;
   gap: 16px;
 }
 
-.dwella-card {
-  color: var(--dwella-ink) !important;
-  background: var(--dwella-paper) !important;
-  border-color: var(--dwella-line) !important;
-  border-radius: 14px !important;
-}
-
 .dwella-alert {
-  padding: 12px 14px;
+  padding: 11px 13px;
   color: var(--dwella-ink);
   background: var(--dwella-primary-soft);
-  border: 1px solid var(--dwella-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
 }
 
 .dwella-alert.danger {
   color: var(--dwella-danger);
-  background: rgba(200, 79, 79, 0.1);
-  border-color: rgba(200, 79, 79, 0.25);
-}
-
-.dwella-kicker {
-  color: #9a7128 !important;
-  font-size: 10px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.dwella-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.dwella-metric,
-.dwella-property-stat {
-  min-height: 148px;
-  padding: 17px;
-  display: flex !important;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.dwella-metric-icon,
-.dwella-property-stat > svg,
-.dwella-empty-state > svg,
-.dwella-security-emblem,
-.dwella-module-placeholder > span {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  color: var(--dwella-primary);
-  background: var(--dwella-primary-soft);
-  border-radius: 10px;
-}
-
-.dwella-dashboard-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
-  gap: 16px;
-}
-
-.dwella-dashboard-grid.bottom {
-  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  background: color-mix(in srgb, var(--dwella-danger) 10%, transparent);
 }
 
 .dwella-panel {
-  padding: 18px;
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  padding: 16px 0;
+  gap: 14px;
 }
 
 .dwella-panel-heading {
@@ -478,65 +705,41 @@ body.dark-only .dwella-app-shell {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 16px;
 }
 
-.dwella-panel-heading h2,
-.dwella-panel-heading h3 {
+.dwella-panel-title {
   margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 700;
 }
 
-.dwella-panel-heading span,
-.dwella-panel-heading p,
-.dwella-profile-summary span,
-.dwella-property-card span,
-.dwella-property-card p {
+.dwella-panel-note {
+  margin: 2px 0 0;
+  max-width: 64ch;
   color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
 }
 
-.dwella-health-layout {
+.dwella-panel-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// Panel content is often wrapped in a <form>, which the section's own gap
+// cannot reach, so the form carries the rhythm for its own children.
+.dwella-panel form {
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
   gap: 16px;
 }
 
-.dwella-health-meter {
-  padding: 16px;
-  background: var(--dwella-primary-soft);
-  border-radius: 12px;
-}
-
-.dwella-health-meter > div,
-.dwella-status-row > div {
+.dwella-panel footer {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.dwella-mini-grid,
-.dwella-property-mix {
-  display: grid;
-  gap: 10px;
-}
-
-.dwella-mini-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.dwella-mini-grid > div,
-.dwella-property-mix > div,
-.dwella-security-row {
-  padding: 13px;
-  display: grid;
-  gap: 5px;
-  background: var(--dwella-wash);
-  border: 1px solid var(--dwella-line-soft);
-  border-radius: 12px;
-}
-
-.dwella-status-stack {
-  display: grid;
-  gap: 12px;
+  justify-content: flex-end;
 }
 
 .dwella-chip-row {
@@ -550,88 +753,6 @@ body.dark-only .dwella-app-shell {
   justify-content: center;
 }
 
-.dwella-table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.dwella-table {
-  min-width: 680px;
-}
-
-.dwella-table strong,
-.dwella-table small {
-  display: block;
-}
-
-.dwella-unit-list {
-  display: grid;
-}
-
-.dwella-unit-list > div {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  gap: 11px;
-  align-items: center;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--dwella-line-soft);
-}
-
-.dwella-unit-list > div:last-child {
-  border-bottom: 0;
-}
-
-.dwella-unit-list > div > span {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  color: var(--dwella-primary);
-  background: var(--dwella-primary-soft);
-  border-radius: 10px;
-}
-
-.dwella-unit-list aside {
-  text-align: right;
-}
-
-.dwella-empty-inline {
-  padding: 26px 0;
-  color: var(--dwella-muted);
-  text-align: center;
-}
-
-.dwella-property-toolbar {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) 150px 150px 150px 40px auto;
-  gap: 9px;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.dwella-segment {
-  display: flex;
-  gap: 4px;
-}
-
-.dwella-property-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.dwella-property-card {
-  padding: 16px;
-}
-
-.dwella-property-card > div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
 .dwella-empty-state {
   min-height: 210px;
   display: grid;
@@ -642,121 +763,329 @@ body.dark-only .dwella-app-shell {
   text-align: center;
 }
 
-.dwella-form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px;
-}
-
-.dwella-form-grid.two {
-  margin-top: 8px;
-}
-
-.dwella-form-grid > label:first-child,
-.dwella-form-grid > label:nth-child(4),
-.dwella-form-grid > label:last-child {
-  grid-column: 1 / -1;
-}
-
-.dwella-fluent-dialog {
-  background: var(--dwella-paper) !important;
-  color: var(--dwella-ink) !important;
-}
-
-.dwella-profile-grid {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 16px;
-}
-
-.dwella-profile-summary {
-  padding: 24px;
-  display: flex !important;
-  align-items: center;
-  flex-direction: column;
-  gap: 12px;
-  text-align: center;
-}
-
-.dwella-profile-stack {
-  display: grid;
-  gap: 16px;
-}
-
-.dwella-panel footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
-}
-
-.dwella-verification-state,
-.dwella-security-row,
-.dwella-setup-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-}
-
-.dwella-verification-state > span,
-.dwella-setup-box > svg {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+.dwella-empty-state > svg {
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   color: var(--dwella-primary);
   background: var(--dwella-primary-soft);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
-.security-panel {
-  max-width: 820px;
+.dwella-text-link {
+  color: var(--dwella-link);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 3px;
 }
 
-.dwella-security-row {
-  justify-content: space-between;
+.dwella-text-link:hover {
+  text-decoration: underline;
 }
 
-.dwella-security-emblem.enabled {
-  color: #208a61;
+.dwella-text-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 
-.dwella-setup-box {
-  margin-top: 16px;
-  padding: 16px;
-  background: var(--dwella-secondary-soft);
-  border-radius: 12px;
+// A neutral block shown while real content is in flight. It mirrors the shape
+// of what follows rather than showing a spinner, so nothing jumps on arrival.
+.dwella-skeleton {
+  display: block;
+  background: color-mix(in srgb, var(--dwella-ink) 9%, transparent);
+  border-radius: var(--radius-sm);
+  animation: dwella-skeleton-pulse 1.4s ease-in-out infinite;
 }
 
-.dwella-setup-box code {
-  word-break: break-word;
-  color: var(--dwella-primary);
+@keyframes dwella-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.dwella-module-placeholder {
-  min-height: 260px;
-  padding: 28px;
-  display: grid !important;
-  grid-template-columns: 48px minmax(0, 1fr) auto;
+.dwella-property-photo {
+  aspect-ratio: 16 / 10;
+  position: relative;
+  overflow: hidden;
+  background: var(--dwella-wash);
+}
+
+.dwella-property-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dwella-photo-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+}
+
+.dwella-photo-placeholder svg {
+  width: 32px;
+  height: 32px;
+  opacity: 0.65;
+}
+
+// Vacancy is lost rent, so it reads as a warning, never as the success green.
+.dwella-progress-vacant .fui-ProgressBar__bar {
+  background: var(--dwella-warning);
+}
+
+// ---- Form controls ----------------------------------------------------------
+// Scoped under `.App` only to clear Fluent's single-class Griffel rules, which
+// are emitted after this stylesheet and win every same-specificity tie.
+// Fluent's outline field is a 4px box with an animated 2px underline; this is a
+// rounded, recessed field with a focus ring instead. The underline `::after` is
+// switched off rather than re-radiused, so its corners cannot desync from the
+// root's the way the Card's border did.
+
+.dwella-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.dwella-field-wide {
+  grid-column: 1 / -1;
+}
+
+.App .fui-Field__label {
+  margin-bottom: 5px;
+  color: var(--dwella-ink);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+}
+
+.App .fui-Input,
+.App .fui-Dropdown,
+.App .fui-Textarea {
+  min-height: 36px;
+  min-width: 0;
+  padding-inline: 10px;
+  gap: 9px;
+  background: var(--dwella-wash);
+  border: 1px solid var(--dwella-line);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.App .fui-Input::after,
+.App .fui-Dropdown::after,
+.App .fui-Textarea::after {
+  display: none;
+}
+
+.App .fui-Input:hover,
+.App .fui-Dropdown:hover,
+.App .fui-Textarea:hover {
+  border-color: var(--dwella-subtle);
+}
+
+.App .fui-Input:focus-within,
+.App .fui-Dropdown:focus-within,
+.App .fui-Textarea:focus-within {
+  background: var(--dwella-paper);
+  border-color: var(--dwella-primary);
+  box-shadow: 0 0 0 3px var(--dwella-primary-soft);
+}
+
+.App .fui-Input__input,
+.App .fui-Textarea__textarea,
+.App .fui-Dropdown button {
+  padding-inline: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.App .fui-Input__input::placeholder,
+.App .fui-Textarea__textarea::placeholder {
+  color: var(--dwella-subtle);
+}
+
+// contentBefore/contentAfter slots (mail glyph, password reveal) sit inside the
+// field, so they should not carry their own frame.
+.App .fui-Input > .fui-Button {
+  min-width: 28px !important;
+  padding: 0 !important;
+  color: var(--dwella-muted) !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+
+.App .fui-Input > .fui-Button:hover {
+  color: var(--dwella-ink) !important;
+}
+
+.App .fui-Input > svg {
+  color: var(--dwella-subtle);
+}
+
+// Fluent reddens an invalid field itself, but the rules above outrank it, so
+// the error state has to be restated. `.dwella-field-invalid` comes from
+// `useFormErrors().fieldProps()`.
+.App .dwella-field-invalid .fui-Input,
+.App .dwella-field-invalid .fui-Dropdown {
+  background: var(--dwella-paper);
+  border-color: var(--dwella-danger);
+}
+
+.App .dwella-field-invalid .fui-Input:focus-within,
+.App .dwella-field-invalid .fui-Dropdown:focus-within {
+  border-color: var(--dwella-danger);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--dwella-danger) 18%, transparent);
+}
+
+// A Field whose control is a Button (the document picker) never receives
+// aria-invalid, so mark it from the Field root instead.
+.App .dwella-field-invalid > .fui-Button {
+  border-color: var(--dwella-danger) !important;
+}
+
+.App .fui-Field__validationMessage {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+// ---- Shared form section chrome (property form, unit form) ------------------
+
+.dwella-form-section {
+  padding-block: 16px;
+  border-bottom: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-form-section:last-child {
+  border: 0;
+}
+
+.dwella-form-section h3 {
+  margin: 0 0 12px;
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  font-weight: 700;
+}
+
+.dwella-form-section h3 small {
+  margin-left: 6px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  font-weight: 400;
+}
+
+.dwella-form-section p {
+  margin: 0 0 12px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-form-section .dwella-field-error {
+  margin: 8px 0 0;
+  color: var(--dwella-danger);
+  font-size: var(--fs-small);
+}
+
+.dwella-cover-field {
+  display: grid;
+  grid-template-columns: 144px minmax(0, 1fr);
   gap: 18px;
   align-items: center;
 }
 
+.dwella-cover-field .dwella-property-photo {
+  border-radius: var(--radius-sm);
+}
+
+// ---- Buttons ----------------------------------------------------------------
+// `dwella-btn--<appearance>` comes from the Button style hook in App.jsx.
+// Primary and secondary buttons sit slightly raised; subtle and transparent
+// ones stay flat so toolbars and inline links do not turn into a wall of
+// lifted shapes. `.dwella-btn-accent` is the green action for money coming in
+// (record a payment, pay now) and is applied with `appearance="primary"`.
+
+.App .fui-Button.dwella-btn--primary {
+  box-shadow: var(--dwella-shadow-raised-primary);
+}
+
+.App .fui-Button.dwella-btn--secondary {
+  box-shadow: var(--dwella-shadow-raised);
+}
+
+.App .fui-Button.dwella-btn--primary:active,
+.App .fui-Button.dwella-btn--secondary:active {
+  box-shadow: none;
+}
+
+.App .fui-Button.dwella-btn--primary:disabled,
+.App .fui-Button.dwella-btn--secondary:disabled {
+  box-shadow: none;
+}
+
+.App .fui-Button.dwella-btn-accent {
+  color: #fff;
+  background: var(--dwella-accent-strong);
+  box-shadow: var(--dwella-shadow-raised-accent);
+}
+
+.App .fui-Button.dwella-btn-accent:hover {
+  color: #fff;
+  background: var(--dwella-accent-hover);
+}
+
+body.dark-only .App .fui-Button.dwella-btn-accent,
+body.dark-only .App .fui-Button.dwella-btn-accent:hover {
+  color: var(--dwella-on-primary);
+}
+
+// ---- Sign in ----------------------------------------------------------------
+// `.App` is `overflow: hidden`, so this page has to own its scrolling. Without
+// it the stacked layout below 1080px is clipped with no way to reach the button.
+
 .dwella-auth-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
-  background: var(--dwella-wash);
+  grid-template-columns: minmax(420px, 0.72fr) minmax(0, 1fr);
+  background: var(--dwella-paper);
 }
 
 .dwella-auth-hero {
   min-height: 100vh;
+  position: relative;
   display: flex;
-  justify-content: space-between;
   flex-direction: column;
-  padding: 40px;
-  color: #fff;
-  background: var(--dwella-primary-dark);
+  gap: 40px;
+  padding: 44px 56px;
+  color: var(--dwella-on-dark);
+  background: var(--dwella-deep);
+  overflow: hidden;
 }
 
 .dwella-auth-brand {
@@ -765,146 +1094,248 @@ body.dark-only .dwella-app-shell {
   gap: 12px;
 }
 
-.dwella-auth-brand span {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  background: #fff;
-  border-radius: 12px;
-}
-
 .dwella-auth-brand img {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 36px;
   object-fit: contain;
 }
 
 .dwella-auth-brand strong {
+  color: var(--dwella-on-dark);
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 600;
+}
+
+// Auto block margins centre the pitch; `space-between` pinned it to the bottom
+// edge and left a large void under the brand on tall viewports.
+.dwella-auth-pitch {
+  position: relative;
+  z-index: 1;
+  margin-block: auto;
+}
+
+.dwella-auth-rule {
+  width: 40px;
+  height: 3px;
   display: block;
-  color: #fff;
-  font-size: 16px;
+  margin-bottom: 20px;
+  background: var(--dwella-secondary);
+  border-radius: 2px;
 }
 
-.dwella-auth-brand small {
-  color: #8aa49d;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.dwella-auth-hero h1 {
-  max-width: 700px;
+.dwella-auth-hero h2 {
+  max-width: 15ch;
   margin: 0;
-  color: #fff;
-  font-size: clamp(38px, 5vw, 64px);
-  font-weight: 750;
-  line-height: 1.05;
+  color: var(--dwella-on-dark);
+  font-family: var(--font-display);
+  font-size: 36px;
+  line-height: 1.22;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
-.dwella-auth-hero > div:last-child > span:last-child {
-  max-width: 580px;
-  margin-top: 22px;
-  display: block;
-  color: #b8cac4;
-  font-size: 15px;
-  line-height: 1.7;
+.dwella-auth-hero p {
+  max-width: 44ch;
+  margin: 16px 0 0;
+  color: var(--dwella-on-dark-muted);
+  font-size: var(--fs-lead);
+  line-height: 1.6;
+}
+
+.dwella-auth-foot {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--dwella-on-dark-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+// The house mark at 6% opacity, bleeding off the bottom-right corner. It is the
+// only decoration on the page, so it stays large and quiet.
+.dwella-auth-watermark {
+  position: absolute;
+  right: -90px;
+  bottom: -70px;
+  width: 460px;
+  opacity: 0.06;
+  pointer-events: none;
+  user-select: none;
 }
 
 .dwella-auth-panel {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 28px;
+  padding: 32px 28px;
+  background: var(--dwella-paper);
 }
 
-.dwella-auth-card {
-  width: min(430px, 100%);
-  padding: 28px;
+.dwella-auth-form {
+  width: min(360px, 100%);
+  display: grid;
+  gap: 24px;
 }
 
-.dwella-auth-card form {
+// Only shown once the hero is hidden, so the brand is never lost on mobile.
+.dwella-auth-compact-brand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+}
+
+.dwella-auth-compact-brand img {
+  width: 34px;
+  height: 30px;
+  object-fit: contain;
+}
+
+body.dark-only .dwella-auth-compact-brand img {
+  content: url("/assets/images/logo/dwella-mark-white.png");
+}
+
+.dwella-auth-compact-brand strong {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+  font-weight: 600;
+}
+
+.dwella-auth-heading h1 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.dwella-auth-heading p {
+  margin: 6px 0 0;
+  max-width: 46ch;
+  color: var(--dwella-muted);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+}
+
+// Label row for the password field. "Forgot password?" belongs beside its own
+// field, not stacked under the submit button as a second block-level action.
+// Fluent caps the Field label at `max-width: max-content`; it has to fill the
+// row before the flex child can push the link to the far edge.
+.dwella-auth-form .fui-Field__label {
+  display: block;
+  max-width: none;
+}
+
+.dwella-auth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dwella-auth-label-row > .dwella-text-link {
+  font-weight: 600;
+}
+
+.dwella-auth-fields {
   display: grid;
   gap: 16px;
 }
 
-.dwella-auth-card-header {
-  display: flex;
-  gap: 13px;
-  align-items: flex-start;
+.dwella-auth-form .dwella-auth-submit {
+  width: 100%;
+  height: 42px;
+  font-size: var(--fs-lead);
 }
 
-.dwella-auth-card-header > span {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: var(--dwella-primary);
-  background: var(--dwella-primary-soft);
-  border-radius: 12px;
+.dwella-auth-alt {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
-@media (max-width: 1100px) {
-  .dwella-metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.dwella-auth-alt svg {
+  width: 14px;
+  height: 14px;
+}
 
-  .dwella-dashboard-grid,
-  .dwella-dashboard-grid.bottom,
-  .dwella-profile-grid,
+// The code is read back digit by digit from an authenticator, so this field
+// gets wider tracking and a larger size than an ordinary input.
+.dwella-auth-form .dwella-otp-field .fui-Input__input {
+  font-size: var(--fs-h3);
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+
+@media (max-width: 1080px) {
   .dwella-auth-page {
     grid-template-columns: 1fr;
   }
 
   .dwella-auth-hero {
-    min-height: 460px;
+    display: none;
+  }
+
+  .dwella-auth-compact-brand {
+    display: flex;
   }
 
   .dwella-auth-panel {
-    min-height: auto;
+    align-items: start;
+    padding: 56px 24px 48px;
   }
 }
 
+// ---- Responsive shell -------------------------------------------------------
+
 @media (max-width: 900px) {
+  // `visibility` (not just the transform) is what keeps the off-canvas nav out
+  // of the tab order while it is closed.
   .dwella-sidebar {
     transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: var(--dwella-shadow-overlay);
   }
 
   .dwella-app-shell.nav-open .dwella-sidebar {
     transform: translateX(0);
+    visibility: visible;
   }
 
   .dwella-app-shell.is-collapsed .dwella-sidebar {
     width: var(--dwella-sidebar-width);
+    padding-inline: 14px;
   }
 
-  .dwella-app-shell.is-collapsed .dwella-brand-copy,
-  .dwella-app-shell.is-collapsed .dwella-nav-section,
-  .dwella-app-shell.is-collapsed .dwella-sidebar-nav [role="treeitem"] span:not(:first-child),
-  .dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem span:not(:first-child) {
-    width: auto;
-    opacity: 1;
-    pointer-events: auto;
+  .dwella-app-shell.is-collapsed .dwella-sidebar-brand {
+    justify-content: space-between;
+    padding: 0 4px 12px;
   }
 
-  .dwella-app-shell.is-collapsed .dwella-sidebar-brand,
-  .dwella-app-shell.is-collapsed .dwella-brand-link {
-    flex: 1;
+  .dwella-app-shell.is-collapsed .dwella-workspace {
     justify-content: flex-start;
+    padding: 9px 10px;
+    background: var(--dwella-raised);
+    box-shadow: inset 0 0 0 1px var(--dwella-line-soft);
   }
 
-  .dwella-app-shell.is-collapsed .dwella-sidebar-nav .fui-NavItem {
-    width: auto;
-    min-width: 0;
-    padding: 0 11px !important;
-    font-size: 13px !important;
-    justify-content: flex-start;
+  .dwella-app-shell.is-collapsed .dwella-sidebar-footer {
+    display: block;
+  }
+
+  .dwella-app-shell.is-collapsed .dwella-account {
+    width: 100%;
   }
 
   .dwella-main-frame,
   .dwella-app-shell.is-collapsed .dwella-main-frame {
     margin-left: 0;
+    max-width: 100vw;
   }
 
   .dwella-sidebar-close,
@@ -920,7 +1351,7 @@ body.dark-only .dwella-app-shell {
     position: fixed;
     inset: 0;
     z-index: 8;
-    background: rgba(10, 33, 29, 0.52);
+    background: rgba(17, 26, 43, 0.48);
     border: 0;
   }
 
@@ -930,59 +1361,48 @@ body.dark-only .dwella-app-shell {
 }
 
 @media (max-width: 760px) {
-  .dwella-health-layout,
-  .dwella-mini-grid,
-  .dwella-property-grid,
   .dwella-form-grid,
-  .dwella-property-toolbar,
-  .dwella-module-placeholder {
+  .dwella-cover-field {
     grid-template-columns: 1fr;
   }
 
-  .dwella-form-grid > label:first-child,
-  .dwella-form-grid > label:nth-child(4),
-  .dwella-form-grid > label:last-child {
-    grid-column: auto;
-  }
-
-  .dwella-panel-heading,
-  .dwella-security-row,
-  .dwella-module-placeholder {
+  .dwella-panel-heading {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .dwella-auth-hero {
-    min-height: auto;
-    padding: 30px 22px;
   }
 }
 
 @media (max-width: 640px) {
   .dwella-topbar {
-    align-items: flex-start;
+    gap: 10px;
     padding: 12px 14px;
   }
 
-  .dwella-page-title > span:last-child,
-  .dwella-user-trigger > span,
-  .dwella-user-trigger svg:last-child {
+  .dwella-page-title p {
     display: none;
   }
 
   .dwella-page-title h1 {
-    font-size: 18px;
+    font-size: var(--fs-h4);
+    line-height: var(--lh-h4);
+  }
+
+  .dwella-auth-panel {
+    padding: 40px 16px 40px;
   }
 }
 
-@media (max-width: 520px) {
-  .dwella-metric-grid {
-    grid-template-columns: 1fr;
-  }
+// ---- Reduced motion ---------------------------------------------------------
+// Every transition in the product explains a state change that is also legible
+// without it, so they can all be cut rather than individually re-tuned.
 
-  .dwella-panel,
-  .dwella-auth-card,
-  .dwella-profile-summary {
-    padding: 18px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
