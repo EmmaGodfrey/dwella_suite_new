@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  Badge,
   Button,
   Dialog,
   DialogActions,
@@ -19,7 +18,7 @@ import { useSaveInvoiceMutation, useVoidInvoiceMutation } from "../../Services/m
 import { useCurrentUserQuery, useInvoiceQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
 import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from "../../shared/billing";
-import { EmptyState } from "../../shared/components";
+import { EmptyState, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import RecordPaymentDrawer from "./RecordPaymentDrawer";
 import "../../shared/records.scss";
@@ -94,8 +93,8 @@ export default function InvoiceDetail() {
       <header className="dwella-detail-header">
         <div>
           <div className="dwella-detail-title">
-            <h2>{invoice.reference}</h2>
-            <Badge appearance="tint" {...invoiceBadgeProps(invoice)} />
+            <h1>{invoice.reference}</h1>
+            <StatusBadge {...invoiceBadgeProps(invoice)} />
           </div>
           <p>
             {invoice.tenant_name}

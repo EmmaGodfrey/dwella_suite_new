@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Badge, Button, Input } from "@fluentui/react-components";
+import { Button, Input } from "@fluentui/react-components";
 import {
   Call20Regular,
   Chat20Regular,
@@ -13,7 +13,7 @@ import {
 
 import { useCurrentUserQuery, useTenantQuery, useTenantsQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { EmptyState, SegmentedFilter } from "../../shared/components";
+import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../shared/components";
 import { daysUntil, formatDate, formatMoney, initials } from "../../shared/format";
 import { leaseBadgeProps, tenantBadgeProps, tenantStatuses } from "../../shared/tenancy";
 import TenantDrawer from "./TenantDrawer";
@@ -56,7 +56,7 @@ function TenantProfile({ tenant, canManage, onEdit }) {
         <Avatar name={tenant.full_name} size="lg" />
         <div>
           <h2>{tenant.full_name}</h2>
-          <Badge appearance="tint" {...tenantBadgeProps(tenant.status)} />
+          <StatusBadge {...tenantBadgeProps(tenant.status)} />
         </div>
         {canManage ? <Button appearance="subtle" icon={<Edit20Regular />} aria-label="Edit tenant" onClick={onEdit} /> : null}
       </header>
@@ -85,7 +85,7 @@ function TenantProfile({ tenant, canManage, onEdit }) {
               <div><dt>Term</dt><dd>{formatDate(lease.start_date)} – {formatDate(lease.end_date)}</dd></div>
               <div><dt>Monthly rent</dt><dd>{formatMoney(lease.monthly_rent)}</dd></div>
               <div><dt>Deposit</dt><dd>{formatMoney(lease.deposit_amount)}</dd></div>
-              <div><dt>Status</dt><dd><Badge appearance="tint" {...leaseBadgeProps(lease.status)} /></dd></div>
+              <div><dt>Status</dt><dd><StatusBadge {...leaseBadgeProps(lease.status)} /></dd></div>
             </dl>
             {lease.status === "active" && endsIn !== null && endsIn <= 60 ? (
               <p className="dwella-callout is-warning">{endsIn < 0 ? "Lease end date has passed." : `Lease ends in ${endsIn} days.`}</p>
@@ -179,9 +179,11 @@ export default function Tenants() {
           }}
         />
         {canManage ? (
-          <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setDrawer("add")}>
-            Add tenant
-          </Button>
+          <PageActions>
+            <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setDrawer("add")}>
+              Add tenant
+            </Button>
+          </PageActions>
         ) : null}
       </div>
 
@@ -240,7 +242,7 @@ export default function Tenants() {
                       <td>{lease ? `${lease.unit_name} · ${lease.property_name}` : <span className="dwella-muted-copy">—</span>}</td>
                       <td>{lease ? formatDate(lease.end_date) : "—"}</td>
                       <td className="is-numeric">{lease ? formatMoney(lease.monthly_rent, { whole: true }) : "—"}</td>
-                      <td><Badge appearance="tint" {...tenantBadgeProps(row.status)} /></td>
+                      <td><StatusBadge {...tenantBadgeProps(row.status)} /></td>
                     </tr>
                   );
                 })}

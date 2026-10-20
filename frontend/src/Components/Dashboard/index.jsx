@@ -68,7 +68,7 @@ function TenantDashboard({ navigate }) {
       <header className="dwella-dashboard-intro">
         <div>
           <span className="dwella-dashboard-kicker">Tenant workspace</span>
-          <h2>Your home at a glance</h2>
+          <h1>Your home at a glance</h1>
         </div>
       </header>
       <section className="dwella-tenant-status">
@@ -469,7 +469,7 @@ const Dashboard = () => {
       <header className="dwella-dashboard-intro">
         <div>
           {isPlatformAdmin ? <span className="dwella-dashboard-kicker">Platform oversight</span> : null}
-          <h2>{isPlatformAdmin ? "Landlord portfolios" : organizationName}</h2>
+          <h1>{isPlatformAdmin ? "Landlord portfolios" : organizationName}</h1>
           <p>{isLoading ? " " : subtitle}</p>
         </div>
         {access.can_manage_properties ? (

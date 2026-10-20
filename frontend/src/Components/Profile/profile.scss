@@ -1,6 +1,7 @@
+// Forms keep a readable measure, aligned to the page gutter like every
+// other screen rather than floating in the middle.
 .dwella-profile-screen {
-  width: min(1120px, 100%);
-  margin-inline: auto;
+  max-width: 1120px;
 }
 
 // `align-items: start` matters here: grid items stretch by default, so the
@@ -15,7 +16,7 @@
 
 .dwella-profile-summary {
   position: sticky;
-  top: 0;
+  top: calc(var(--dwella-topbar-height) + 20px);
   display: flex;
   flex-direction: column;
   align-items: center;

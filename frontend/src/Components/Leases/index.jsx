@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Badge, Button, Input } from "@fluentui/react-components";
+import { Button, Input } from "@fluentui/react-components";
 import { DocumentAdd20Regular, DocumentText24Regular, Search20Regular } from "@fluentui/react-icons";
 
 import { useCurrentUserQuery, useLeasesQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { EmptyState, SegmentedFilter } from "../../shared/components";
+import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../shared/components";
 import { daysUntil, formatDate, formatMoney } from "../../shared/format";
 import { leaseBadgeProps, leaseStatuses } from "../../shared/tenancy";
 import LeaseDrawer from "./LeaseDrawer";
@@ -76,9 +76,11 @@ export default function Leases() {
           onChange={(_, data) => setSearch(data.value)}
         />
         {canManage ? (
-          <Button appearance="primary" icon={<DocumentAdd20Regular />} onClick={() => setDrawerOpen(true)}>
-            New lease
-          </Button>
+          <PageActions>
+            <Button appearance="primary" icon={<DocumentAdd20Regular />} onClick={() => setDrawerOpen(true)}>
+              New lease
+            </Button>
+          </PageActions>
         ) : null}
       </div>
 
@@ -129,7 +131,7 @@ export default function Leases() {
                       {endingSoon ? <small className="dwella-cell-note is-warning">Ends in {endsIn} days</small> : null}
                     </td>
                     <td className="is-numeric">{formatMoney(lease.monthly_rent, { whole: true })}</td>
-                    <td><Badge appearance="tint" {...leaseBadgeProps(lease.status)} /></td>
+                    <td><StatusBadge {...leaseBadgeProps(lease.status)} /></td>
                   </tr>
                 );
               })}

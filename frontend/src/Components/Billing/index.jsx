@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Badge,
   Button,
   Dialog,
   DialogActions,
@@ -20,7 +19,7 @@ import { useGenerateInvoicesMutation } from "../../Services/mutations";
 import { useBillingSummaryQuery, useCurrentUserQuery, useInvoicesQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
 import { invoiceBadgeProps, invoiceViews, periodLabel } from "../../shared/billing";
-import { EmptyState, SegmentedFilter } from "../../shared/components";
+import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import ChargeDrawer from "./ChargeDrawer";
 import "../../shared/records.scss";
@@ -165,10 +164,10 @@ export default function Billing() {
           onChange={(_, data) => setSearch(data.value)}
         />
         {canManage ? (
-          <>
+          <PageActions>
             <Button icon={<Add20Regular />} onClick={() => setDialog("charge")}>New charge</Button>
             <Button appearance="primary" icon={<ReceiptAdd20Regular />} onClick={() => setDialog("generate")}>Generate rent invoices</Button>
-          </>
+          </PageActions>
         ) : null}
       </div>
 
@@ -222,7 +221,7 @@ export default function Billing() {
                     <td className={`is-numeric ${owing ? (invoice.days_overdue > 0 ? "is-negative" : "") : "is-muted"}`}>
                       {invoice.status === "void" ? "—" : formatMoney(invoice.balance)}
                     </td>
-                    <td><Badge appearance="tint" {...invoiceBadgeProps(invoice)} /></td>
+                    <td><StatusBadge {...invoiceBadgeProps(invoice)} /></td>
                   </tr>
                 );
               })}

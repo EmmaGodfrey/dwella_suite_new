@@ -4,7 +4,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { logout } from "../Services/auth";
 import { queryClient } from "../Services/queryClient";
 import { useCurrentUserQuery } from "../Services/queries";
-import { AppSideNav, AppTopbar } from "../shared/components";
+import { AppSideNav, AppTopbar, PageActionsSlot, PageHeader } from "../shared/components";
 import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navigation";
 
 const getCachedUser = () => {
@@ -22,6 +22,7 @@ const AppLayout = () => {
   const { data: user = cachedUser, isLoading: userLoading } = useCurrentUserQuery({ staleTime: 60_000 });
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("dwella_sidebar_collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [actionsSlot, setActionsSlot] = useState(null);
 
   useEffect(() => {
     localStorage.setItem("dwella_sidebar_collapsed", String(collapsed));
@@ -38,6 +39,9 @@ const AppLayout = () => {
   }, [location.pathname, navigate, user, userLoading]);
 
   const meta = getPageMeta(location.pathname, user);
+  // The dashboard leads with the organization's name instead, and detail pages
+  // (`/leases/<id>`) carry their own title with a back link.
+  const showHeader = location.pathname !== "/dashboard" && location.pathname.split("/").filter(Boolean).length < 2;
   const selectedNavValue = getSelectedNavValue(location.pathname, user);
   const shellClass = useMemo(
     () => ["dwella-app-shell", collapsed ? "is-collapsed" : "", mobileOpen ? "nav-open" : ""].filter(Boolean).join(" "),
@@ -65,10 +69,13 @@ const AppLayout = () => {
       {mobileOpen ? <button className="dwella-nav-scrim" type="button" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /> : null}
 
       <div className="dwella-main-frame">
-        <AppTopbar title={meta[0]} description={meta[1]} onMobileOpen={() => setMobileOpen(true)} />
+        <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
 
         <main className="dwella-content">
-          <Outlet />
+          <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
+            {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} /> : null}
+            <Outlet />
+          </PageActionsSlot.Provider>
         </main>
       </div>
     </div>

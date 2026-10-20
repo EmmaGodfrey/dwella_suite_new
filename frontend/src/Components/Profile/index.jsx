@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./profile.scss";
-import { Avatar, Badge, Button, Dropdown, Field, Input, Option } from "@fluentui/react-components";
+import { Avatar, Button, Dropdown, Field, Input, Option } from "@fluentui/react-components";
 import { ArrowUpload24Regular, Camera24Regular, CheckmarkCircle24Regular, Shield24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { resolveMediaUrl } from "../../Services/apiClient";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useAvatarUploadMutation, useIdentityVerificationMutation, useProfileUpdateMutation } from "../../Services/mutations";
-import { PageSection, defaultStatusColor } from "../../shared/components";
+import { PageSection, defaultStatusColor, StatusBadge } from "../../shared/components";
 import { useFormErrors } from "../../shared/useFormErrors";
 
 const displayStatus = (value) => {
@@ -132,8 +132,8 @@ const Profile = () => {
             {avatarMutation.isPending ? "Uploading..." : "Change photo"}
           </Button>
           <div className="dwella-chip-row centered">
-            <Badge appearance="tint" color={user?.has_two_factor ? "success" : "subtle"}>2FA {user?.has_two_factor ? "enabled" : "off"}</Badge>
-            <Badge appearance="tint" color={defaultStatusColor(currentStatus)}>{displayStatus(currentStatus)}</Badge>
+            <StatusBadge color={user?.has_two_factor ? "success" : "subtle"}>2FA {user?.has_two_factor ? "enabled" : "off"}</StatusBadge>
+            <StatusBadge color={defaultStatusColor(currentStatus)}>{displayStatus(currentStatus)}</StatusBadge>
           </div>
         </aside>
 

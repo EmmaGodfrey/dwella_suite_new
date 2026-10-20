@@ -1,9 +1,5 @@
 // Toolbar across the top, then the property list and the selected property
 // side by side, each on its own card.
-.dwella-portfolio-page {
-  width: min(1480px, 100%);
-  margin-inline: auto;
-}
 
 .dwella-visually-hidden {
   position: absolute;
@@ -339,7 +335,7 @@
   color: var(--dwella-ink);
   font-family: var(--font-display);
   font-size: var(--fs-h3);
-  line-height: 28px;
+  line-height: 1.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -618,9 +614,6 @@ body.dark-only .dwella-unit-form {
     display: none;
   }
 
-  .dwella-portfolio-toolbar > .fui-Button:last-child {
-    margin-left: auto;
-  }
 
   .dwella-asset-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -662,9 +655,6 @@ body.dark-only .dwella-unit-form {
     flex: 1 1 140px;
   }
 
-  .dwella-portfolio-toolbar > .fui-Button:last-child {
-    width: 100%;
-  }
 
   .dwella-property-body {
     padding: 18px 16px 20px;

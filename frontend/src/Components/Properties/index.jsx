@@ -34,7 +34,7 @@ import {
   useUnitsQuery,
 } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { EmptyState, StatusBadge, labelize } from "../../shared/components";
+import { EmptyState, StatusBadge, labelize, PageActions } from "../../shared/components";
 import { PropertyPhoto } from "../../shared/components/PropertyPhoto";
 import { formatMoney } from "../../shared/format";
 import PropertyForm from "./PropertyForm";
@@ -464,9 +464,11 @@ export default function Properties() {
           </dl>
         ) : null}
         {canManage ? (
-          <Button appearance="primary" icon={<Add20Regular />} onClick={() => setMode("add")}>
-            Add property
-          </Button>
+          <PageActions>
+            <Button appearance="primary" icon={<Add20Regular />} onClick={() => setMode("add")}>
+              Add property
+            </Button>
+          </PageActions>
         ) : null}
       </div>
 

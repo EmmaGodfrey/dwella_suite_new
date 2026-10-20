@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  Badge,
   Button,
   Dialog,
   DialogActions,
@@ -16,7 +15,7 @@ import { toast } from "react-toastify";
 import { useLeaseActionMutation } from "../../Services/mutations";
 import { useCurrentUserQuery, useLeaseQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { EmptyState } from "../../shared/components";
+import { EmptyState, StatusBadge } from "../../shared/components";
 import { daysUntil, formatDate, formatMoney } from "../../shared/format";
 import { leaseBadgeProps } from "../../shared/tenancy";
 import "../../shared/records.scss";
@@ -90,8 +89,8 @@ export default function LeaseDetail() {
       <header className="dwella-detail-header">
         <div>
           <div className="dwella-detail-title">
-            <h2>Lease {lease.reference}</h2>
-            <Badge appearance="tint" {...leaseBadgeProps(lease.status)} />
+            <h1>Lease {lease.reference}</h1>
+            <StatusBadge {...leaseBadgeProps(lease.status)} />
           </div>
           <p>
             {lease.tenant_name} · {lease.unit_name}, {lease.property_name} · {formatDate(lease.start_date)} – {formatDate(lease.end_date)}
