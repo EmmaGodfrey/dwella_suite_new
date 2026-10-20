@@ -11,8 +11,10 @@ export const defaultStatusColor = (value) => {
     ["active", "approved", "delivered", "managed", "occupied"].includes(value)
   )
     return "success";
-  if (["pending", "prospect", "vacant"].includes(value)) return "warning";
-  if (["archived", "inactive", "rejected"].includes(value)) return "danger";
+  if (["pending", "vacant"].includes(value)) return "warning";
+  if (["prospect"].includes(value)) return "informative";
+  if (["maintenance", "rejected"].includes(value)) return "danger";
+  if (["reserved"].includes(value)) return "important";
   return "subtle";
 };
 
