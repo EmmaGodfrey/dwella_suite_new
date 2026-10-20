@@ -225,3 +225,43 @@ export const useRecordPaymentMutation = billingMutation("recordPayment", ({ id, 
 export const useVoidInvoiceMutation = billingMutation("voidInvoice", ({ id }) =>
   api.post(`/billing/invoices/${id}/void/`),
 );
+
+// A job closing can bill the tenant, so maintenance writes refresh billing too.
+const maintenanceMutation = (mutationKey, mutationFn) => (options = {}) =>
+  useMutation({
+    mutationKey: [mutationKey],
+    mutationFn,
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["maintenance"] });
+      invalidateBilling();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+
+export const useSaveMaintenanceRequestMutation = maintenanceMutation("saveMaintenanceRequest", ({ id, payload }) =>
+  id ? api.patch(`/maintenance/requests/${id}/`, payload) : api.post("/maintenance/requests/", payload),
+);
+
+// `action` is one of assign, start, complete, cancel.
+export const useMaintenanceActionMutation = maintenanceMutation("maintenanceAction", ({ id, action, payload = {} }) =>
+  api.post(`/maintenance/requests/${id}/${action}/`, payload),
+);
+
+export const useMaintenanceUpdateMutation = maintenanceMutation("maintenanceUpdate", ({ id, payload }) =>
+  api.post(`/maintenance/requests/${id}/updates/`, payload),
+);
+
+export const useMaintenancePhotoMutation = maintenanceMutation("maintenancePhoto", ({ id, file }) => {
+  const body = new FormData();
+  body.append("image", file);
+  return api.post(`/maintenance/requests/${id}/photos/`, body);
+});
+
+export const useSaveVendorMutation = maintenanceMutation("saveVendor", ({ id, payload }) =>
+  id ? api.patch(`/maintenance/vendors/${id}/`, payload) : api.post("/maintenance/vendors/", payload),
+);
+
+export const useArchiveVendorMutation = maintenanceMutation("archiveVendor", ({ id }) =>
+  api.delete(`/maintenance/vendors/${id}/`),
+);

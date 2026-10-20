@@ -158,3 +158,38 @@ export function usePaymentsQuery(filters = {}, options = {}) {
     ...options,
   });
 }
+
+export function useMaintenanceRequestsQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.maintenanceRequests(filters),
+    queryFn: () => apiRequest(`/maintenance/requests/${toSearchParams(filters)}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+}
+
+export function useMaintenanceRequestQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.maintenanceRequest(id),
+    queryFn: () => apiRequest(`/maintenance/requests/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}
+
+export function useMaintenanceSummaryQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.maintenanceSummary,
+    queryFn: () => apiRequest("/maintenance/requests/summary/"),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+export function useVendorsQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.vendors(filters),
+    queryFn: () => apiRequest(`/maintenance/vendors/${toSearchParams(filters)}`),
+    ...options,
+  });
+}

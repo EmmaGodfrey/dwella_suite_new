@@ -15,4 +15,8 @@ export const queryKeys = {
   invoice: (id) => ["billing", "invoices", "detail", id],
   billingSummary: ["billing", "summary"],
   payments: (filters = {}) => ["billing", "payments", filters],
+  maintenanceRequests: (filters = {}) => ["maintenance", "requests", filters],
+  maintenanceRequest: (id) => ["maintenance", "requests", "detail", id],
+  maintenanceSummary: ["maintenance", "summary"],
+  vendors: (filters = {}) => ["maintenance", "vendors", filters],
 };
