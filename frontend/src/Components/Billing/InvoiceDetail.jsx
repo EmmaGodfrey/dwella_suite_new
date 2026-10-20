@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   Button,
   Dialog,
@@ -11,7 +11,7 @@ import {
   Field,
   Textarea,
 } from "@fluentui/react-components";
-import { ArrowLeft20Regular, Money20Regular, Receipt24Regular } from "@fluentui/react-icons";
+import { Money20Regular, Receipt24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useSaveInvoiceMutation, useVoidInvoiceMutation } from "../../Services/mutations";
@@ -88,7 +88,6 @@ export default function InvoiceDetail() {
 
   return (
     <div className="dwella-invoice-detail">
-      <Link to="/billing" className="dwella-back-link"><ArrowLeft20Regular /> Billing</Link>
 
       <header className="dwella-detail-header">
         <div>

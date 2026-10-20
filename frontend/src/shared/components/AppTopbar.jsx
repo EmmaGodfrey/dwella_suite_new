@@ -3,10 +3,10 @@ import { Button, Tooltip } from "@fluentui/react-components";
 import { Navigation24Regular, WeatherMoon20Regular, WeatherSunny20Regular } from "@fluentui/react-icons";
 
 import { DwellaThemeContext } from "../../App";
-import { GlobalSearch } from "./GlobalSearch";
+import { AppBreadcrumbs } from "./AppBreadcrumbs";
 
-// Global search and utilities. The page's own title lives in the page header,
-// so the bar reads the same on every screen.
+// Where you are and the theme switch. The page's own title lives in the page
+// header, so the bar reads the same on every screen.
 export const AppTopbar = ({ onMobileOpen }) => {
   const { darkMode, setDarkMode } = useContext(DwellaThemeContext);
   const themeLabel = darkMode ? "Switch to light theme" : "Switch to dark theme";
@@ -15,7 +15,7 @@ export const AppTopbar = ({ onMobileOpen }) => {
     <header className="dwella-topbar">
       <Button className="dwella-mobile-menu" appearance="subtle" icon={<Navigation24Regular />} onClick={onMobileOpen} aria-label="Open navigation" />
 
-      <GlobalSearch />
+      <AppBreadcrumbs />
 
       <div className="dwella-topbar-actions">
         <Tooltip content={themeLabel} relationship="label">

@@ -5,5 +5,5 @@ export * from "./EmptyState";
 export * from "./PageSection";
 export * from "./StatusBadge";
 export * from "./SegmentedFilter";
-export * from "./GlobalSearch";
+export * from "./AppBreadcrumbs";
 export * from "./PageHeader";

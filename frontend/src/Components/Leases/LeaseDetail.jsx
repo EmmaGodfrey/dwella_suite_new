@@ -9,7 +9,7 @@ import {
   DialogSurface,
   DialogTitle,
 } from "@fluentui/react-components";
-import { ArrowLeft20Regular, CheckmarkCircle20Regular, DocumentText24Regular, Person20Regular } from "@fluentui/react-icons";
+import { CheckmarkCircle20Regular, DocumentText24Regular, Person20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useLeaseActionMutation } from "../../Services/mutations";
@@ -84,7 +84,6 @@ export default function LeaseDetail() {
 
   return (
     <div className="dwella-lease-detail">
-      <Link to="/leases" className="dwella-back-link"><ArrowLeft20Regular /> Leases</Link>
 
       <header className="dwella-detail-header">
         <div>

@@ -410,19 +410,7 @@
 
 // ---- Detail page header ------------------------------------------------------
 
-.dwella-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--dwella-link);
-  font-size: var(--fs-small);
-  font-weight: 600;
-  text-decoration: none;
-}
 
-.dwella-back-link:hover {
-  text-decoration: underline;
-}
 
 .dwella-detail-header {
   display: flex;
