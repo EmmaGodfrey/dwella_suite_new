@@ -1,0 +1,537 @@
+.dwella-maintenance-page,
+.dwella-request-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.dwella-maintenance-page .dwella-page-toolbar {
+  margin-bottom: 0;
+}
+
+.dwella-maintenance-page .dwella-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dwella-maintenance-filter {
+  min-width: 9.5rem;
+}
+
+.dwella-maintenance-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0 0 0 auto;
+  color: var(--dwella-muted);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-maintenance-summary strong {
+  color: var(--dwella-ink);
+  font-weight: 600;
+}
+
+.dwella-maintenance-summary .is-urgent strong {
+  color: var(--dwella-danger);
+}
+
+.dwella-maintenance-summary .is-good strong {
+  color: var(--dwella-accent-text);
+}
+
+// ---- Board -------------------------------------------------------------------
+
+.dwella-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(15rem, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.dwella-board-column {
+  display: grid;
+  gap: 10px;
+  padding: 12px 10px 10px;
+  background: var(--dwella-wash);
+  border-radius: var(--radius-lg);
+}
+
+.dwella-board-column > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+}
+
+.dwella-board-column > header::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone);
+}
+
+.dwella-board-column h2 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+.dwella-board-column > header > span {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+}
+
+.dwella-board-column ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-board-empty {
+  margin: 0;
+  padding: 18px 4px;
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  text-align: center;
+}
+
+.dwella-job-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: var(--dwella-paper);
+  border: 0;
+  border-radius: var(--radius-md);
+  box-shadow: var(--dwella-shadow-card);
+  cursor: pointer;
+  transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.dwella-job-card:hover {
+  box-shadow: var(--dwella-shadow-overlay);
+}
+
+.dwella-job-card:active {
+  transform: translateY(1px);
+}
+
+.dwella-job-card:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: 2px;
+}
+
+.dwella-job-card-top,
+.dwella-job-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dwella-job-card small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-job-card-title {
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+.dwella-job-card-place {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-job-card-place svg {
+  flex: 0 0 auto;
+  color: var(--dwella-subtle);
+}
+
+.dwella-job-card-foot {
+  padding-top: 10px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-job-vendor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-small);
+}
+
+.dwella-job-vendor .dwella-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: var(--fs-micro);
+}
+
+.dwella-job-unassigned {
+  color: var(--dwella-warning);
+  font-size: var(--fs-small);
+}
+
+// ---- Request detail ----------------------------------------------------------
+
+.dwella-request-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  gap: 18px;
+  align-items: start;
+}
+
+.dwella-request-main,
+.dwella-request-rail {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.dwella-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-progress li {
+  display: grid;
+  gap: 8px;
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-progress li > span:first-child {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--dwella-line-soft);
+}
+
+.dwella-progress li.is-reached {
+  color: var(--dwella-ink);
+}
+
+.dwella-progress li.is-reached > span:first-child {
+  background: var(--dwella-primary);
+}
+
+.dwella-progress-state {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dwella-request-description {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-lead);
+  white-space: pre-line;
+}
+
+.dwella-request-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.dwella-request-photos a,
+.dwella-photo-tile {
+  width: 7.5rem;
+  height: 5.5rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dwella-request-photos img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dwella-request-photos a:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: 2px;
+}
+
+.dwella-photo-tile,
+.dwella-photo-add {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--dwella-primary);
+  font-size: var(--fs-small);
+  background: var(--dwella-primary-soft);
+  cursor: pointer;
+}
+
+.dwella-photo-tile.is-busy {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.dwella-photo-add {
+  flex-direction: row;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+}
+
+// The real file input stays in the tab order but out of sight.
+.dwella-photo-tile input,
+.dwella-photo-add input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.dwella-photo-tile:focus-within,
+.dwella-photo-add:focus-within {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: 2px;
+}
+
+.dwella-photo-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dwella-photo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px 2px 10px;
+  color: var(--dwella-ink);
+  font-size: var(--fs-small);
+  background: var(--dwella-wash);
+  border-radius: var(--radius-md);
+  overflow-wrap: anywhere;
+}
+
+// ---- Conversation ------------------------------------------------------------
+
+.dwella-thread {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-thread > li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.dwella-thread > li > div {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--dwella-raised);
+  border-radius: var(--radius-md);
+}
+
+.dwella-thread > li.is-internal > div {
+  background: var(--dwella-warning-soft);
+}
+
+.dwella-thread > li.is-status {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0 4px 0 46px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-thread > li.is-status small {
+  color: var(--dwella-subtle);
+}
+
+.dwella-thread-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: var(--fs-small);
+}
+
+.dwella-thread-meta strong {
+  color: var(--dwella-ink);
+}
+
+.dwella-thread-meta small {
+  color: var(--dwella-subtle);
+}
+
+.dwella-thread-body {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.dwella-reply {
+  display: grid;
+  gap: 8px;
+}
+
+.dwella-reply-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+// ---- Assign panel and vendors -------------------------------------------------
+
+.dwella-assign-form fieldset {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.dwella-assign-form .dwella-option-split {
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--dwella-raised);
+  border-radius: var(--radius-md);
+}
+
+.dwella-assign-form .dwella-option-split > div {
+  display: grid;
+  gap: 2px;
+  font-size: var(--fs-body);
+}
+
+.dwella-assign-form .dwella-field-error {
+  margin: -6px 0 0;
+  color: var(--dwella-danger);
+  font-size: var(--fs-small);
+}
+
+.dwella-vendor-form {
+  padding: 14px;
+  background: var(--dwella-raised);
+  border-radius: var(--radius-md);
+}
+
+.dwella-vendor-form fieldset {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.dwella-vendor-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dwella-vendor-empty {
+  margin-top: 16px;
+}
+
+.dwella-vendor-list {
+  display: grid;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-vendor-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-vendor-list li > div {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-body);
+}
+
+.dwella-vendor-list strong {
+  color: var(--dwella-ink);
+}
+
+.dwella-vendor-list small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+}
+
+@media (max-width: 1200px) {
+  .dwella-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1080px) {
+  .dwella-request-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dwella-maintenance-summary {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dwella-maintenance-filter {
+    flex: 1 1 100%;
+  }
+
+  .dwella-thread > li.is-status {
+    padding-left: 0;
+  }
+}

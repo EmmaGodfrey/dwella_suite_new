@@ -4,6 +4,8 @@ import InvoiceDetail from "../Components/Billing/InvoiceDetail";
 import Dashboard from "../Components/Dashboard";
 import LeaseDetail from "../Components/Leases/LeaseDetail";
 import Leases from "../Components/Leases";
+import Maintenance from "../Components/Maintenance";
+import RequestDetail from "../Components/Maintenance/RequestDetail";
 import Tenants from "../Components/Tenants";
 import ModulePlaceholder from "../Components/ModulePlaceholder";
 import Properties from "../Components/Properties";
@@ -57,7 +59,13 @@ export const routes = [
     path: `/maintenance`,
     title: "Maintenance",
     description: "Work orders, vendors, approvals, and service tracking.",
-    Component: <ModulePlaceholder description="Work orders, vendors, approvals, and service tracking." />,
+    Component: <Maintenance />,
+  },
+  {
+    path: `/maintenance/:id`,
+    title: "Maintenance request",
+    description: "Progress, conversation and scheduling for one repair.",
+    Component: <RequestDetail />,
   },
   {
     path: `/reports`,

@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbButton, BreadcrumbDivider, BreadcrumbItem } from "@fluentui/react-components";
 
-import { useCurrentUserQuery, useInvoiceQuery, useLeaseQuery } from "../../Services/queries";
+import { useCurrentUserQuery, useInvoiceQuery, useLeaseQuery, useMaintenanceRequestQuery } from "../../Services/queries";
 import { getPageMeta } from "../navigation";
 
 // Detail pages name the record once its page has loaded it. The queries are
@@ -11,10 +11,13 @@ function useDetailLabel(pathname) {
   const [section, id, sub] = pathname.split("/").filter(Boolean);
   const leaseId = section === "leases" ? id : null;
   const invoiceId = section === "billing" && id === "invoices" ? sub : null;
+  const requestId = section === "maintenance" ? id : null;
   const lease = useLeaseQuery(leaseId, { enabled: false });
   const invoice = useInvoiceQuery(invoiceId, { enabled: false });
+  const request = useMaintenanceRequestQuery(requestId, { enabled: false });
   if (leaseId) return lease.data?.reference || "Lease";
   if (invoiceId) return invoice.data?.reference || "Invoice";
+  if (requestId) return request.data?.reference || "Request";
   return null;
 }
 
