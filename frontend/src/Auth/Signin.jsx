@@ -240,7 +240,12 @@ const Signin = () => {
               <ArrowLeft16Regular />
               Back to sign in
             </button>
-          ) : null}
+          ) : (
+            <p className="dwella-auth-signup">
+              New to Dwella? The beta opens 18 November.{" "}
+              <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a>
+            </p>
+          )}
         </form>
       </section>
     </main>
