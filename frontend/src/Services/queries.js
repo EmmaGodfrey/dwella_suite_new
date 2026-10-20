@@ -124,3 +124,37 @@ export function useLeaseQuery(id, options = {}) {
     ...options,
   });
 }
+
+export function useInvoicesQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.invoices(filters),
+    queryFn: () => apiRequest(`/billing/invoices/${toSearchParams(filters)}`),
+    ...options,
+  });
+}
+
+export function useInvoiceQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.invoice(id),
+    queryFn: () => apiRequest(`/billing/invoices/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}
+
+export function useBillingSummaryQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.billingSummary,
+    queryFn: () => apiRequest("/billing/invoices/summary/"),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+export function usePaymentsQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.payments(filters),
+    queryFn: () => apiRequest(`/billing/payments/${toSearchParams(filters)}`),
+    ...options,
+  });
+}

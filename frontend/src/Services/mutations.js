@@ -191,3 +191,37 @@ export function useLeaseActionMutation(options = {}) {
     onError: options.onError,
   });
 }
+
+// Money moving changes invoices, the billing summary and tenant balances.
+const invalidateBilling = () => {
+  queryClient.invalidateQueries({ queryKey: ["billing"] });
+  queryClient.invalidateQueries({ queryKey: ["tenants"] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
+};
+
+const billingMutation = (mutationKey, mutationFn) => (options = {}) =>
+  useMutation({
+    mutationKey: [mutationKey],
+    mutationFn,
+    onSuccess: (data, variables, context) => {
+      invalidateBilling();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+
+export const useGenerateInvoicesMutation = billingMutation("generateInvoices", ({ period }) =>
+  api.post("/billing/invoices/generate/", { period }),
+);
+
+export const useSaveInvoiceMutation = billingMutation("saveInvoice", ({ id, payload }) =>
+  id ? api.patch(`/billing/invoices/${id}/`, payload) : api.post("/billing/invoices/", payload),
+);
+
+export const useRecordPaymentMutation = billingMutation("recordPayment", ({ id, payload }) =>
+  api.post(`/billing/invoices/${id}/record-payment/`, payload),
+);
+
+export const useVoidInvoiceMutation = billingMutation("voidInvoice", ({ id }) =>
+  api.post(`/billing/invoices/${id}/void/`),
+);

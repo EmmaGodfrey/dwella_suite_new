@@ -11,4 +11,8 @@ export const queryKeys = {
   tenant: (id) => ["tenants", "detail", id],
   leases: (filters = {}) => ["leases", filters],
   lease: (id) => ["leases", "detail", id],
+  invoices: (filters = {}) => ["billing", "invoices", filters],
+  invoice: (id) => ["billing", "invoices", "detail", id],
+  billingSummary: ["billing", "summary"],
+  payments: (filters = {}) => ["billing", "payments", filters],
 };
