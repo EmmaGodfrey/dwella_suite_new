@@ -1,0 +1,4 @@
+# The app is kept out of search results with noindex headers, so crawlers
+# may fetch it to see that. The public site is https://dwella.properties.
+User-agent: *
+Allow: /
