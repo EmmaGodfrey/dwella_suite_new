@@ -301,6 +301,10 @@
   gap: 16px;
 }
 
+.dwella-dashboard-row.is-top-aligned {
+  align-items: start;
+}
+
 .dwella-dashboard-card {
   min-width: 0;
   display: flex;
@@ -587,116 +591,180 @@
   margin-top: 4px;
 }
 
-// ---- Recently added properties ----------------------------------------------
+// ---- Recent payments --------------------------------------------------------
 
-.dwella-recent-properties {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.dwella-recent-property {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: inherit;
-  text-decoration: none;
-  border: 1px solid var(--dwella-line-soft);
-  border-radius: 10px;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.dwella-recent-property:hover {
-  border-color: var(--dwella-line);
-  box-shadow: var(--dwella-shadow-card);
-}
-
-.dwella-recent-property:focus-visible {
-  outline: 2px solid var(--dwella-focus);
-  outline-offset: 2px;
-}
-
-.dwella-recent-property-cover {
-  position: relative;
-  display: block;
-  height: 120px;
-  background: var(--dwella-wash);
-}
-
-.dwella-recent-property-cover .dwella-property-photo {
-  height: 100%;
-  aspect-ratio: auto;
-}
-
-.dwella-recent-property-cover .dwella-status-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.dwella-recent-property-body {
-  display: grid;
+.dwella-payments-card {
   gap: 4px;
-  padding: 12px 14px 14px;
 }
 
-.dwella-recent-property-body strong,
-.dwella-recent-property-body small {
+.dwella-payments-card .dwella-dashboard-section-heading {
+  margin-bottom: 12px;
+}
+
+.dwella-payment-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-payment-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--dwella-line-soft);
+  cursor: pointer;
+}
+
+.dwella-payment-row.is-loading {
+  cursor: default;
+}
+
+.dwella-payment-row:hover .dwella-attention-copy strong {
+  color: var(--dwella-link);
+}
+
+.dwella-payment-row:focus-visible {
+  outline: 2px solid var(--dwella-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-md);
+}
+
+.dwella-payment-amount {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.dwella-payment-amount strong {
+  color: var(--dwella-accent-text);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dwella-payment-amount small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+// ---- Units ------------------------------------------------------------------
+
+.dwella-unit-split {
+  height: 8px;
+  display: flex;
+  gap: 2px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--dwella-line-soft);
+  border-radius: 4px;
 }
 
-.dwella-recent-property-body strong {
+.dwella-unit-split span {
+  flex-basis: 0;
+}
+
+.dwella-units-card {
+  --tone-occupied: var(--dwella-secondary);
+  --tone-vacant: var(--dwella-warning);
+  --tone-reserved: var(--dwella-info);
+  --tone-maintenance: var(--dwella-danger);
+}
+
+.dwella-unit-split .is-occupied,
+.dwella-unit-status-list .is-occupied {
+  --tone: var(--tone-occupied);
+}
+
+.dwella-unit-split .is-vacant,
+.dwella-unit-status-list .is-vacant {
+  --tone: var(--tone-vacant);
+}
+
+.dwella-unit-split .is-reserved,
+.dwella-unit-status-list .is-reserved {
+  --tone: var(--tone-reserved);
+}
+
+.dwella-unit-split .is-maintenance,
+.dwella-unit-status-list .is-maintenance {
+  --tone: var(--tone-maintenance);
+}
+
+.dwella-unit-split span {
+  background: var(--tone);
+}
+
+.dwella-unit-status-list {
+  display: grid;
+  margin: 0;
+}
+
+.dwella-unit-status-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-unit-status-list > div:first-child {
+  border-top: 0;
+}
+
+.dwella-unit-status-list dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-unit-status-list dt::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--tone);
+  border-radius: 50%;
+}
+
+.dwella-unit-status-list dd {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+
+.dwella-unit-status-list strong {
   color: var(--dwella-ink);
   font-size: var(--fs-body);
   line-height: var(--lh-body);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
-.dwella-recent-property-body small {
+.dwella-unit-status-list small {
+  min-width: 4ch;
   color: var(--dwella-subtle);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
-.dwella-recent-property-body > div {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding-top: 8px;
-  color: var(--dwella-subtle);
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-}
-
-.dwella-recent-property-body > div > span:first-child {
-  color: var(--dwella-muted);
-}
-
-.dwella-recent-property-body .is-positive {
-  color: var(--dwella-accent-text);
-}
-
-.dwella-recent-property.is-loading {
-  pointer-events: none;
-}
-
-.dwella-dashboard-empty {
-  padding: 8px 0;
-  color: var(--dwella-muted);
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-}
-
-.dwella-dashboard-empty strong {
-  color: var(--dwella-ink);
-  font-size: var(--fs-body);
-}
-
-.dwella-dashboard-empty p {
-  margin: 4px 0 12px;
+.dwella-units-card .dwella-link-button {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 // ---- Responsive -------------------------------------------------------------
@@ -720,10 +788,6 @@
   .dwella-dashboard-row {
     grid-template-columns: 1fr;
   }
-
-  .dwella-recent-properties {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 640px) {
@@ -733,10 +797,6 @@
 
   .dwella-dashboard-intro {
     align-items: flex-start;
-  }
-
-  .dwella-dashboard-intro .fui-Button {
-    flex-shrink: 0;
   }
 
   .dwella-tenant-actions {
@@ -760,9 +820,5 @@
   .dwella-collection-plot {
     grid-template-columns: 34px minmax(0, 1fr);
     gap: 8px;
-  }
-
-  .dwella-recent-properties {
-    grid-template-columns: 1fr;
   }
 }

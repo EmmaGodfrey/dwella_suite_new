@@ -1,9 +1,8 @@
 import React from "react";
 import "./dashboard.scss";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@fluentui/react-components";
 import {
-  Add20Regular,
   ArrowRight20Regular,
   Calendar20Regular,
   ChevronRight20Regular,
@@ -21,11 +20,11 @@ import {
   useDashboardSummaryQuery,
   useInvoicesQuery,
   useLeasesQuery,
+  usePaymentsQuery,
 } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { StatusBadge, labelize } from "../../shared/components";
-import { PropertyPhoto } from "../../shared/components/PropertyPhoto";
-import { daysUntil, toIsoDate } from "../../shared/format";
+import { paymentMethodLabel } from "../../shared/billing";
+import { daysUntil, formatDate, toIsoDate } from "../../shared/format";
 
 const money = new Intl.NumberFormat("en-ZM", {
   style: "currency",
@@ -395,29 +394,97 @@ function NeedsAttention({ data, navigate, enabled }) {
   );
 }
 
-function PropertyCard({ property, isPlatformAdmin }) {
-  const units = Number(property.units_count || 0);
-  const occupied = Number(property.occupied_units || 0);
-  const occupancyLabel = !units ? "No units yet" : occupied ? `${Math.round((occupied / units) * 100)}% occupied` : "Not yet let";
+const unitStatusOrder = ["occupied", "vacant", "reserved", "maintenance"];
+
+// How the units sit today. It reads the same for one block of 60 flats as for
+// twelve houses, which a list of properties does not.
+function UnitStatusCard({ data, loading, navigate }) {
+  const total = Number(data.units.total || 0);
+  const rows = unitStatusOrder
+    .map((key) => (data.units.by_status || []).find((row) => row.key === key))
+    .filter(Boolean);
   return (
-    <Link className="dwella-recent-property" to={`/properties?search=${encodeURIComponent(property.name)}`}>
-      <div className="dwella-recent-property-cover">
-        <PropertyPhoto src={property.cover_image} name={property.name} />
-        <StatusBadge value={property.management_status} />
+    <section className="dwella-dashboard-card dwella-units-card">
+      <SectionHeading
+        title="Units"
+        note={loading ? "Counting units…" : total ? `${unitCount(total)} · ${data.units.occupancy_rate}% occupied` : "No units yet"}
+      />
+      <div
+        className="dwella-unit-split"
+        role="img"
+        aria-label={rows.map((row) => `${row.count} ${row.label.toLowerCase()}`).join(", ")}
+      >
+        {total
+          ? rows.map((row) => <span key={row.key} className={`is-${row.key}`} style={{ flexGrow: row.count }} />)
+          : null}
       </div>
-      <div className="dwella-recent-property-body">
-        <strong>{property.name}</strong>
-        <small>
-          {isPlatformAdmin
-            ? property.organization_name
-            : [property.town, labelize(property.property_type)].filter(Boolean).join(" · ")}
-        </small>
-        <div>
-          <span>{unitCount(units)}</span>
-          <span className={occupied ? "is-positive" : ""}>{occupancyLabel}</span>
-        </div>
-      </div>
-    </Link>
+      <dl className="dwella-unit-status-list">
+        {rows.map((row) => (
+          <div key={row.key} className={`is-${row.key}`}>
+            <dt>{row.label}</dt>
+            <dd>
+              <strong>
+                <Figure loading={loading} width="2ch">
+                  {formatNumber(row.count)}
+                </Figure>
+              </strong>
+              <small>{loading ? "" : `${row.percentage}%`}</small>
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <LinkButton onClick={() => navigate("/properties")}>View properties</LinkButton>
+    </section>
+  );
+}
+
+function RecentPayments({ navigate, enabled }) {
+  const paymentsQuery = usePaymentsQuery({ ordering: "-paid_on", page_size: 5 }, { enabled, staleTime: 30_000 });
+  const payments = paymentsQuery.data?.results || [];
+  const loading = !enabled || paymentsQuery.isLoading;
+  return (
+    <section className="dwella-dashboard-card dwella-payments-card">
+      <SectionHeading
+        title="Recent payments"
+        note="Latest receipts recorded against rent"
+        action={<LinkButton onClick={() => navigate("/billing")}>Go to billing</LinkButton>}
+      />
+      {loading ? (
+        <ul className="dwella-payment-list" aria-hidden="true">
+          {[0, 1, 2, 3].map((row) => (
+            <li key={row}>
+              <span className="dwella-payment-row is-loading">
+                <span className="dwella-attention-copy">
+                  <span className="dwella-skeleton" style={{ height: 12, width: "40%" }} />
+                  <span className="dwella-skeleton" style={{ height: 10, width: "28%" }} />
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : payments.length ? (
+        <ul className="dwella-payment-list">
+          {payments.map((payment) => (
+            <li key={payment.id}>
+              <button type="button" className="dwella-payment-row" onClick={() => navigate(`/billing/invoices/${payment.invoice_id}`)}>
+                <span className="dwella-attention-copy">
+                  <strong>{payment.tenant_name}</strong>
+                  <small>
+                    {[payment.receipt_number, payment.invoice_reference, paymentMethodLabel(payment.method)].filter(Boolean).join(" · ")}
+                  </small>
+                </span>
+                <span className="dwella-payment-amount">
+                  <strong>{formatMoney(payment.amount)}</strong>
+                  <small>{formatDate(payment.paid_on)}</small>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="dwella-board-empty">No payments recorded yet. Receipts appear here as tenants pay.</p>
+      )}
+    </section>
   );
 }
 
@@ -472,15 +539,6 @@ const Dashboard = () => {
           <h1>{isPlatformAdmin ? "Landlord portfolios" : organizationName}</h1>
           <p>{isLoading ? " " : subtitle}</p>
         </div>
-        {access.can_manage_properties ? (
-          <Button
-            appearance="primary"
-            icon={<Add20Regular />}
-            onClick={() => navigate("/properties?new=1")}
-          >
-            Add property
-          </Button>
-        ) : null}
       </header>
 
       <MonthAtAGlance
@@ -495,40 +553,10 @@ const Dashboard = () => {
         <NeedsAttention data={data} navigate={navigate} enabled={enabled && !isLoading} />
       </div>
 
-      <section className="dwella-dashboard-card">
-        <SectionHeading
-          title="Recently added properties"
-          note={isPlatformAdmin ? "Newest across landlord portfolios" : "Your newest assets and how full they are"}
-          action={<LinkButton onClick={() => navigate("/properties")}>View portfolio</LinkButton>}
-        />
-        {!isLoading && data.recent_properties.length === 0 ? (
-          <div className="dwella-dashboard-empty">
-            <strong>No properties yet</strong>
-            <p>{isPlatformAdmin ? "No landlord has added a property yet." : "Add a property to begin tracking units and rent."}</p>
-            {access.can_manage_properties ? (
-              <Button size="small" onClick={() => navigate("/properties?new=1")}>
-                Add property
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <div className="dwella-recent-properties">
-            {isLoading
-              ? [0, 1, 2, 3].map((card) => (
-                  <div className="dwella-recent-property is-loading" key={card} aria-hidden="true">
-                    <span className="dwella-skeleton dwella-recent-property-cover" />
-                    <div className="dwella-recent-property-body">
-                      <span className="dwella-skeleton" style={{ height: 12, width: "64%" }} />
-                      <span className="dwella-skeleton" style={{ height: 10, width: "44%" }} />
-                    </div>
-                  </div>
-                ))
-              : data.recent_properties.slice(0, 4).map((property) => (
-                  <PropertyCard key={property.id} property={property} isPlatformAdmin={isPlatformAdmin} />
-                ))}
-          </div>
-        )}
-      </section>
+      <div className="dwella-dashboard-row is-top-aligned">
+        <RecentPayments navigate={navigate} enabled={enabled} />
+        <UnitStatusCard data={data} loading={isLoading} navigate={navigate} />
+      </div>
     </div>
   );
 };
