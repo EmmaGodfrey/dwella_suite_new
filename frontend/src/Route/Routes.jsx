@@ -1,4 +1,6 @@
 //Pages
+import Billing from "../Components/Billing";
+import InvoiceDetail from "../Components/Billing/InvoiceDetail";
 import Dashboard from "../Components/Dashboard";
 import LeaseDetail from "../Components/Leases/LeaseDetail";
 import Leases from "../Components/Leases";
@@ -43,7 +45,13 @@ export const routes = [
     path: `/billing`,
     title: "Billing",
     description: "Rent invoices, collections, balances, and payment tracking.",
-    Component: <ModulePlaceholder description="Rent invoices, collections, balances, and payment tracking." />,
+    Component: <Billing />,
+  },
+  {
+    path: `/billing/invoices/:id`,
+    title: "Invoice",
+    description: "Invoice lines, payments, and balance.",
+    Component: <InvoiceDetail />,
   },
   {
     path: `/maintenance`,

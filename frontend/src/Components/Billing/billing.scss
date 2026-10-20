@@ -1,0 +1,233 @@
+.dwella-billing-page,
+.dwella-invoice-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.dwella-billing-page .dwella-page-toolbar {
+  margin-bottom: 0;
+}
+
+.dwella-stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-stat {
+  display: grid;
+  gap: 4px;
+  padding: 16px 20px;
+}
+
+.dwella-stat + .dwella-stat {
+  border-left: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-stat > span:first-child {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-stat strong {
+  color: var(--dwella-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-stat);
+  line-height: 1.2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.dwella-stat small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+}
+
+.dwella-stat .is-positive,
+.dwella-table .is-positive {
+  color: var(--dwella-accent-text);
+}
+
+.dwella-stat .is-negative,
+.dwella-table td.is-negative,
+.dwella-invoice-totals dd.is-negative {
+  color: var(--dwella-danger);
+}
+
+.dwella-table td.is-muted {
+  color: var(--dwella-subtle);
+}
+
+.dwella-dialog-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.dwella-dialog-copy p {
+  margin: 0;
+  color: var(--dwella-muted);
+}
+
+// ---- Invoice detail -----------------------------------------------------------
+
+.dwella-invoice-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+  gap: 20px;
+}
+
+.dwella-invoice-rail {
+  display: grid;
+  gap: 20px;
+}
+
+.dwella-invoice-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.dwella-invoice-meta > div {
+  display: grid;
+  gap: 2px;
+}
+
+.dwella-invoice-meta span {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dwella-invoice-meta strong {
+  color: var(--dwella-ink);
+  font-size: var(--fs-body);
+}
+
+.dwella-invoice-meta small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+}
+
+.dwella-lines-table {
+  overflow: hidden;
+  border: 1px solid var(--dwella-line-soft);
+  border-radius: var(--radius-md);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.dwella-invoice-totals {
+  justify-self: end;
+  width: min(320px, 100%);
+}
+
+.dwella-invoice-totals .is-balance {
+  padding-top: 10px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-invoice-totals .is-balance dt,
+.dwella-invoice-totals .is-balance dd {
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  font-weight: 700;
+}
+
+.dwella-payment-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-payment-list li > div {
+  display: grid;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 3px solid var(--dwella-accent-strong);
+}
+
+.dwella-payment-list strong {
+  color: var(--dwella-ink);
+}
+
+.dwella-payment-list small {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+}
+
+.dwella-note-editor {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.dwella-note-editor .fui-Field {
+  width: 100%;
+}
+
+// ---- Charge drawer ----------------------------------------------------------
+
+.dwella-charge-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.dwella-charge-line {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 110px 32px;
+  align-items: end;
+  gap: 8px;
+}
+
+.dwella-charge-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: var(--dwella-muted);
+}
+
+.dwella-charge-total strong {
+  margin-left: 6px;
+  color: var(--dwella-ink);
+}
+
+.dwella-form-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 1080px) {
+  .dwella-invoice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dwella-stat-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dwella-stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .dwella-stat:nth-child(n + 3) {
+    border-top: 1px solid var(--dwella-line-soft);
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-charge-line {
+    grid-template-columns: minmax(0, 1fr) 110px 32px;
+  }
+
+  .dwella-charge-line > .fui-Field:first-child {
+    grid-column: 1 / -1;
+  }
+}
