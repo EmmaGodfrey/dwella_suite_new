@@ -114,3 +114,20 @@ def test_platform_admin_can_update_signup_follow_up():
     application.refresh_from_db()
     assert application.status == BetaApplication.Status.CONTACTED
     assert application.internal_notes == "Requested a product demo."
+
+
+@pytest.mark.django_db
+def test_rate_limit_counts_each_visitor_behind_the_proxy(settings):
+    # Production sits behind one Nginx hop: visitors must not share a limit,
+    # and a forged X-Forwarded-For entry must not buy a fresh one.
+    settings.REST_FRAMEWORK = {**settings.REST_FRAMEWORK, "NUM_PROXIES": 1}
+    data = {"name": "Bwalya Mulenga", "phone": "097 123 4567", "role": "Landlord", "units": "1-5"}
+    first, second = APIClient(), APIClient()
+
+    for _ in range(5):
+        response = first.post(URL, data, format="json", HTTP_X_FORWARDED_FOR="41.1.1.1")
+        assert response.status_code == 201
+    assert first.post(URL, data, format="json", HTTP_X_FORWARDED_FOR="41.1.1.1").status_code == 429
+    spoofed = first.post(URL, data, format="json", HTTP_X_FORWARDED_FOR="9.9.9.9, 41.1.1.1")
+    assert spoofed.status_code == 429
+    assert second.post(URL, data, format="json", HTTP_X_FORWARDED_FOR="41.2.2.2").status_code == 201

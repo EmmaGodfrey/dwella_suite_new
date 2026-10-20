@@ -1304,6 +1304,16 @@ body.dark-only .dwella-auth-compact-brand img {
   height: 14px;
 }
 
+.dwella-auth-signup {
+  margin: 0;
+  padding-top: 20px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  text-align: center;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
 // The code is read back digit by digit from an authenticator, so this field
 // gets wider tracking and a larger size than an ordinary input.
 .dwella-auth-form .dwella-otp-field .fui-Input__input {
