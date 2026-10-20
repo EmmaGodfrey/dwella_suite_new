@@ -158,6 +158,10 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.common.responses.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.StandardPageNumberPagination",
     "PAGE_SIZE": 50,
+    # Without a proxy count DRF keys throttles on the whole X-Forwarded-For
+    # header, which a client can prefix with any value to get a fresh limit.
+    # With it set, only the address our own proxy appended is trusted.
+    "NUM_PROXIES": int(__import__("os").getenv("APP_TRUSTED_PROXY_COUNT") or 0) or None,
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
