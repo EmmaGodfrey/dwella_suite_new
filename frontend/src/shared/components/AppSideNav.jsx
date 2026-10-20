@@ -10,6 +10,7 @@ import {
 import { ChevronLeft24Regular, ChevronRight24Regular, Dismiss24Regular } from "@fluentui/react-icons";
 import { useNavigate } from "react-router-dom";
 
+import { accessLabel, getUserAccess } from "../access";
 import { getNavigationItems, navigationGroups } from "../navigation";
 import { BrandMark } from "./BrandMark";
 import { UserMenu } from "./UserMenu";
@@ -19,10 +20,22 @@ import { UserMenu } from "./UserMenu";
 const opensOutsideTheApp = (event) =>
   event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (event.button != null && event.button !== 0);
 
+const workspaceFor = (user) => {
+  const access = getUserAccess(user);
+  if (access.persona === "platform_admin") return { name: "Dwella Platform", initials: "DW" };
+  const membership =
+    user?.memberships?.find((item) => item.is_active && item.organization?.id === access.organization_id) ||
+    user?.memberships?.find((item) => item.is_active);
+  const name = membership?.organization?.name || "Your workspace";
+  const initials = name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
+  return { name, initials };
+};
+
 export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseToggle, onMobileClose, onLogout, user }) => {
   const navigate = useNavigate();
   const showLabels = !collapsed || mobileOpen;
   const navigationItems = getNavigationItems(user);
+  const workspace = workspaceFor(user);
 
   const handleNavItemSelect = (event, data) => {
     const destination = navigationItems.find((item) => item.value === data.value);
@@ -42,6 +55,18 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
         <div className="dwella-sidebar-brand">
           <BrandMark onClick={onMobileClose} showWordmark={showLabels} />
           <Button className="dwella-sidebar-close" appearance="subtle" icon={<Dismiss24Regular />} onClick={onMobileClose} aria-label="Close navigation" />
+        </div>
+
+        {/* Shows which organisation the figures belong to. It is a label, not a
+            switcher: there is no second workspace to switch to yet. */}
+        <div className="dwella-workspace" title={!showLabels ? workspace.name : undefined}>
+          <span className="dwella-workspace-avatar" aria-hidden="true">{workspace.initials}</span>
+          {showLabels ? (
+            <span className="dwella-workspace-copy">
+              <strong>{workspace.name}</strong>
+              <small>{accessLabel(user)}</small>
+            </span>
+          ) : null}
         </div>
 
         <Nav
