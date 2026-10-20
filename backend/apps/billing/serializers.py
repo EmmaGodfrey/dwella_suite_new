@@ -5,6 +5,8 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.common.serializers import OrganizationScopedSerializer
+from apps.integrations.models import FiscalReceipt
+from apps.integrations.serializers import FiscalReceiptSerializer
 from apps.leases.models import Lease
 from apps.tenants.models import Tenant
 
@@ -72,6 +74,13 @@ class InvoiceSerializer(OrganizationScopedSerializer):
     property_name = serializers.CharField(source="unit.property.name", read_only=True, default=None)
     balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     days_overdue = serializers.SerializerMethodField()
+    fiscal_status = serializers.SerializerMethodField()
+    charged_for_id = serializers.UUIDField(
+        source="charged_for.public_id", read_only=True, default=None
+    )
+    charged_for_reference = serializers.CharField(
+        source="charged_for.reference", read_only=True, default=None
+    )
     issue_date = serializers.DateField(required=False)
     lines = InvoiceLineSerializer(many=True)
 
@@ -96,6 +105,9 @@ class InvoiceSerializer(OrganizationScopedSerializer):
             "balance",
             "status",
             "days_overdue",
+            "fiscal_status",
+            "charged_for_id",
+            "charged_for_reference",
             "lines",
             "notes",
             "voided_at",
@@ -127,6 +139,18 @@ class InvoiceSerializer(OrganizationScopedSerializer):
             return 0
         return max(0, (timezone.localdate() - obj.due_date).days)
 
+    def get_fiscal_status(self, obj):
+        # Where the invoice stands with ZRA Smart Invoice; None when it was
+        # never sent (Smart Invoice off, or a deposit-only invoice).
+        receipts = {receipt.kind: receipt for receipt in obj.fiscal_receipts.all()}
+        refund = receipts.get(FiscalReceipt.Kind.REFUND)
+        sale = receipts.get(FiscalReceipt.Kind.SALE)
+        if refund and refund.status != FiscalReceipt.Status.ISSUED:
+            return refund.status
+        if refund:
+            return "credited"
+        return sale.status if sale else None
+
     def validate_lines(self, value):
         if not value:
             raise serializers.ValidationError("Add at least one charge.")
@@ -151,9 +175,34 @@ class InvoiceSerializer(OrganizationScopedSerializer):
 
 class InvoiceDetailSerializer(InvoiceSerializer):
     payments = PaymentSerializer(many=True, read_only=True)
+    fiscal_receipts = FiscalReceiptSerializer(many=True, read_only=True)
+    issuer = serializers.SerializerMethodField()
+    tenant_tpin = serializers.CharField(source="tenant.tpin", read_only=True)
+    tenant_email = serializers.CharField(source="tenant.email", read_only=True)
 
     class Meta(InvoiceSerializer.Meta):
-        fields = [*InvoiceSerializer.Meta.fields, "payments"]
+        fields = [
+            *InvoiceSerializer.Meta.fields,
+            "tenant_tpin",
+            "tenant_email",
+            "payments",
+            "fiscal_receipts",
+            "issuer",
+        ]
+
+    def get_issuer(self, obj):
+        """Who the printed invoice is from."""
+        organization = obj.organization
+        config = getattr(organization, "smart_invoice", None)
+        return {
+            "name": str(organization),
+            "address": organization.address,
+            "town": organization.town,
+            "country": organization.country,
+            "phone_number": organization.phone_number,
+            "email": organization.email,
+            "tpin": config.tpin if config else None,
+        }
 
 
 class RecordPaymentSerializer(serializers.Serializer):

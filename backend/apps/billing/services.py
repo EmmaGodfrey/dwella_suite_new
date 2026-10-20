@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.common.references import next_reference
+from apps.integrations import smart_invoice
 from apps.leases.models import Lease
 
 from .models import Invoice, InvoiceLine, Payment
@@ -46,6 +47,7 @@ def create_invoice(
     lease=None,
     unit=None,
     period_start=None,
+    charged_for=None,
     notes="",
 ):
     invoice = Invoice.objects.create(
@@ -57,10 +59,13 @@ def create_invoice(
         period_start=period_start,
         issue_date=issue_date,
         due_date=due_date,
+        charged_for=charged_for,
         notes=notes,
     )
     InvoiceLine.objects.bulk_create(InvoiceLine(invoice=invoice, **line) for line in lines)
-    return refresh_totals(invoice)
+    refresh_totals(invoice)
+    smart_invoice.queue_sale_receipt(invoice)
+    return invoice
 
 
 def generate_rent_invoices(organization, period_start, today=None):
@@ -146,13 +151,22 @@ def void_invoice(invoice):
     invoice.status = Invoice.Status.VOID
     invoice.voided_at = timezone.now()
     invoice.save(update_fields=["status", "voided_at", "updated_at"])
+    smart_invoice.queue_refund_receipt(invoice)
     return invoice
+
+
+def late_fee_follow_ups():
+    return Invoice.objects.filter(
+        charged_for__isnull=False, lines__kind=InvoiceLine.Kind.LATE_FEE
+    ).exclude(status=Invoice.Status.VOID)
 
 
 def apply_late_fees(organization, today=None):
     """Add each lease's late fee to unpaid rent invoices past their grace period.
 
-    A fee is added at most once per invoice. Returns how many were added.
+    A fee is added at most once per invoice. Invoices already sent to ZRA
+    cannot change, so their fee goes on a follow-up invoice instead.
+    Returns how many were added.
     """
     today = today or timezone.localdate()
     candidates = (
@@ -163,7 +177,8 @@ def apply_late_fees(organization, today=None):
             period_start__isnull=False,
         )
         .exclude(lines__kind=InvoiceLine.Kind.LATE_FEE)
-        .select_related("lease")
+        .exclude(pk__in=late_fee_follow_ups().values("charged_for"))
+        .select_related("lease", "tenant", "unit")
     )
     added = 0
     for invoice in candidates:
@@ -173,18 +188,40 @@ def apply_late_fees(organization, today=None):
         fee = (lease.monthly_rent * lease.late_fee_percent / 100).quantize(CENT, ROUND_HALF_UP)
         with transaction.atomic():
             locked = Invoice.objects.select_for_update().get(pk=invoice.pk)
-            if locked.lines.filter(kind=InvoiceLine.Kind.LATE_FEE).exists():
+            if (
+                locked.lines.filter(kind=InvoiceLine.Kind.LATE_FEE).exists()
+                or late_fee_follow_ups().filter(charged_for=locked).exists()
+            ):
                 continue
-            InvoiceLine.objects.create(
-                invoice=locked,
-                kind=InvoiceLine.Kind.LATE_FEE,
-                description=(
-                    f"Late fee · {lease.late_fee_percent.normalize()}%"
-                    f" after {lease.late_fee_grace_days} days"
-                ),
-                amount=fee,
+            description = (
+                f"Late fee · {lease.late_fee_percent.normalize()}%"
+                f" after {lease.late_fee_grace_days} days"
             )
-            refresh_totals(locked)
+            if locked.fiscal_receipts.exclude(status="cancelled").exists():
+                create_invoice(
+                    organization=organization,
+                    tenant=locked.tenant,
+                    lease=lease,
+                    unit=locked.unit,
+                    issue_date=today,
+                    due_date=today,
+                    charged_for=locked,
+                    lines=[
+                        {
+                            "kind": InvoiceLine.Kind.LATE_FEE,
+                            "description": f"{description} on {locked.reference}",
+                            "amount": fee,
+                        }
+                    ],
+                )
+            else:
+                InvoiceLine.objects.create(
+                    invoice=locked,
+                    kind=InvoiceLine.Kind.LATE_FEE,
+                    description=description,
+                    amount=fee,
+                )
+                refresh_totals(locked)
         added += 1
     return added
 

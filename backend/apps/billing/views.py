@@ -1,14 +1,17 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.common.viewsets import OrganizationScopedModelViewSet
+from apps.integrations import smart_invoice
 
 from .models import Invoice, Payment
 from .serializers import (
@@ -56,9 +59,9 @@ class InvoiceFilter(filters.FilterSet):
 
 
 class InvoiceViewSet(OrganizationScopedModelViewSet):
-    queryset = Invoice.objects.select_related("tenant", "lease", "unit__property").prefetch_related(
-        "lines"
-    )
+    queryset = Invoice.objects.select_related(
+        "tenant", "lease", "unit__property", "charged_for"
+    ).prefetch_related("lines", "fiscal_receipts")
     filterset_class = InvoiceFilter
     search_fields = ["reference", "tenant__full_name", "tenant__phone_number", "unit__name"]
     ordering_fields = ["due_date", "issue_date", "total", "reference"]
@@ -73,7 +76,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         if self.action == "retrieve":
-            queryset = queryset.prefetch_related("payments__recorded_by")
+            queryset = queryset.select_related("organization__smart_invoice").prefetch_related(
+                "payments__recorded_by"
+            )
         return queryset
 
     def detail_response(self, invoice, status=200):
@@ -104,6 +109,25 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
     @action(detail=True, methods=["post"])
     def void(self, request, public_id=None):
         invoice = void_invoice(self.get_object())
+        self.action = "retrieve"
+        return self.detail_response(invoice)
+
+    @action(detail=True, methods=["post"], url_path="send-to-zra")
+    def send_to_zra(self, request, public_id=None):
+        """Send (or resend) this invoice to ZRA Smart Invoice."""
+        invoice = self.get_object()
+        if not smart_invoice.ready_settings(invoice.organization):
+            raise ValidationError({"fiscal_status": ["Turn on ZRA Smart Invoice first."]})
+        receipts = invoice.fiscal_receipts.all()
+        if not receipts.exists():
+            if invoice.status == Invoice.Status.VOID:
+                raise ValidationError({"fiscal_status": ["This invoice is void."]})
+            with transaction.atomic():
+                if smart_invoice.queue_sale_receipt(invoice) is None:
+                    raise ValidationError(
+                        {"fiscal_status": ["Deposits are not reported to ZRA."]}
+                    )
+        smart_invoice.resend_receipts(receipts)
         self.action = "retrieve"
         return self.detail_response(invoice)
 

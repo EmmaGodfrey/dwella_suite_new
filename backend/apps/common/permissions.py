@@ -121,3 +121,15 @@ class CanManagePortfolio(BasePermission):
             and membership.organization_id == organization.id
             and membership.role in PORTFOLIO_MANAGER_ROLES
         )
+
+
+class CanManageOrganization(BasePermission):
+    message = "Only the workspace owner or an admin can change this."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and get_active_membership(request.user)
+            and get_user_access(request.user)["can_manage_organization"]
+        )

@@ -37,6 +37,11 @@ class Invoice(OrganizationScopedModel):
         max_length=20, choices=Status.choices, default=Status.OPEN, db_index=True
     )
     voided_at = models.DateTimeField(blank=True, null=True)
+    # A late fee raised after an invoice was sent to ZRA cannot be added to
+    # it, so it is billed on its own invoice that points back here.
+    charged_for = models.ForeignKey(
+        "self", on_delete=models.PROTECT, related_name="follow_up_invoices", blank=True, null=True
+    )
     notes = models.TextField(blank=True)
 
     class Meta:
