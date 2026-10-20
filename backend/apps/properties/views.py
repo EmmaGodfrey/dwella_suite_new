@@ -67,6 +67,7 @@ class PropertyDashboardSummaryView(APIView):
                     },
                     "portfolio": {
                         "towns_count": 0,
+                        "towns": [],
                         "average_units_per_property": 0,
                     },
                     "recent_properties": [],
@@ -145,16 +146,26 @@ class PropertyDashboardSummaryView(APIView):
                 "town": property_obj.town,
                 "address": property_obj.address,
                 "units_count": property_obj.units_count,
+                "occupied_units": property_obj.occupied_units,
                 "organization_name": property_obj.organization.display_name
                 or property_obj.organization.name,
                 "cover_image": request.build_absolute_uri(property_obj.cover_image.url)
                 if property_obj.cover_image
                 else None,
             }
-            for property_obj in properties.annotate(units_count=Count("units"))
+            for property_obj in properties.annotate(
+                units_count=Count("units"),
+                occupied_units=Count(
+                    "units", filter=Q(units__occupancy_status=Unit.OccupancyStatus.OCCUPIED)
+                ),
+            )
             .select_related("organization")
             .order_by("-created_at")[:5]
         ]
+
+        towns = sorted(
+            properties.exclude(town="").order_by().values_list("town", flat=True).distinct()
+        )
 
         top_units = [
             {
@@ -221,7 +232,8 @@ class PropertyDashboardSummaryView(APIView):
                     "average_unit_rent": decimal_to_float(rent_totals["average_unit_rent"]),
                 },
                 "portfolio": {
-                    "towns_count": properties.exclude(town="").values("town").distinct().count(),
+                    "towns_count": len(towns),
+                    "towns": towns,
                     "average_units_per_property": round(unit_total / property_total, 1)
                     if property_total
                     else 0,

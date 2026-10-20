@@ -305,6 +305,16 @@ def test_summary_and_filters(manager, org):
     assert Decimal(summary["billed_this_month"]) == Decimal("3900")
     assert Decimal(summary["collected_this_month"]) == Decimal("900")
     assert Decimal(summary["outstanding"]) == Decimal("3000")
+    breakdown = summary["month_breakdown"]
+    assert Decimal(breakdown["paid"]) == Decimal("900")
+    # The parts add back up to what was billed this month.
+    assert sum(Decimal(value) for value in breakdown.values()) == Decimal("3900")
+    history = summary["history"]
+    assert len(history) == 6
+    assert history[-1]["month"] == summary["month"]
+    assert Decimal(history[-1]["billed"]) == Decimal("3900")
+    assert Decimal(history[-1]["collected"]) == Decimal("900")
+    assert all(Decimal(row["billed"]) == 0 for row in history[:-1])
     assert manager.get("/api/v1/billing/invoices/?unpaid=true").json()["pagination"]["count"] == 1
     assert (
         manager.get(f"/api/v1/billing/payments/?invoice={invoice.public_id}").json()["pagination"][

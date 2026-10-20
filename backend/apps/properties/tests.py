@@ -335,6 +335,10 @@ def test_dashboard_summary_returns_organization_metrics():
     assert data["finance"]["vacancy_loss"] == 6500.0
     assert data["portfolio"]["average_units_per_property"] == 1.5
     assert len(data["recent_properties"]) == 2
+    occupied = {item["name"]: item["occupied_units"] for item in data["recent_properties"]}
+    assert occupied == {"Kabulonga Heights": 1, "Makeni Retail Park": 1}
+    assert data["portfolio"]["towns"] == ["Lusaka"]
+    assert data["portfolio"]["towns_count"] == 1
     assert data["top_units"][0]["name"] == "Shop 01"
 
 

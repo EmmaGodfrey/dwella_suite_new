@@ -283,3 +283,20 @@ def test_available_units_exclude_units_held_by_open_leases(manager, tenant, unit
     available = manager.get("/api/v1/properties/units/?available=true").json()["response_data"]
     assert [row["name"] for row in available] == [free.name]
     assert available[0]["property_name"] == "Mutendere Court"
+
+
+@pytest.mark.django_db
+def test_filter_leases_ending_before_a_date(manager, tenant, unit, org):
+    manager.post("/api/v1/leases/", lease_payload(tenant, unit), format="json")
+    other_unit = Unit.objects.create(
+        organization=org, property=unit.property, name="2B", rent_amount="4100.00"
+    )
+    manager.post(
+        "/api/v1/leases/",
+        lease_payload(tenant, other_unit, end_date="2028-10-31"),
+        format="json",
+    )
+    response = manager.get("/api/v1/leases/?ends_before=2027-12-31")
+    assert response.json()["pagination"]["count"] == 1
+    assert response.json()["response_data"][0]["end_date"] == "2027-10-31"
+    assert manager.get("/api/v1/leases/?ends_before=not-a-date").status_code == 400

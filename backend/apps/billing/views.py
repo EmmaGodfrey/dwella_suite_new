@@ -1,7 +1,8 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db.models import Count, F, Q, Sum
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 from django_filters import rest_framework as filters
 from rest_framework.decorators import action
@@ -138,6 +139,24 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         collected = payments.filter(paid_on__range=(first, last)).aggregate(
             total=Coalesce(Sum("amount"), ZERO)
         )
+        # This month's invoices split three ways so the parts add up to what
+        # was billed: already paid, still within terms, and past due.
+        this_month = invoices.filter(issue_date__range=(first, last)).aggregate(
+            paid=Coalesce(Sum("amount_paid"), ZERO),
+            not_yet_due=Coalesce(Sum(outstanding, filter=Q(due_date__gte=today)), ZERO),
+            overdue=Coalesce(Sum(outstanding, filter=Q(due_date__lt=today)), ZERO),
+        )
+        # Six months of billed vs collected, keyed by the month invoiced.
+        months = [first]
+        for _ in range(5):
+            months.insert(0, first_of_month(months[0] - timedelta(days=1)))
+        by_month = {
+            row["month"]: row
+            for row in invoices.filter(issue_date__gte=months[0])
+            .annotate(month=TruncMonth("issue_date"))
+            .values("month")
+            .annotate(billed=Sum("total"), collected=Sum("amount_paid"))
+        }
         return Response(
             {
                 "month": first.isoformat(),
@@ -151,6 +170,15 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
                     overdue.aggregate(total=Coalesce(Sum(outstanding), ZERO))["total"]
                 ),
                 "overdue_count": overdue.count(),
+                "month_breakdown": {key: money(value) for key, value in this_month.items()},
+                "history": [
+                    {
+                        "month": month.isoformat(),
+                        "billed": money(by_month.get(month, {}).get("billed") or ZERO),
+                        "collected": money(by_month.get(month, {}).get("collected") or ZERO),
+                    }
+                    for month in months
+                ],
             }
         )
 

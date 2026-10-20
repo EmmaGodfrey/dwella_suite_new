@@ -14,6 +14,7 @@ class LeaseFilter(filters.FilterSet):
     tenant = filters.UUIDFilter(field_name="tenant__public_id")
     unit = filters.UUIDFilter(field_name="unit__public_id")
     property = filters.UUIDFilter(field_name="unit__property__public_id")
+    ends_before = filters.DateFilter(field_name="end_date", lookup_expr="lte")
 
     class Meta:
         model = Lease
