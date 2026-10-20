@@ -94,9 +94,17 @@ docker compose --env-file .env.prod -f deploy/docker-compose.prod.yml up -d --bu
 The expected public routing is:
 
 ```text
-dwella.properties          -> 127.0.0.1:8121
-www.dwella.properties      -> 127.0.0.1:8121
-api.dwella.properties      -> 127.0.0.1:8120
+dwella.properties          -> 127.0.0.1:8122   marketing site (separate dwella-site repo)
+www.dwella.properties      -> 127.0.0.1:8122
+app.dwella.properties      -> 127.0.0.1:8121   this app (frontend container)
+api.dwella.properties      -> 127.0.0.1:8120   Django API
 ```
+
+Pushing to `main` deploys to production. Day-to-day work happens on `develop`
+(or feature branches off it) and reaches `main` only through a reviewed merge.
+
+`.env.prod` needs at least `APP_ALLOWED_HOSTS=api.dwella.properties`, CORS for
+`https://app.dwella.properties` and `https://dwella.properties`, secure cookies,
+and `APP_TRUSTED_PROXY_COUNT=1` so rate limits use the real client address.
 
 Keep `.env.prod` on the server only. The production compose file persists PostgreSQL, Redis, uploaded media, and collected static files across deployments.
