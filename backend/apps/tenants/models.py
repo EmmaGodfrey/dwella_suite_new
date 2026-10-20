@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 
 from apps.common.models import OrganizationScopedModel
@@ -16,6 +17,12 @@ class Tenant(OrganizationScopedModel):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
     national_id = models.CharField(max_length=40, blank=True)
+    # Printed on Smart Invoices; businesses renting commercial space need it.
+    tpin = models.CharField(
+        max_length=10,
+        blank=True,
+        validators=[RegexValidator(r"^\d{10}$", "A TPIN is 10 digits.")],
+    )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.APPLICANT, db_index=True
     )

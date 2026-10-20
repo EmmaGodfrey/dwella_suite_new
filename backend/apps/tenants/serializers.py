@@ -27,6 +27,7 @@ class TenantSerializer(OrganizationScopedSerializer):
             "phone_number",
             "email",
             "national_id",
+            "tpin",
             "status",
             "notes",
             "current_lease",
