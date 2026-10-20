@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.subscriptions",
     "apps.integrations",
+    "apps.marketing",
 ]
 
 MIDDLEWARE = [
@@ -101,7 +102,7 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = __import__("os").getenv("MEDIA_URL", "/media/")
 MEDIA_ROOT = BASE_DIR / "media"
@@ -125,6 +126,8 @@ CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_SSL_REDIRECT = env_bool("APP_SECURE_SSL_REDIRECT", False)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
 SESSION_COOKIE_SECURE = env_bool("APP_COOKIE_SECURE", False)
 CSRF_COOKIE_SECURE = env_bool("APP_COOKIE_SECURE", False)
 CONTENT_SECURITY_POLICY = __import__("os").getenv(
@@ -166,6 +169,9 @@ REST_FRAMEWORK = {
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
         "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
+        "beta_application": __import__(
+            "os"
+        ).getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
     },
 }
 

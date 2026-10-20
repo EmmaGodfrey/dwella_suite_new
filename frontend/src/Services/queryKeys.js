@@ -19,4 +19,5 @@ export const queryKeys = {
   maintenanceRequest: (id) => ["maintenance", "requests", "detail", id],
   maintenanceSummary: ["maintenance", "summary"],
   vendors: (filters = {}) => ["maintenance", "vendors", filters],
+  betaApplications: (filters = {}) => ["marketing", "betaApplications", filters],
 };

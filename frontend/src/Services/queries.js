@@ -193,3 +193,12 @@ export function useVendorsQuery(filters = {}, options = {}) {
     ...options,
   });
 }
+
+export function useBetaApplicationsQuery(filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.betaApplications(filters),
+    queryFn: () => apiRequest(`/marketing/admin/beta-applications/${toSearchParams(filters)}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+}

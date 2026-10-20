@@ -3,6 +3,7 @@ import {
   Building24Regular,
   DataTrending24Regular,
   DocumentText24Regular,
+  FormMultiple24Regular,
   Home24Regular,
   Payment24Regular,
   People24Regular,
@@ -17,6 +18,7 @@ export const navigationGroups = [
   { value: "overview", label: "Overview" },
   { value: "portfolio", label: "Portfolio" },
   { value: "operations", label: "Operations" },
+  { value: "platform", label: "Platform" },
 ];
 
 const operationalItems = [
@@ -27,6 +29,7 @@ const operationalItems = [
   { to: "/leases", value: "leases", group: "portfolio", label: "Leases", tenantLabel: "My lease", icon: <DocumentText24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
   { to: "/billing", value: "billing", group: "operations", label: "Billing", tenantLabel: "Payments", icon: <Payment24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
   { to: "/maintenance", value: "maintenance", group: "operations", label: "Maintenance", icon: <Wrench24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
+  { to: "/beta-signups", value: "beta-signups", group: "platform", label: "Beta signups", icon: <FormMultiple24Regular />, personas: ["platform_admin"] },
 ];
 
 export function getNavigationItems(user) {
@@ -47,6 +50,7 @@ export const pageMeta = {
   "/billing": ["Billing", "Rent invoices, collections, balances, and payment tracking."],
   "/maintenance": ["Maintenance", "Work orders, vendors, approvals, and service tracking."],
   "/reports": ["Reports", "Portfolio, arrears, occupancy, and owner reporting."],
+  "/beta-signups": ["Beta signups", "Review applicants and coordinate beta onboarding."],
   "/profile": ["Profile", "Account details, identity verification, and profile photo."],
   "/security": ["Security", "Two-factor authentication and account protection."],
 };

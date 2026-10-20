@@ -226,6 +226,18 @@ export const useVoidInvoiceMutation = billingMutation("voidInvoice", ({ id }) =>
   api.post(`/billing/invoices/${id}/void/`),
 );
 
+export function useUpdateBetaApplicationMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["updateBetaApplication"],
+    mutationFn: ({ id, payload }) => api.patch(`/marketing/admin/beta-applications/${id}/`, payload),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["marketing", "betaApplications"] });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
 // A job closing can bill the tenant, so maintenance writes refresh billing too.
 const maintenanceMutation = (mutationKey, mutationFn) => (options = {}) =>
   useMutation({

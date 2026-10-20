@@ -1,0 +1,114 @@
+.dwella-beta-page {
+  display: grid;
+  gap: 18px;
+}
+
+.dwella-beta-page .dwella-page-toolbar {
+  margin-bottom: 0;
+}
+
+.dwella-beta-role-filter {
+  min-width: 10.5rem;
+}
+
+.dwella-beta-count {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+
+.dwella-beta-count strong {
+  color: var(--dwella-ink);
+}
+
+.dwella-beta-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  gap: 18px;
+  align-items: start;
+}
+
+.dwella-beta-detail {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--dwella-shadow-card);
+}
+
+.dwella-beta-detail > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dwella-beta-detail h2,
+.dwella-beta-detail h3,
+.dwella-beta-detail p {
+  margin: 0;
+}
+
+.dwella-beta-detail h2 {
+  margin-top: 2px;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-h3);
+}
+
+.dwella-beta-detail header p {
+  margin-top: 3px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+}
+
+.dwella-beta-eyebrow {
+  color: var(--dwella-subtle);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dwella-beta-follow-up {
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-beta-follow-up h3 {
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+}
+
+.dwella-beta-follow-up > button {
+  justify-self: start;
+}
+
+@media (max-width: 980px) {
+  .dwella-beta-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .dwella-beta-detail {
+    order: -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .dwella-beta-page .dwella-toolbar-search,
+  .dwella-beta-role-filter {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dwella-beta-workspace .dwella-table-card {
+    overflow-x: auto;
+  }
+
+  .dwella-beta-workspace .dwella-table {
+    min-width: 42rem;
+  }
+}

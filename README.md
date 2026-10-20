@@ -82,3 +82,21 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 - `docs/EG_LABS_POS_INVENTORY_REQUIREMENTS.md`
 - `docs/FRONTEND_TEMPLATE_REFERENCE.md`
 - `docs/FRONTEND_DATA_FLOW.md`
+
+## Production Deployment
+
+Production uses Docker Compose behind host Nginx:
+
+```bash
+docker compose --env-file .env.prod -f deploy/docker-compose.prod.yml up -d --build
+```
+
+The expected public routing is:
+
+```text
+dwella.properties          -> 127.0.0.1:8121
+www.dwella.properties      -> 127.0.0.1:8121
+api.dwella.properties      -> 127.0.0.1:8120
+```
+
+Keep `.env.prod` on the server only. The production compose file persists PostgreSQL, Redis, uploaded media, and collected static files across deployments.

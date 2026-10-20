@@ -11,6 +11,7 @@ import ModulePlaceholder from "../Components/ModulePlaceholder";
 import Properties from "../Components/Properties";
 import Profile from "../Components/Profile";
 import Security from "../Components/Security";
+import BetaSignups from "../Components/BetaSignups";
 
 export const routes = [
   {
@@ -72,6 +73,12 @@ export const routes = [
     title: "Reports",
     description: "Portfolio, arrears, occupancy, and owner reporting.",
     Component: <ModulePlaceholder description="Portfolio, arrears, occupancy, and owner reports." />,
+  },
+  {
+    path: `/beta-signups`,
+    title: "Beta signups",
+    description: "Review applicants and coordinate beta onboarding.",
+    Component: <BetaSignups />,
   },
   {
     path: `/profile`,
