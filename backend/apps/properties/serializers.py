@@ -26,6 +26,10 @@ class PropertyOwnerSerializer(OrganizationScopedSerializer):
 class PropertySerializer(OrganizationScopedSerializer):
     units_count = serializers.IntegerField(read_only=True)
     occupied_units = serializers.IntegerField(read_only=True)
+    vacant_units = serializers.IntegerField(read_only=True)
+    maintenance_units = serializers.IntegerField(read_only=True)
+    reserved_units = serializers.IntegerField(read_only=True)
+    owner_name = serializers.CharField(source="owner.full_name", read_only=True, default=None)
     monthly_rent = serializers.DecimalField(max_digits=16, decimal_places=2, read_only=True)
     occupied_rent = serializers.DecimalField(max_digits=16, decimal_places=2, read_only=True)
 
@@ -46,6 +50,7 @@ class PropertySerializer(OrganizationScopedSerializer):
             "id",
             "organization_id",
             "owner",
+            "owner_name",
             "name",
             "property_type",
             "management_status",
@@ -56,6 +61,9 @@ class PropertySerializer(OrganizationScopedSerializer):
             "cover_image",
             "units_count",
             "occupied_units",
+            "vacant_units",
+            "maintenance_units",
+            "reserved_units",
             "monthly_rent",
             "occupied_rent",
             "is_active",

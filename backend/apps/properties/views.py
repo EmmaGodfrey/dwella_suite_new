@@ -256,6 +256,9 @@ class PropertyViewSet(OrganizationScopedModelViewSet):
     queryset = Property.objects.select_related("owner").annotate(
         units_count=Count("units"),
         occupied_units=Count("units", filter=Q(units__occupancy_status="occupied")),
+        vacant_units=Count("units", filter=Q(units__occupancy_status="vacant")),
+        maintenance_units=Count("units", filter=Q(units__occupancy_status="maintenance")),
+        reserved_units=Count("units", filter=Q(units__occupancy_status="reserved")),
         monthly_rent=Coalesce(Sum("units__rent_amount"), Decimal("0")),
         occupied_rent=Coalesce(
             Sum("units__rent_amount", filter=Q(units__occupancy_status="occupied")),

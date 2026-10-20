@@ -52,15 +52,23 @@ def test_property_cover_create_edit_list_and_dashboard(property_client):
         organization=organization, property=property_obj, name="A1",
         rent_amount="6000", occupancy_status="occupied",
     )
+    Unit.objects.create(
+        organization=organization, property=property_obj, name="A2",
+        rent_amount="5000", occupancy_status="maintenance",
+    )
     listed = client.get("/api/v1/properties/").json()["response_data"][0]
     assert listed["cover_image"] == data["cover_image"]
-    assert listed["units_count"] == 1
+    assert listed["units_count"] == 2
     assert listed["occupied_units"] == 1
-    assert listed["monthly_rent"] == "6000.00"
+    assert listed["maintenance_units"] == 1
+    assert listed["vacant_units"] == 0
+    assert listed["reserved_units"] == 0
+    assert listed["owner_name"] is None
+    assert listed["monthly_rent"] == "11000.00"
     assert listed["occupied_rent"] == "6000.00"
     unit_list = client.get(f"/api/v1/properties/units/?property={data['id']}")
     assert unit_list.status_code == 200
-    assert [unit["name"] for unit in unit_list.json()["response_data"]] == ["A1"]
+    assert [unit["name"] for unit in unit_list.json()["response_data"]] == ["A1", "A2"]
     invalid_filter = client.get("/api/v1/properties/units/?property=not-a-uuid")
     assert invalid_filter.status_code == 400
     dashboard = client.get("/api/v1/properties/dashboard/").json()["response_data"]
