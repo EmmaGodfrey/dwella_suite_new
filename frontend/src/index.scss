@@ -1605,3 +1605,58 @@ body.dark-only .dwella-auth-compact-brand img {
   }
 }
 
+// ---- Status pill ------------------------------------------------------------
+// Tinted fill, a dot in the text colour, no outline (Figma `Badge`). Tones are
+// picked by meaning; dark mode re-points the same tokens.
+
+.dwella-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 8px;
+  color: var(--dwella-muted);
+  background: var(--dwella-wash);
+  border-radius: 999px;
+  font-size: var(--fs-micro);
+  line-height: var(--lh-micro);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.dwella-status-badge::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.dwella-status-badge[data-tone="success"] {
+  color: var(--dwella-success);
+  background: var(--dwella-success-soft);
+}
+
+.dwella-status-badge[data-tone="warning"] {
+  color: var(--dwella-warning);
+  background: var(--dwella-warning-soft);
+}
+
+.dwella-status-badge[data-tone="danger"] {
+  color: var(--dwella-danger);
+  background: var(--dwella-danger-soft);
+}
+
+.dwella-status-badge[data-tone="informative"],
+.dwella-status-badge[data-tone="brand"] {
+  color: var(--dwella-info);
+  background: var(--dwella-info-soft);
+}
+
+.dwella-status-badge[data-tone="important"] {
+  color: var(--dwella-violet);
+  background: var(--dwella-violet-soft);
+}

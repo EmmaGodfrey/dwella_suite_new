@@ -1,5 +1,4 @@
 import React from "react";
-import { Badge } from "@fluentui/react-components";
 
 export const labelize = (value) =>
   String(value || "Not set")
@@ -18,14 +17,12 @@ export const defaultStatusColor = (value) => {
   return "subtle";
 };
 
-// The class is what lets dense rows hide the badge at narrow widths; without it
-// the rule in dashboard.scss has nothing to match.
+// The Figma status pill: a tinted fill, a dot, no outline. Drawn here rather
+// than with Fluent's Badge so it takes the `--dwella-*` tones in both themes.
+// `color` keeps Fluent's names (success, warning, danger, informative,
+// important, subtle) so callers did not have to change.
 export const StatusBadge = ({ value, color, children, className = "" }) => (
-  <Badge
-    className={`dwella-status-badge ${className}`.trim()}
-    appearance="tint"
-    color={color || defaultStatusColor(value)}
-  >
+  <span className={`dwella-status-badge ${className}`.trim()} data-tone={color || defaultStatusColor(value)}>
     {children || labelize(value)}
-  </Badge>
+  </span>
 );
