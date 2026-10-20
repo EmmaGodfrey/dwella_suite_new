@@ -1165,14 +1165,6 @@ body.dark-only .App .fui-Button.dwella-btn-accent:hover {
   font-weight: 600;
 }
 
-// Auto block margins centre the pitch; `space-between` pinned it to the bottom
-// edge and left a large void under the brand on tall viewports.
-.dwella-auth-pitch {
-  position: relative;
-  z-index: 1;
-  margin-block: auto;
-}
-
 .dwella-auth-rule {
   width: 40px;
   height: 3px;

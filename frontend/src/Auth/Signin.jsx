@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 
 import { useLoginMutation, usePasswordResetConfirmMutation, usePasswordResetRequestMutation, useTwoFactorLoginMutation } from "../Services/mutations";
 import { useFormErrors } from "../shared/useFormErrors";
+import AuthTour from "./AuthTour";
 
 const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
 const validateEmail = (value) => {
@@ -138,11 +139,7 @@ const Signin = () => {
           <strong>Dwella Suite</strong>
         </div>
 
-        <div className="dwella-auth-pitch">
-          <span className="dwella-auth-rule" aria-hidden="true" />
-          <h2>The operations desk for your property portfolio.</h2>
-          <p>Properties, units, occupancy, and rent roll in one place, with an audit trail behind every change.</p>
-        </div>
+        <AuthTour />
 
         <p className="dwella-auth-foot">Admin access only. Sessions are logged.</p>
 

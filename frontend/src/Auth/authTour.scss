@@ -1,0 +1,164 @@
+// Product tour on the sign-in brand panel. Sits where the single pitch used to
+// be, so it inherits the hero's centring, heading and paragraph styles.
+
+.dwella-auth-tour {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 28px;
+  margin-block: auto;
+}
+
+.dwella-auth-slide {
+  animation: dwella-auth-slide-in 220ms ease-out;
+}
+
+@keyframes dwella-auth-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dwella-auth-slide {
+    animation: none;
+  }
+}
+
+.dwella-auth-hero .dwella-auth-eyebrow {
+  margin: 0 0 10px;
+  color: var(--dwella-on-dark-subtle);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dwella-auth-preview {
+  max-width: 26rem;
+  margin-top: 28px;
+  padding: 16px 18px;
+  background: var(--dwella-deep-raised);
+  border: 1px solid var(--dwella-on-dark-line);
+  border-radius: var(--radius-lg);
+}
+
+.dwella-auth-preview strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--dwella-on-dark);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 600;
+}
+
+.dwella-auth-preview ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-auth-preview li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  color: var(--dwella-on-dark-muted);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  border-top: 1px solid var(--dwella-on-dark-line);
+}
+
+.dwella-auth-preview li > span:last-child {
+  color: var(--dwella-on-dark);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Light tints that hold contrast on the navy panel.
+.dwella-auth-preview li > span.is-good {
+  color: #8fdcab;
+}
+
+.dwella-auth-preview li > span.is-warn {
+  color: #f2c97a;
+}
+
+.dwella-auth-preview li > span.is-bad {
+  color: #f4a39e;
+}
+
+.dwella-auth-tour-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dwella-auth-tour-arrow {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: var(--dwella-on-dark);
+  background: transparent;
+  border: 1px solid var(--dwella-on-dark-line);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.dwella-auth-tour-arrow:hover {
+  background: var(--dwella-deep-raised);
+}
+
+.dwella-auth-tour-dots {
+  display: flex;
+  gap: 4px;
+}
+
+// 24px hit area around an 8px dot.
+.dwella-auth-tour-dots button {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.dwella-auth-tour-dots button::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--dwella-on-dark-line);
+  transition: background-color 140ms ease, inset 140ms ease;
+}
+
+.dwella-auth-tour-dots button.is-active::after {
+  inset: 8px 4px;
+  border-radius: 999px;
+  background: var(--dwella-secondary);
+}
+
+.dwella-auth-tour-arrow:focus-visible,
+.dwella-auth-tour-dots button:focus-visible {
+  outline: 2px solid var(--dwella-on-dark);
+  outline-offset: 2px;
+}
+
+.dwella-auth-tour-count {
+  margin-left: auto;
+  color: var(--dwella-on-dark-subtle);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+}
