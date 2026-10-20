@@ -25,8 +25,8 @@ const validatePassword = (value) => {
 // them in one table makes it obvious that every mode states its own task -- the
 // heading is the thing the person is here to do, not a greeting.
 const modeCopy = {
-  login: ["Sign in", "Use your Dwella admin email and password."],
-  forgot: ["Reset password", "We will email a reset link to your admin address."],
+  login: ["Sign in", "Use your Dwella email and password."],
+  forgot: ["Reset password", "We will email you a link to reset your password."],
   "reset-confirm": ["Set a new password", "At least 10 characters, and not all digits."],
   "2fa": ["Enter your code", "Open your authenticator app and enter the current 6-digit code."],
 };
@@ -141,7 +141,6 @@ const Signin = () => {
 
         <AuthTour />
 
-        <p className="dwella-auth-foot">Admin access only. Sessions are logged.</p>
 
         {/* Decorative: the house mark at low opacity, bleeding off the corner. */}
         <img className="dwella-auth-watermark" src="/assets/images/logo/dwella-mark-white.png" alt="" aria-hidden="true" />

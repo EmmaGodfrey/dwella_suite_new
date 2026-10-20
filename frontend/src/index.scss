@@ -1193,15 +1193,6 @@ body.dark-only .App .fui-Button.dwella-btn-accent:hover {
   line-height: 1.6;
 }
 
-.dwella-auth-foot {
-  position: relative;
-  z-index: 1;
-  margin: 0;
-  color: var(--dwella-on-dark-subtle);
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-}
-
 // The house mark at 6% opacity, bleeding off the bottom-right corner. It is the
 // only decoration on the page, so it stays large and quiet.
 .dwella-auth-watermark {
