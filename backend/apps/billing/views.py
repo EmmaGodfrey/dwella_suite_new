@@ -139,21 +139,26 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         collected = payments.filter(paid_on__range=(first, last)).aggregate(
             total=Coalesce(Sum("amount"), ZERO)
         )
+        # Rent counts toward the month it is for, so a late invoice run still
+        # lands in the right month; one-off charges fall back to issue date.
+        by_period = invoices.annotate(
+            month=TruncMonth(Coalesce("period_start", "issue_date"))
+        )
         # This month's invoices split three ways so the parts add up to what
         # was billed: already paid, still within terms, and past due.
-        this_month = invoices.filter(issue_date__range=(first, last)).aggregate(
+        this_month = by_period.filter(month=first).aggregate(
+            billed=Coalesce(Sum("total"), ZERO),
             paid=Coalesce(Sum("amount_paid"), ZERO),
             not_yet_due=Coalesce(Sum(outstanding, filter=Q(due_date__gte=today)), ZERO),
             overdue=Coalesce(Sum(outstanding, filter=Q(due_date__lt=today)), ZERO),
         )
-        # Six months of billed vs collected, keyed by the month invoiced.
+        # Six months of billed vs collected, keyed by the month billed for.
         months = [first]
         for _ in range(5):
             months.insert(0, first_of_month(months[0] - timedelta(days=1)))
         by_month = {
             row["month"]: row
-            for row in invoices.filter(issue_date__gte=months[0])
-            .annotate(month=TruncMonth("issue_date"))
+            for row in by_period.filter(month__gte=months[0])
             .values("month")
             .annotate(billed=Sum("total"), collected=Sum("amount_paid"))
         }

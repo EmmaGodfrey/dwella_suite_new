@@ -308,7 +308,9 @@ def test_summary_and_filters(manager, org):
     breakdown = summary["month_breakdown"]
     assert Decimal(breakdown["paid"]) == Decimal("900")
     # The parts add back up to what was billed this month.
-    assert sum(Decimal(value) for value in breakdown.values()) == Decimal("3900")
+    assert Decimal(breakdown["billed"]) == Decimal("3900")
+    parts = ("paid", "not_yet_due", "overdue")
+    assert sum(Decimal(breakdown[key]) for key in parts) == Decimal("3900")
     history = summary["history"]
     assert len(history) == 6
     assert history[-1]["month"] == summary["month"]
@@ -389,3 +391,16 @@ def test_month_billed_late_is_not_due_before_it_is_issued(org):
     assert invoice.issue_date == late_start
     assert invoice.due_date == late_start
     assert apply_late_fees(org, today=late_start + timedelta(days=1)) == 0
+
+
+@pytest.mark.django_db
+def test_summary_history_counts_rent_toward_its_period(manager, org):
+    make_lease(org)
+    last_month = (THIS_MONTH - timedelta(days=1)).replace(day=1)
+    # Billed late, in this month, for last month's rent.
+    generate_rent_invoices(org, last_month)
+    summary = manager.get("/api/v1/billing/invoices/summary/").json()["response_data"]
+    history = {row["month"]: Decimal(row["billed"]) for row in summary["history"]}
+    assert history[last_month.isoformat()] == Decimal("3900")
+    assert history[THIS_MONTH.isoformat()] == Decimal("0")
+    assert Decimal(summary["month_breakdown"]["billed"]) == Decimal("0")
