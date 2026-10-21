@@ -1,5 +1,14 @@
 # Dwella Suite Agent Rules
 
+## Shared Memory
+
+Claude and Codex share one memory in `.agents/memory/` (gitignored: it holds personal notes and contacts, so never commit it or copy it into tracked files).
+
+- At the start of every session in this folder, read `.agents/memory/MEMORY.md`, then open the files relevant to the request. Treat them as what was true when written; verify files, branches and commits before relying on them.
+- After any meaningful chunk of work (feature, decision, outreach, plan), update the relevant memory file: what was done, where it lives, what is next. Use absolute dates.
+- One topic per file, with frontmatter `name`, `description`, `type` (`user`, `feedback`, `project` or `reference`). Add one line per new file to `MEMORY.md`. Update an existing file instead of creating a duplicate, and delete memories that turn out to be wrong.
+- Do not store what the repo already records (code structure, git history) or secrets such as passwords and API keys.
+
 ## Security Workflow
 
 - Treat security-sensitive changes as plan -> implement -> validate work.
