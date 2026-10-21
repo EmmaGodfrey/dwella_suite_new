@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { useLoginMutation, usePasswordResetConfirmMutation, usePasswordResetRequestMutation, useTwoFactorLoginMutation } from "../Services/mutations";
 import { useFormErrors } from "../shared/useFormErrors";
 import AuthTour from "./AuthTour";
+import { useRegistrationQuery } from "../Services/queries";
 
 const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
 const validateEmail = (value) => {
@@ -33,6 +34,7 @@ const modeCopy = {
 
 const Signin = () => {
   const navigate = useNavigate();
+  const registration = useRegistrationQuery();
   const [searchParams] = useSearchParams();
   // Local-dev convenience only. `import.meta.env.DEV` folds to false in a
   // production build, so these literals are stripped from the shipped bundle.
@@ -242,8 +244,7 @@ const Signin = () => {
             </button>
           ) : (
             <p className="dwella-auth-signup">
-              New to Dwella? The beta opens 18 November.{" "}
-              <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a>
+              {registration.data?.open ? <>New to Dwella? <button type="button" className="dwella-text-link" onClick={() => navigate("/register")}>Create your account</button></> : <>New to Dwella? The beta opens 18 November. <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a></>}
             </p>
           )}
         </form>

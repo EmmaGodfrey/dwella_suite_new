@@ -4,6 +4,7 @@ import { Navigation24Regular, WeatherMoon20Regular, WeatherSunny20Regular } from
 
 import { DwellaThemeContext } from "../../App";
 import { AppBreadcrumbs } from "./AppBreadcrumbs";
+import { NotificationBell } from "./NotificationBell";
 
 // Where you are and the theme switch. The page's own title lives in the page
 // header, so the bar reads the same on every screen.
@@ -18,6 +19,7 @@ export const AppTopbar = ({ onMobileOpen }) => {
       <AppBreadcrumbs />
 
       <div className="dwella-topbar-actions">
+        <NotificationBell />
         <Tooltip content={themeLabel} relationship="label">
           <Button
             className="dwella-icon-action"

@@ -3,7 +3,8 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { logout } from "../Services/auth";
 import { queryClient } from "../Services/queryClient";
-import { useCurrentUserQuery } from "../Services/queries";
+import { useCurrentUserQuery, useSetupQuery } from "../Services/queries";
+import { getUserAccess } from "../shared/access";
 import { AppSideNav, AppTopbar, PageActionsSlot, PageHeader } from "../shared/components";
 import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navigation";
 
@@ -23,6 +24,12 @@ const AppLayout = () => {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("dwella_sidebar_collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [actionsSlot, setActionsSlot] = useState(null);
+  const persona = getUserAccess(user).persona;
+  const setup = useSetupQuery({ enabled: Boolean(user) && ["landlord", "unassigned"].includes(persona) });
+
+  useEffect(() => {
+    if (setup.data?.needs_setup && location.pathname !== "/setup") navigate("/setup", { replace: true });
+  }, [setup.data?.needs_setup, location.pathname, navigate]);
 
   useEffect(() => {
     localStorage.setItem("dwella_sidebar_collapsed", String(collapsed));

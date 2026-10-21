@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Building24Regular,
+  CheckmarkCircle24Regular,
   DataTrending24Regular,
   DocumentText24Regular,
   FormMultiple24Regular,
@@ -22,6 +23,7 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
+  { to: "/setup", value: "setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "unassigned"] },
   { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
   { to: "/reports", value: "reports", group: "overview", label: "Reports", icon: <DataTrending24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/properties", value: "properties", group: "portfolio", label: "Properties", icon: <Building24Regular />, personas: ["platform_admin", "landlord"] },
@@ -43,13 +45,14 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/setup": ["Get started", "Set up your workspace, add a tenant and start tracking rent."],
   "/dashboard": ["Dashboard", "Portfolio health, occupancy, rent roll, and current work."],
   "/properties": ["Properties", "Search, filter, and grow the property portfolio."],
   "/tenants": ["Tenants", "Tenant CRM, occupancy records, and communication history."],
   "/leases": ["Leases", "Lease terms, renewals, deposits, and documents."],
   "/billing": ["Billing", "Rent invoices, collections, balances, and payment tracking."],
   "/maintenance": ["Maintenance", "Work orders, vendors, approvals, and service tracking."],
-  "/reports": ["Reports", "Portfolio, arrears, occupancy, and owner reporting."],
+  "/reports": ["Reports", "Rent roll, outstanding balances and overdue invoices."],
   "/beta-signups": ["Beta signups", "Review applicants and coordinate beta onboarding."],
   "/profile": ["Profile", "Account details, identity verification, and profile photo."],
   "/security": ["Security", "Two-factor authentication and account protection."],

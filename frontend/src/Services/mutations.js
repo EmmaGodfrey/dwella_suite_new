@@ -5,6 +5,7 @@ import {
   disableTwoFactor,
   login,
   requestPasswordReset,
+  registerAccount,
   startTwoFactorSetup,
   submitIdentityVerification,
   updateProfile,
@@ -12,7 +13,7 @@ import {
   verifyTwoFactorLogin,
   verifyTwoFactorSetup,
 } from "./auth";
-import { api } from "./apiClient";
+import { api, apiRequest } from "./apiClient";
 import { queryClient } from "./queryClient";
 import { queryKeys } from "./queryKeys";
 
@@ -26,6 +27,59 @@ export function useLoginMutation(options = {}) {
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
+  });
+}
+
+export function useRegisterMutation(options = {}) {
+  return useMutation({
+    mutationFn: registerAccount,
+    onSuccess: (data, variables, context) => {
+      queryClient.clear();
+      queryClient.setQueryData(queryKeys.currentUser, data.user);
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useSaveSetupMutation(options = {}) {
+  return useMutation({
+    mutationFn: (payload) => api.post("/organizations/onboarding/", payload),
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries();
+      const user = queryClient.getQueryData(queryKeys.currentUser);
+      if (user) localStorage.setItem("dwella_user", JSON.stringify(user));
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useReadNotificationsMutation(options = {}) {
+  return useMutation({
+    mutationFn: (ids) => api.post("/notifications/", { ids }),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useExportReportMutation() {
+  return useMutation({
+    mutationFn: async ({ report, property }) => {
+      const params = new URLSearchParams({ export: "csv", ...(property ? { property } : {}) });
+      const csv = await apiRequest(`/reports/${report}/?${params}`);
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `dwella-${report}.csv`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
   });
 }
 
@@ -126,6 +180,10 @@ export function useSavePropertyMutation(options = {}) {
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.onboarding });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
@@ -141,6 +199,10 @@ export function useSaveUnitMutation(options = {}) {
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries({ queryKey: ["properties"] });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
+      queryClient.invalidateQueries({ queryKey: queryKeys.onboarding });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["billing"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
@@ -150,6 +212,9 @@ export function useSaveUnitMutation(options = {}) {
 // A lease touches the unit's occupancy and the tenant's status, so every lease
 // or tenant write refreshes all three lists plus the dashboard figures.
 const invalidateTenancy = () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.onboarding });
+  queryClient.invalidateQueries({ queryKey: ["reports"] });
+  queryClient.invalidateQueries({ queryKey: ["notifications"] });
   queryClient.invalidateQueries({ queryKey: ["tenants"] });
   queryClient.invalidateQueries({ queryKey: ["leases"] });
   queryClient.invalidateQueries({ queryKey: ["properties"] });
@@ -194,6 +259,9 @@ export function useLeaseActionMutation(options = {}) {
 
 // Money moving changes invoices, the billing summary and tenant balances.
 const invalidateBilling = () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.onboarding });
+  queryClient.invalidateQueries({ queryKey: ["reports"] });
+  queryClient.invalidateQueries({ queryKey: ["notifications"] });
   queryClient.invalidateQueries({ queryKey: ["billing"] });
   queryClient.invalidateQueries({ queryKey: ["tenants"] });
   queryClient.invalidateQueries({ queryKey: queryKeys.dashboardSummary });
@@ -220,6 +288,10 @@ export const useSaveInvoiceMutation = billingMutation("saveInvoice", ({ id, payl
 
 export const useRecordPaymentMutation = billingMutation("recordPayment", ({ id, payload }) =>
   api.post(`/billing/invoices/${id}/record-payment/`, payload),
+);
+
+export const useReversePaymentMutation = billingMutation("reversePayment", ({ id, reason }) =>
+  api.post(`/billing/payments/${id}/reverse/`, { reason }),
 );
 
 export const useVoidInvoiceMutation = billingMutation("voidInvoice", ({ id }) =>

@@ -2,8 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "node:url";
 
-const rootEnvPath = path.resolve(__dirname, "../.env");
+const configDirectory = path.dirname(fileURLToPath(import.meta.url));
+
+const rootEnvPath = path.resolve(configDirectory, "../.env");
 
 if (fs.existsSync(rootEnvPath)) {
   fs.readFileSync(rootEnvPath, "utf8")
@@ -31,7 +34,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(configDirectory, "./src"),
     },
   },
 });

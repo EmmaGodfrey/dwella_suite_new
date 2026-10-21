@@ -26,7 +26,7 @@ const workspaceFor = (user) => {
   const membership =
     user?.memberships?.find((item) => item.is_active && item.organization?.id === access.organization_id) ||
     user?.memberships?.find((item) => item.is_active);
-  const name = membership?.organization?.name || "Your workspace";
+  const name = membership?.organization?.display_name || membership?.organization?.name || "Your workspace";
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("");
   return { name, initials };
 };

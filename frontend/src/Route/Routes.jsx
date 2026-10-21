@@ -7,13 +7,19 @@ import Leases from "../Components/Leases";
 import Maintenance from "../Components/Maintenance";
 import RequestDetail from "../Components/Maintenance/RequestDetail";
 import Tenants from "../Components/Tenants";
-import ModulePlaceholder from "../Components/ModulePlaceholder";
+import Receipt from "../Components/Billing/Receipt";
+import Receipts from "../Components/Billing/Receipts";
+import Reports from "../Components/Reports";
+import Setup from "../Components/Setup";
 import Properties from "../Components/Properties";
 import Profile from "../Components/Profile";
 import Security from "../Components/Security";
 import BetaSignups from "../Components/BetaSignups";
 
 export const routes = [
+  { path: "/setup", title: "Get started", Component: <Setup /> },
+  { path: "/billing/receipts", title: "Receipts", Component: <Receipts /> },
+  { path: "/billing/receipts/:id", title: "Receipt", Component: <Receipt /> },
   {
     path: `/dashboard`,
     title: "Dashboard",
@@ -72,7 +78,7 @@ export const routes = [
     path: `/reports`,
     title: "Reports",
     description: "Portfolio, arrears, occupancy, and owner reporting.",
-    Component: <ModulePlaceholder description="Portfolio, arrears, occupancy, and owner reports." />,
+    Component: <Reports />,
   },
   {
     path: `/beta-signups`,

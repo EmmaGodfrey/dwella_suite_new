@@ -141,6 +141,7 @@ export default function Billing() {
       <SummaryStrip />
 
       <div className="dwella-page-toolbar">
+        <Button onClick={() => navigate("/billing/receipts")}>Receipts</Button>
         <SegmentedFilter
           label="Filter invoices"
           options={invoiceViews}
