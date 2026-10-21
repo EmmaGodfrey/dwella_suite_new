@@ -1,3 +1,7 @@
-﻿app_name = "notifications"
+from django.urls import path
 
-urlpatterns = []
+from .views import NotificationsView
+
+app_name = "notifications"
+
+urlpatterns = [path("", NotificationsView.as_view(), name="notifications")]
