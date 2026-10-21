@@ -16,6 +16,23 @@ from .models import Invoice, InvoiceLine, Payment
 CENT = Decimal("0.01")
 
 
+@transaction.atomic
+def reverse_payment(payment, *, reason, user):
+    """Correct the ledger, keeping the original receipt and who corrected it."""
+    invoice = Invoice.objects.select_for_update().get(pk=payment.invoice_id)
+    payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if payment.reversed_at:
+        raise ValidationError({"reason": ["This payment has already been reversed."]})
+    if not reason.strip():
+        raise ValidationError({"reason": ["Explain why this payment is being reversed."]})
+    payment.reversed_at = timezone.now()
+    payment.reversal_reason = reason.strip()
+    payment.reversed_by = user
+    payment.save(update_fields=["reversed_at", "reversal_reason", "reversed_by", "updated_at"])
+    refresh_totals(invoice)
+    return payment
+
+
 def month_bounds(period_start):
     last_day = calendar.monthrange(period_start.year, period_start.month)[1]
     return period_start, period_start.replace(day=last_day)
@@ -24,7 +41,9 @@ def month_bounds(period_start):
 def refresh_totals(invoice):
     """Recompute stored total/paid/status from lines and payments."""
     invoice.total = invoice.lines.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-    invoice.amount_paid = invoice.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    invoice.amount_paid = invoice.payments.filter(reversed_at__isnull=True).aggregate(
+        total=Sum("amount")
+    )["total"] or Decimal("0")
     if invoice.status != Invoice.Status.VOID:
         if invoice.amount_paid <= 0:
             invoice.status = Invoice.Status.OPEN
@@ -146,7 +165,7 @@ def void_invoice(invoice):
     invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
     if invoice.status == Invoice.Status.VOID:
         raise ValidationError({"status": ["This invoice is already void."]})
-    if invoice.payments.exists():
+    if invoice.payments.filter(reversed_at__isnull=True).exists():
         raise ValidationError({"status": ["An invoice with payments cannot be voided."]})
     invoice.status = Invoice.Status.VOID
     invoice.voided_at = timezone.now()

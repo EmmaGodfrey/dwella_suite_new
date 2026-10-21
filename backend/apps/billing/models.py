@@ -106,6 +106,15 @@ class Payment(OrganizationScopedModel):
         CHEQUE = "cheque", "Cheque"
 
     receipt_number = models.CharField(max_length=20)
+    reversed_at = models.DateTimeField(blank=True, null=True)
+    reversal_reason = models.CharField(max_length=500, blank=True)
+    reversed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="reversed_payments",
+        blank=True,
+        null=True,
+    )
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="payments")
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT, related_name="payments")
     amount = models.DecimalField(max_digits=12, decimal_places=2)

@@ -19,7 +19,9 @@ from .serializers import (
     InvoiceDetailSerializer,
     InvoiceSerializer,
     PaymentSerializer,
+    ReceiptSerializer,
     RecordPaymentSerializer,
+    ReversePaymentSerializer,
 )
 from .services import (
     apply_late_fees,
@@ -27,6 +29,7 @@ from .services import (
     generate_rent_invoices,
     month_bounds,
     record_payment,
+    reverse_payment,
     void_invoice,
 )
 
@@ -94,7 +97,7 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         serializer = RecordPaymentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        record_payment(
+        payment = record_payment(
             invoice=invoice,
             amount=data["amount"],
             method=data["method"],
@@ -104,7 +107,11 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
             recorded_by=request.user,
         )
         self.action = "retrieve"
-        return self.detail_response(invoice, status=201)
+        response = self.detail_response(invoice, status=201)
+        response.data["recorded_payment"] = PaymentSerializer(
+            payment, context=self.get_serializer_context()
+        ).data
+        return response
 
     @action(detail=True, methods=["post"])
     def void(self, request, public_id=None):
@@ -124,9 +131,7 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
                 raise ValidationError({"fiscal_status": ["This invoice is void."]})
             with transaction.atomic():
                 if smart_invoice.queue_sale_receipt(invoice) is None:
-                    raise ValidationError(
-                        {"fiscal_status": ["Deposits are not reported to ZRA."]}
-                    )
+                    raise ValidationError({"fiscal_status": ["Deposits are not reported to ZRA."]})
         smart_invoice.resend_receipts(receipts)
         self.action = "retrieve"
         return self.detail_response(invoice)
@@ -159,15 +164,13 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         billed = invoices.filter(issue_date__range=(first, last)).aggregate(
             total=Coalesce(Sum("total"), ZERO), count=Count("id")
         )
-        payments = Payment.objects.filter(invoice__in=self.get_queryset())
+        payments = Payment.objects.filter(invoice__in=self.get_queryset(), reversed_at__isnull=True)
         collected = payments.filter(paid_on__range=(first, last)).aggregate(
             total=Coalesce(Sum("amount"), ZERO)
         )
         # Rent counts toward the month it is for, so a late invoice run still
         # lands in the right month; one-off charges fall back to issue date.
-        by_period = invoices.annotate(
-            month=TruncMonth(Coalesce("period_start", "issue_date"))
-        )
+        by_period = invoices.annotate(month=TruncMonth(Coalesce("period_start", "issue_date")))
         # This month's invoices split three ways so the parts add up to what
         # was billed: already paid, still within terms, and past due.
         this_month = by_period.filter(month=first).aggregate(
@@ -215,17 +218,41 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
 class PaymentFilter(filters.FilterSet):
     tenant = filters.UUIDFilter(field_name="tenant__public_id")
     invoice = filters.UUIDFilter(field_name="invoice__public_id")
+    reversed = filters.BooleanFilter(method="filter_reversed")
+
+    def filter_reversed(self, queryset, name, value):
+        return queryset.filter(reversed_at__isnull=not value)
 
     class Meta:
         model = Payment
-        fields = ["tenant", "invoice", "method"]
+        fields = ["tenant", "invoice", "method", "reversed"]
 
 
 class PaymentViewSet(OrganizationScopedModelViewSet):
     serializer_class = PaymentSerializer
-    queryset = Payment.objects.select_related("invoice", "tenant", "recorded_by")
+    queryset = Payment.objects.select_related(
+        "invoice__unit__property", "tenant", "recorded_by", "organization", "reversed_by"
+    )
     filterset_class = PaymentFilter
     search_fields = ["receipt_number", "reference", "tenant__full_name"]
     ordering_fields = ["paid_on", "amount", "created_at"]
     # Payments are created through an invoice's record-payment action.
-    http_method_names = ["get", "head", "options"]
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_serializer_class(self):
+        return ReceiptSerializer if self.action in ("retrieve", "reverse") else PaymentSerializer
+
+    def create(self, request, *args, **kwargs):
+        from rest_framework.exceptions import MethodNotAllowed
+
+        raise MethodNotAllowed("POST", detail="Record payments against an invoice.")
+
+    @action(detail=True, methods=["post"])
+    def reverse(self, request, public_id=None):
+        serializer = ReversePaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment = reverse_payment(
+            self.get_object(), reason=serializer.validated_data["reason"], user=request.user
+        )
+        payment = self.get_queryset().get(pk=payment.pk)
+        return Response(self.get_serializer(payment).data)
