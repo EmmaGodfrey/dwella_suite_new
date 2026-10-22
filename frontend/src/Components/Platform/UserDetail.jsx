@@ -4,7 +4,7 @@ import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@flu
 import { toast } from "react-toastify";
 import { usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
-import { StatusBadge } from "../../shared/components";
+import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, ConfirmAction, choice, nameOf, roles, when, workspaceName } from "./AdminUI";
 
 export default function UserDetail() {

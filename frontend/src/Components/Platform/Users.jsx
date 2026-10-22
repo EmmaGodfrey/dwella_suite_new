@@ -5,7 +5,7 @@ import { Add20Regular, Search20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 import { usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
-import { StatusBadge } from "../../shared/components";
+import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, Filter, choice, nameOf, roles, workspaceName } from "./AdminUI";
 
 const identityOptions = ["pending", "approved", "rejected", "not_submitted"].map(choice);

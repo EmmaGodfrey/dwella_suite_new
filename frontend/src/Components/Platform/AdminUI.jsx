@@ -5,7 +5,7 @@ import {
   OverlayDrawer, Select, Textarea,
 } from "@fluentui/react-components";
 import { Dismiss24Regular } from "@fluentui/react-icons";
-import { EmptyState } from "../../shared/components";
+import { EmptyState } from "../../shared/components/EmptyState";
 import { useFormErrors } from "../../shared/useFormErrors";
 import "./platform.scss";
 
