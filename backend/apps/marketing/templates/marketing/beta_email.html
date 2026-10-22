@@ -4,54 +4,78 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <title>{{ message.subject }}</title>
 </head>
-<body style="margin:0;padding:0;background:#f3f5f9;font-family:Figtree,'Segoe UI',Helvetica,Arial,sans-serif;color:#1c2333;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ message.preheader }}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f9;">
+<body style="margin:0;padding:0;background:#f3f5f9;font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#111a2b;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{ message.preheader }}&#8199;&#65279;&#847;&nbsp;&#8199;&#65279;&#847;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background:#f3f5f9;">
   <tr>
-    <td align="center" style="padding:32px 16px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:14px;">
+    <td align="center" style="padding:36px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;box-shadow:0 8px 28px rgba(13,31,61,0.08);">
         <tr>
-          <td style="padding:28px 32px 8px;">
-            <a href="{{ site_url }}"><img src="{{ site_url }}/brand/dwella-lockup.png" width="132" alt="Dwella" style="display:block;border:0;height:auto;"></a>
+          <td style="height:6px;background:#2ba053;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="padding:24px 36px 22px;border-bottom:1px solid #e7ebf2;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-right:13px;vertical-align:middle;">
+                  <a href="{{ site_url }}" style="text-decoration:none;">
+                    <img src="{{ site_url }}/brand/dwella-mark.png" width="52" height="46" alt="" style="display:block;width:52px;height:46px;border:0;">
+                  </a>
+                </td>
+                <td style="vertical-align:middle;">
+                  <a href="{{ site_url }}" style="text-decoration:none;color:#1d417e;">
+                    <span style="display:block;font-size:24px;line-height:1;font-weight:750;letter-spacing:0;color:#1d417e;">Dwella</span>
+                    <span style="display:block;padding-top:6px;font-size:11px;line-height:1.2;font-weight:700;letter-spacing:1.2px;color:#2ba053;text-transform:uppercase;">Property management, made clear</span>
+                  </a>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         <tr>
-          <td style="padding:16px 32px 8px;font-size:16px;line-height:1.6;">
-            {% for paragraph in message.paragraphs %}<p style="margin:0 0 16px;">{{ paragraph|safe }}</p>{% endfor %}
+          <td style="padding:34px 36px 8px;">
+            <p style="margin:0 0 10px;font-size:11px;line-height:1.4;font-weight:700;letter-spacing:1.4px;color:#2ba053;text-transform:uppercase;">Dwella beta</p>
+            <h1 style="margin:0;font-size:28px;line-height:1.22;font-weight:750;letter-spacing:0;color:#111a2b;">{{ message.subject }}</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 36px 34px;font-size:16px;line-height:1.65;color:#344054;">
+            {% for paragraph in message.paragraphs %}<p style="margin:0 0 17px;">{{ paragraph|safe }}</p>{% endfor %}
             {% if message.checklist %}
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin:4px 0 22px;background:#eaf7ef;border-radius:9px;">
               {% for item in message.checklist %}
               <tr>
-                <td valign="top" style="padding:3px 10px 3px 0;color:#2ba053;font-weight:700;">&#10003;</td>
-                <td style="padding:3px 0;">{{ item }}</td>
+                <td valign="top" width="24" style="padding:{% if forloop.first %}18px{% else %}6px{% endif %} 8px {% if forloop.last %}18px{% else %}6px{% endif %} 18px;color:#1b6b3c;font-size:16px;font-weight:700;">&#10003;</td>
+                <td style="padding:{% if forloop.first %}18px{% else %}6px{% endif %} 18px {% if forloop.last %}18px{% else %}6px{% endif %} 0;color:#20352a;font-size:15px;line-height:1.5;">{{ item }}</td>
               </tr>
               {% endfor %}
             </table>
             {% endif %}
             {% if message.cta_url %}
-            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
               <tr>
-                <td style="border-radius:8px;background:#1d417e;">
-                  <a href="{{ message.cta_url }}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:600;text-decoration:none;border-radius:8px;">{{ message.cta_label }}</a>
+                <td style="border-radius:8px;background:#2ba053;">
+                  <a href="{{ message.cta_url }}" style="display:inline-block;padding:13px 22px;color:#ffffff;font-size:15px;line-height:1.2;font-weight:700;text-decoration:none;border-radius:8px;">{{ message.cta_label }}</a>
                 </td>
               </tr>
             </table>
             {% endif %}
-            {% if message.footnote %}<p style="margin:0 0 16px;color:#5b6475;font-size:14px;">{{ message.footnote }}</p>{% endif %}
-            <p style="margin:0 0 24px;">The Dwella team</p>
+            {% if message.footnote %}<p style="margin:0 0 20px;padding:14px 16px;background:#eef2f9;border-left:3px solid #1d417e;color:#4b566c;font-size:14px;line-height:1.55;">{{ message.footnote }}</p>{% endif %}
+            <p style="margin:24px 0 0;color:#111a2b;">Regards,<br><strong style="color:#1d417e;">The Dwella team</strong></p>
           </td>
         </tr>
-      </table>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
         <tr>
-          <td style="padding:16px 32px;color:#7a8394;font-size:12px;line-height:1.5;text-align:center;">
-            You're receiving this because you signed up for the Dwella beta at <a href="{{ site_url }}" style="color:#7a8394;">dwella.properties</a>.
-            {% if unsubscribe_url %}<br><a href="{{ unsubscribe_url }}" style="color:#7a8394;">Stop countdown emails</a>. We'll still send your sign-in details when the beta opens.{% endif %}
+          <td style="padding:22px 36px;background:#122a52;color:#b3c5e3;font-size:12px;line-height:1.6;text-align:center;">
+            <p style="margin:0 0 7px;">Dwella keeps rent, tenants, leases and repairs in one clear place.</p>
+            <p style="margin:0;">You're receiving this because you signed up for the Dwella beta at <a href="{{ site_url }}" style="color:#ffffff;text-decoration:underline;">dwella.properties</a>.</p>
+            {% if unsubscribe_url %}<p style="margin:7px 0 0;"><a href="{{ unsubscribe_url }}" style="color:#ffffff;text-decoration:underline;">Stop countdown emails</a>. We'll still send your sign-in details when the beta opens.</p>{% endif %}
           </td>
         </tr>
       </table>
+      <p style="margin:16px 0 0;color:#7a8394;font-size:11px;line-height:1.5;text-align:center;">Dwella is a product by EG Labs, Lusaka, Zambia.</p>
     </td>
   </tr>
 </table>

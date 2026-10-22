@@ -209,6 +209,18 @@ def test_applicant_names_are_escaped_in_html():
 
 
 @pytest.mark.django_db
+def test_beta_email_uses_public_brand_assets_and_colours():
+    applicant()
+    send_due_emails(now=oct_(22))
+
+    html = mail.outbox[0].alternatives[0][0]
+    assert "https://dwella.properties/brand/dwella-mark.png" in html
+    assert "#1d417e" in html
+    assert "#2ba053" in html
+    assert "Dwella is a product by EG Labs" in html
+
+
+@pytest.mark.django_db
 def test_admin_can_sign_someone_up_and_send_the_welcome():
     client = admin_client()
     with mock.patch("django.utils.timezone.now", return_value=oct_(22)):
