@@ -7,6 +7,7 @@ from django.utils.encoding import force_bytes
 from django.utils.html import escape
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.generics import get_object_or_404
 
 from apps.accounts.security import frontend_reset_url
 from apps.marketing.emails import Message, send_message
@@ -18,7 +19,7 @@ User = get_user_model()
 def lock_target(request, user_id):
     """Call inside atomic. Serialize last-superuser and last-owner decisions."""
     list(User.objects.select_for_update().filter(is_superuser=True).order_by("pk"))
-    user = User.objects.select_for_update().get(pk=user_id)
+    user = get_object_or_404(User.objects.select_for_update(), pk=user_id)
     org_ids = user.organization_memberships.values_list("organization_id", flat=True)
     list(Organization.objects.select_for_update().filter(pk__in=org_ids).order_by("pk"))
     return user
