@@ -18,8 +18,12 @@ import BetaSignups from "../Components/BetaSignups";
 import Users from "../Components/Platform/Users";
 import UserDetail from "../Components/Platform/UserDetail";
 import IdentityChecks from "../Components/Platform/IdentityChecks";
+import Workspaces from "../Components/Platform/Workspaces";
+import WorkspaceDetail from "../Components/Platform/WorkspaceDetail";
 
 export const routes = [
+  { path: "/admin/workspaces", title: "Workspaces", Component: <Workspaces /> },
+  { path: "/admin/workspaces/:id", title: "Workspace detail", Component: <WorkspaceDetail /> },
   { path: "/admin/identity-checks", title: "Identity checks", Component: <IdentityChecks /> },
   { path: "/admin/users", title: "Users", Component: <Users /> },
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
