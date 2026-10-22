@@ -10,6 +10,8 @@ from apps.common.permissions import IsPlatformAdmin
 from apps.organizations.models import Organization
 from apps.organizations.serializers import OrganizationSerializer
 
+from .workspace_actions import WorkspaceActions
+
 
 class WorkspaceSerializer(OrganizationSerializer):
     properties_count = serializers.IntegerField(read_only=True)
@@ -50,10 +52,11 @@ class WorkspaceFilters(serializers.Serializer):
         return data
 
 
-class PlatformWorkspaceViewSet(viewsets.ReadOnlyModelViewSet):
+class PlatformWorkspaceViewSet(WorkspaceActions, viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsPlatformAdmin]
     serializer_class = WorkspaceSerializer
     lookup_field = "public_id"
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     search_fields = ["name", "display_name", "email", "town", "memberships__user__email"]
 
     def get_queryset(self):
