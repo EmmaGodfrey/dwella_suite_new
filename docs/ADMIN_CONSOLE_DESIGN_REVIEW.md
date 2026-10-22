@@ -42,3 +42,53 @@ Responsive examples: [Users](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW
 Thirty editable review frames were composed. Native-node inspection confirmed text, frames, vectors and component instances; image fills are only the existing small brand mark. All rendered text uses Figtree or Montserrat. Horizontal bounds were checked across the set and corrected. Main screens, drawers, confirmations, states, mobile acting mode and light/dark acting views were visually inspected.
 
 No frontend files were changed, so no frontend build or browser-flow claim is made for Phase 0. Figma is the review artifact. After user feedback, update these frames before starting frontend work. Backend validation and usage are documented in [ADMIN_CONSOLE.md](ADMIN_CONSOLE.md).
+
+## Design pass (Claude, 22 October 2026)
+
+These frames were brought in line with the landlord app's design system. Codex should
+treat them as the reference.
+
+- **Sidebar components** (`Admin console / Sidebar — Platform` and `— Acting`): section
+  labels now use the landlord style (11px SemiBold uppercase, subtle text, 12/18 padding,
+  20px top padding). Every frame inherits this.
+- **Top bar**: the text "Theme" button is replaced by the same theme and notification
+  icon buttons as `App/Topbar`, with 32px gutters aligned to content. The acting frames
+  no longer use the outdated search top bar; they show breadcrumbs (`Mwale Properties /
+  Billing`), matching the shipped app, which has no global search.
+- **Support banner** (acting Billing, light and dark): a primary-soft band with a shield
+  icon tile, "Support access · <workspace>", the reason and a note that changes are
+  audited. It has a time-left pill and a right-aligned "Leave workspace" button. Show
+  the time remaining, not the clock time it expires.
+- **Administration** (`35:59`): rebuilt from the landlord dashboard pattern. A hero card
+  shows beta applicants (accepted/waiting/declined bar) with workspaces, users and
+  collections beside it. Below are a "Recent activity" card (audit events) and a
+  "Needs attention" list (identity checks, open sessions, signups to review, suspended
+  workspaces) with tinted icon chips and chevrons.
+- **User detail** (`85:1686`) and **Workspace detail** (`53:3671`): the title is the
+  person's or workspace's name, with an initials avatar and status badges. Header
+  actions are Open workspace / Edit profile / More actions. Destructive and rare actions
+  (deactivate, suspend, transfer, reset 2FA) live in More actions rather than the
+  header. Sections are white cards. User detail uses a main column (memberships,
+  activity) and a 360px side column (profile, security with reset-link and
+  sign-out-everywhere buttons).
+- **Workspaces** summary figures are in a card. Every admin sidebar now fills its frame's
+  full height.
+- Not yet updated: the overlay frames (`87:2486` actions menu, `87:2208` / `87:2348` open
+  workspace, the drawers) still show the earlier page underneath. Refresh their
+  backgrounds from the updated pages if they are used for review.
+
+## Review follow-up (Codex, 22 October 2026)
+
+Inspected the refined Administration dashboard, Peter Mwale detail and dark acting
+Billing view. These revised frames remain the reference; frontend code is still paused.
+
+Refreshed all 15 menu/dialog/drawer backgrounds from the current Users, User detail,
+Workspaces, Workspace detail, Identity checks and Audit log frames. The overlay frame
+IDs and their form/menu content are preserved. Their scrims, drawers and sidebars now
+match the updated source-page heights. This completes the outstanding overlay item
+in the design pass above.
+
+Visually checked the refreshed user-actions menu, Open workspace dialog and Add to
+workspace drawer. Native text still uses Figtree/Montserrat. No source page was
+redesigned during this refresh. Backend review fixes and validation are recorded in
+[ADMIN_CONSOLE.md](ADMIN_CONSOLE.md#review-resolution-codex-22-october-2026).
