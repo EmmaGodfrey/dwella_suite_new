@@ -8,6 +8,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from apps.common.permissions import IsPlatformAdmin
+from apps.organizations.models import Organization
 
 from .models import SupportSession
 from .serializers import SupportSessionSerializer
@@ -45,6 +46,11 @@ class SupportSessionViewSet(viewsets.GenericViewSet):
     def create(self, request):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        organization = Organization.objects.select_for_update().get(
+            pk=serializer.validated_data["organization"].pk,
+        )
+        if not organization.is_active:
+            raise serializers.ValidationError({"organization": "This workspace is suspended."})
         session = serializer.save(
             admin=request.user, expires_at=timezone.now() + timedelta(hours=4)
         )

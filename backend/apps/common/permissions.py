@@ -55,6 +55,7 @@ def get_user_access(user, request=None):
 
     membership = get_active_membership(user)
     role = membership.role if membership else None
+    available = bool(membership and membership.organization.is_active)
     persona = (
         "tenant"
         if role == OrganizationMembership.Role.TENANT
@@ -65,12 +66,13 @@ def get_user_access(user, request=None):
     return {
         "persona": persona,
         "acting_workspace": None,
+        "workspace_suspended": bool(membership and not available),
         "role": role or "unassigned",
         "organization_id": str(membership.organization.public_id) if membership else None,
-        "can_view_portfolio": role in PORTFOLIO_ROLES,
-        "can_manage_properties": role in PORTFOLIO_MANAGER_ROLES,
-        "can_view_reports": role in PORTFOLIO_ROLES,
-        "can_manage_organization": role
+        "can_view_portfolio": available and role in PORTFOLIO_ROLES,
+        "can_manage_properties": available and role in PORTFOLIO_MANAGER_ROLES,
+        "can_view_reports": available and role in PORTFOLIO_ROLES,
+        "can_manage_organization": available and role
         in {
             OrganizationMembership.Role.OWNER,
             OrganizationMembership.Role.ADMIN,

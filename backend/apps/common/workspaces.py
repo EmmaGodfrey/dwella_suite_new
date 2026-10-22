@@ -20,7 +20,7 @@ def _active_session(user, workspace_id, *, lock=False):
     from apps.audit.models import SupportSession
 
     query = SupportSession.objects.select_related("organization").filter(
-        admin=user, organization__public_id=workspace_id,
+        admin=user, organization__public_id=workspace_id, organization__is_active=True,
         ended_at__isnull=True, expires_at__gt=timezone.now(),
     )
     if lock:
@@ -81,6 +81,8 @@ def resolve_workspace(request, *, user=None, required=True):
         raw.organization = request.organization
         raw.support_session = request.support_session
     organization = getattr(request, "organization", None)
+    if required and organization is not None and not organization.is_active:
+        raise PermissionDenied("This workspace is suspended. Contact Dwella support.")
     if required and organization is None and (user.is_staff or user.is_superuser):
         if error := getattr(request, "_workspace_error", None):
             raise PermissionDenied(error)
