@@ -11,6 +11,7 @@ from apps.organizations.services import create_workspace
 
 from .services import record_event
 from .user_actions import UserAccountActions
+from .user_security_actions import DeliveryUnavailable, UserSecurityActions
 from .user_serializers import CreateUserInput, PlatformUserSerializer, UserFilters, UserProfileInput
 from .user_services import change_membership, lock_target, require_superuser, send_access_email
 
@@ -19,6 +20,7 @@ User = get_user_model()
 
 class PlatformUserViewSet(
     UserAccountActions,
+    UserSecurityActions,
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
     mixins.UpdateModelMixin, viewsets.GenericViewSet,
 ):
@@ -95,7 +97,12 @@ class PlatformUserViewSet(
             create_workspace(user, display_name=data["workspace_name"])
         elif data["account_type"] == "member":
             change_membership(request, user, data["organization"], data["role"])
-        send_access_email(user)
+        from smtplib import SMTPException
+
+        try:
+            send_access_email(user)
+        except (SMTPException, OSError) as exc:
+            raise DeliveryUnavailable() from exc
         record_event(request, "user.created", user, account_type=data["account_type"])
         return Response(self.get_serializer(user).data, status=201)
 
