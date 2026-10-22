@@ -178,6 +178,7 @@ REST_FRAMEWORK = {
         "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
         "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
         "support_session": "10/hour",
+        "platform_write": "20/minute",
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
         "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),

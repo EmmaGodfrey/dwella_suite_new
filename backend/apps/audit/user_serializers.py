@@ -3,7 +3,11 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from apps.accounts.security import is_disposable_email, normalize_email
-from apps.accounts.serializers import CurrentUserSerializer
+from apps.accounts.serializers import (
+    CurrentUserSerializer,
+    IdentityVerificationSerializer,
+    UserProfileSerializer,
+)
 from apps.common.permissions import get_user_access
 from apps.organizations.models import Organization, OrganizationMembership
 
@@ -17,6 +21,30 @@ class PlatformUserSerializer(CurrentUserSerializer):
 
     def get_access(self, obj):
         return get_user_access(obj)
+
+    def get_profile(self, obj):
+        return UserProfileSerializer(obj.profile, context=self.context).data if hasattr(
+            obj, "profile"
+        ) else {"phone_number": ""}
+
+    def get_identity_verification(self, obj):
+        return IdentityVerificationSerializer(obj.identity_verification).data if hasattr(
+            obj, "identity_verification"
+        ) else {"status": "not_submitted"}
+
+
+class UserFilters(serializers.Serializer):
+    active = serializers.BooleanField(required=False)
+    staff = serializers.BooleanField(required=False)
+    two_factor = serializers.BooleanField(required=False)
+    workspace = serializers.UUIDField(required=False)
+    role = serializers.ChoiceField(choices=OrganizationMembership.Role.choices, required=False)
+    persona = serializers.ChoiceField(
+        choices=["platform_admin", "landlord", "tenant", "unassigned"], required=False,
+    )
+    identity_status = serializers.ChoiceField(
+        choices=["pending", "approved", "rejected", "not_submitted"], required=False,
+    )
 
 
 class UserProfileInput(serializers.Serializer):
