@@ -79,8 +79,12 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
         if not verification.document_image:
             raise NotFound("No identity document is available.")
         record_event(request, "identity.document_viewed", verification)
+        try:
+            document = verification.document_image.open("rb")
+        except FileNotFoundError as exc:
+            raise NotFound("No identity document is available.") from exc
         response = FileResponse(
-            verification.document_image.open("rb"), as_attachment=True,
+            document, as_attachment=True,
             filename=f"identity-{verification.pk}", content_type="application/octet-stream",
         )
         response["Cache-Control"] = "private, no-store"

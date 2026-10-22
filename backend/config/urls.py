@@ -7,6 +7,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from apps.accounts.private_media import deny_public_identity_document
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -34,4 +36,8 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    urlpatterns += [path(
+        f"{settings.MEDIA_URL.lstrip('/')}profiles/verification_documents/<path:filename>",
+        deny_public_identity_document,
+    )]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
