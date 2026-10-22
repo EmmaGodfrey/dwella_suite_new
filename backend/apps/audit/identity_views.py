@@ -88,7 +88,8 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
         verification.rejection_reason = reason if decision == "rejected" else ""
         verification.reviewed_at = timezone.now()
         verification.save(update_fields=["status", "rejection_reason", "reviewed_at", "updated_at"])
-        record_event(request, f"identity.{decision}", verification, reason=reason)
+        record_event(request, f"identity.{decision}", verification, reason=reason,
+                     user_id=verification.user_id)
         if settings.EMAIL_HOST and "smtp" in settings.EMAIL_BACKEND:
             transaction.on_commit(lambda: send_mail(
                 "Your Dwella identity review", f"Your identity check was {decision}. {reason}",
