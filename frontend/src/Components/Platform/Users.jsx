@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button, Field, Input } from "@fluentui/react-components";
 import { Add20Regular, Search20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
-import { usePlatformList, usePlatformMutation } from "../../Services/platform";
+import { usePlatformChoices, usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, Filter, choice, nameOf, roles, workspaceName } from "./AdminUI";
@@ -19,7 +19,7 @@ export default function Users() {
   const [filters, setFilters] = useState({ page: 1, search: "", role: "", active: "", identity_status: "", two_factor: "", workspace: "" });
   const [creating, setCreating] = useState(false);
   const query = usePlatformList("users", filters);
-  const workspaces = usePlatformList("workspaces", { active: "true", page_size: 200 });
+  const workspaces = usePlatformChoices("workspaces", { active: "true" });
   const current = useCurrentUserQuery();
   const mutation = usePlatformMutation();
   const navigate = useNavigate();

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@fluentui/react-components";
 import { toast } from "react-toastify";
-import { usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
+import { usePlatformChoices, usePlatformDetail, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, ConfirmAction, choice, nameOf, roles, when, workspaceName } from "./AdminUI";
@@ -11,7 +11,7 @@ export default function UserDetail() {
   const { id } = useParams();
   const query = usePlatformDetail("users", id);
   const current = useCurrentUserQuery();
-  const workspaces = usePlatformList("workspaces", { active: "true", page_size: 200 });
+  const workspaces = usePlatformChoices("workspaces", { active: "true" });
   const mutation = usePlatformMutation();
   const [dialog, setDialog] = useState(null);
   const user = query.data;

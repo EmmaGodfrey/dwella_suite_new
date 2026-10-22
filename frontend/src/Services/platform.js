@@ -27,6 +27,23 @@ export function usePlatformDetail(resource, id, options = {}) {
   });
 }
 
+export function usePlatformChoices(resource, filters = {}, options = {}) {
+  return useQuery({
+    queryKey: ["platform", resource, "choices", filters],
+    queryFn: async ({ signal }) => {
+      const results = [];
+      let page = 1;
+      for (;;) {
+        const data = await api.get(`/platform/${resource}/${search({ ...filters, page, page_size: 200 })}`, { signal });
+        results.push(...data.results);
+        if (!data.pagination.next) return { results };
+        page += 1;
+      }
+    },
+    ...options,
+  });
+}
+
 export function usePlatformMutation(options = {}) {
   const cache = useQueryClient();
   return useMutation({

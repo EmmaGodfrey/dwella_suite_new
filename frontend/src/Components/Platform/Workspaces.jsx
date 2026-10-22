@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button, Field, Input } from "@fluentui/react-components";
 import { Add20Regular, Search20Regular } from "@fluentui/react-icons";
-import { usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
+import { usePlatformChoices, usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, Filter, money, nameOf, workspaceName } from "./AdminUI";
 
@@ -25,7 +25,7 @@ export default function Workspaces() {
   const [creating, setCreating] = useState(false);
   const query = usePlatformList("workspaces", filters);
   const totals = usePlatformDetail("workspaces", "summary");
-  const owners = usePlatformList("users", { active: "true", page_size: 200 }, { enabled: creating });
+  const owners = usePlatformChoices("users", { active: "true" }, { enabled: creating });
   const mutation = usePlatformMutation();
   const navigate = useNavigate();
   const change = (key, value) => setFilters((f) => ({ ...f, [key]: value, page: 1 }));
