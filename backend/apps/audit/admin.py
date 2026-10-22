@@ -1,6 +1,26 @@
 from django.contrib import admin
 
-from .models import AuditEvent
+from .models import AuditEvent, SupportSession
+
+
+@admin.register(SupportSession)
+class SupportSessionAdmin(admin.ModelAdmin):
+    list_display = ["admin", "organization", "reason", "started_at", "ended_at", "expires_at"]
+    readonly_fields = [
+        "public_id",
+        "admin",
+        "organization",
+        "reason",
+        "started_at",
+        "ended_at",
+        "expires_at",
+    ]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(AuditEvent)

@@ -4,6 +4,26 @@ from django.db import models
 from apps.common.models import TimeStampedModel, UUIDModel
 
 
+class SupportSession(UUIDModel, TimeStampedModel):
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="support_sessions"
+    )
+    organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.CASCADE, related_name="support_sessions"
+    )
+    reason = models.CharField(max_length=300)
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-started_at"]
+        indexes = [models.Index(fields=["admin", "organization", "ended_at", "expires_at"])]
+
+    def __str__(self):
+        return f"{self.admin} in {self.organization}"
+
+
 class AuditEvent(UUIDModel, TimeStampedModel):
     organization = models.ForeignKey(
         "organizations.Organization",
