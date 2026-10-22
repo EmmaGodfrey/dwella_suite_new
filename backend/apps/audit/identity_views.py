@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Count
 from django.http import FileResponse
 from django.utils import timezone
 from rest_framework import serializers, viewsets
@@ -30,6 +31,15 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IdentityReviewSerializer
     search_fields = ["legal_name", "user__email", "user__first_name", "user__last_name"]
 
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        counts = dict(IdentityVerification.objects.values_list("status").annotate(
+            total=Count("pk"),
+        ))
+        return Response({
+            status: counts.get(status, 0) for status in ["pending", "approved", "rejected"]
+        })
+
     def get_queryset(self):
         queryset = IdentityVerification.objects.exclude(status="not_submitted").select_related(
             "user__profile", "user__two_factor_device",
@@ -39,6 +49,19 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
             if status not in IdentityVerification.Status.values:
                 raise ValidationError({"status": "Choose a valid identity status."})
             queryset = queryset.filter(status=status)
+        class Dates(serializers.Serializer):
+            submitted_after = serializers.DateField(required=False)
+            submitted_before = serializers.DateField(required=False)
+        dates = Dates(data=dict(self.request.query_params.items()))
+        dates.is_valid(raise_exception=True)
+        values = dates.validated_data
+        if values.get("submitted_after") and values.get("submitted_before") and (
+            values["submitted_after"] > values["submitted_before"]
+        ):
+            raise ValidationError("Start date must not be after end date.")
+        for name, lookup in [("submitted_after", "gte"), ("submitted_before", "lte")]:
+            if name in values:
+                queryset = queryset.filter(**{f"submitted_at__date__{lookup}": values[name]})
         return queryset
 
     def get_throttles(self):

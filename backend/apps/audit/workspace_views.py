@@ -1,9 +1,13 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db.models import Count, DecimalField, F, Max, OuterRef, Q, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework import serializers, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
 
 from apps.billing.models import Invoice
 from apps.common.permissions import IsPlatformAdmin
@@ -58,6 +62,18 @@ class PlatformWorkspaceViewSet(WorkspaceActions, viewsets.ReadOnlyModelViewSet):
     lookup_field = "public_id"
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     search_fields = ["name", "display_name", "email", "town", "memberships__user__email"]
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        counts = Organization.objects.aggregate(
+            active=Count("pk", filter=Q(is_active=True)),
+            suspended=Count("pk", filter=Q(is_active=False)),
+            new_this_week=Count("pk", filter=Q(created_at__gte=timezone.now() - timedelta(days=7))),
+        )
+        counts["outstanding_balance"] = str(Invoice.objects.filter(
+            status__in=Invoice.UNPAID_STATUSES,
+        ).aggregate(amount=Sum(F("total") - F("amount_paid")))["amount"] or 0)
+        return Response(counts)
 
     def get_queryset(self):
         from django.db.models import Prefetch
