@@ -310,6 +310,30 @@ export function useUpdateBetaApplicationMutation(options = {}) {
   });
 }
 
+export function useCreateBetaApplicationMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["createBetaApplication"],
+    mutationFn: (payload) => api.post("/marketing/admin/beta-applications/", payload),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["marketing", "betaApplications"] });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+export function useSendBetaAccessMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["sendBetaAccess"],
+    mutationFn: (id) => api.post(`/marketing/admin/beta-applications/${id}/send-access/`),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["marketing", "betaApplications"] });
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
 // A job closing can bill the tenant, so maintenance writes refresh billing too.
 const maintenanceMutation = (mutationKey, mutationFn) => (options = {}) =>
   useMutation({

@@ -25,4 +25,5 @@ export const queryKeys = {
   maintenanceSummary: ["maintenance", "summary"],
   vendors: (filters = {}) => ["maintenance", "vendors", filters],
   betaApplications: (filters = {}) => ["marketing", "betaApplications", filters],
+  betaEmailSettings: ["marketing", "betaEmailSettings"],
 };

@@ -237,6 +237,15 @@ export function useVendorsQuery(filters = {}, options = {}) {
   });
 }
 
+export function useBetaEmailSettingsQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.betaEmailSettings,
+    queryFn: () => apiRequest("/marketing/admin/beta-applications/email-settings/"),
+    staleTime: 5 * 60_000,
+    ...options,
+  });
+}
+
 export function useBetaApplicationsQuery(filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.betaApplications(filters),
