@@ -17,8 +17,10 @@ import Security from "../Components/Security";
 import BetaSignups from "../Components/BetaSignups";
 import Users from "../Components/Platform/Users";
 import UserDetail from "../Components/Platform/UserDetail";
+import IdentityChecks from "../Components/Platform/IdentityChecks";
 
 export const routes = [
+  { path: "/admin/identity-checks", title: "Identity checks", Component: <IdentityChecks /> },
   { path: "/admin/users", title: "Users", Component: <Users /> },
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },

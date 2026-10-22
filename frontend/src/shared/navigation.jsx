@@ -23,6 +23,7 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
+  { to: "/admin/identity-checks", value: "identity-checks", group: "platform", label: "Identity checks", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
   { to: "/admin/users", value: "admin-users", group: "platform", label: "Users", icon: <People24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "unassigned"] },
   { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
@@ -46,6 +47,7 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/admin/identity-checks": ["Identity checks", "Review submitted identity documents."],
   "/admin/users": ["Users", "Manage accounts, workspace access and identity checks."],
   "/setup": ["Get started", "Set up your workspace, add a tenant and start tracking rent."],
   "/dashboard": ["Dashboard", "Portfolio health, occupancy, rent roll, and current work."],
