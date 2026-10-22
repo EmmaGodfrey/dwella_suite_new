@@ -11,7 +11,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.billing.models import Invoice
-from apps.common.permissions import CanViewPortfolio, get_active_membership
+from apps.common.permissions import CanViewPortfolio
+from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.properties.models import Property, Unit
 
@@ -36,8 +37,7 @@ class PortfolioReportView(APIView):
         params = ReportParameters(data=request.query_params)
         params.is_valid(raise_exception=True)
         data = params.validated_data
-        membership = get_active_membership(request.user)
-        org = membership.organization if membership else None
+        org = resolve_workspace(request)
         property_id = data.get("property")
         if (
             property_id

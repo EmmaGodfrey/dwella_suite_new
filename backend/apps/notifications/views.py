@@ -7,7 +7,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.billing.models import Invoice, Payment
-from apps.common.permissions import CanViewPortfolio, get_active_membership
+from apps.common.permissions import CanViewPortfolio
+from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
 
@@ -99,8 +100,7 @@ class NotificationsView(APIView):
     permission_classes = [IsAuthenticated, CanViewPortfolio]
 
     def organization(self):
-        membership = get_active_membership(self.request.user)
-        return membership.organization if membership else None
+        return resolve_workspace(self.request)
 
     def get(self, request):
         org = self.organization()

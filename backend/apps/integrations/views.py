@@ -7,8 +7,8 @@ from rest_framework.views import APIView
 from apps.common.permissions import (
     CanManageOrganization,
     CanManagePortfolio,
-    get_active_membership,
 )
+from apps.common.workspaces import resolve_workspace
 
 from . import smart_invoice
 from .models import FiscalReceipt, SmartInvoiceSettings
@@ -29,7 +29,7 @@ class SmartInvoiceSettingsView(APIView):
         return [CanManageOrganization()]
 
     def get_organization(self):
-        return get_active_membership(self.request.user).organization
+        return resolve_workspace(self.request)
 
     def get_instance(self):
         return SmartInvoiceSettings.objects.filter(organization=self.get_organization()).first()

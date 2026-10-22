@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from apps.billing.models import Invoice
 from apps.common.permissions import get_active_membership
+from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.properties.models import Property, Unit
 from apps.tenants.models import Tenant
@@ -32,11 +33,15 @@ class SetupSerializer(serializers.Serializer):
     rent_amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0"))
 
 
-def setup_status(user):
+def setup_status(user, request=None):
     membership = get_active_membership(user)
-    org = membership.organization if membership else None
-    editable = not (user.is_staff or user.is_superuser) and (
-        not membership or membership.role in ("owner", "admin")
+    org = (
+        resolve_workspace(request) if request else (membership.organization if membership else None)
+    )
+    editable = (
+        bool(org)
+        if user.is_staff or user.is_superuser
+        else (not membership or membership.role in ("owner", "admin"))
     )
     models = [Property, Unit, Tenant, Lease, Invoice]
     counts = [model.objects.for_organization(org).count() if org else 0 for model in models]
@@ -88,27 +93,33 @@ class OnboardingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def check_access(self, request):
+        resolve_workspace(request)
         membership = get_active_membership(request.user)
-        if membership and membership.role == "tenant":
+        if (
+            membership
+            and membership.role == "tenant"
+            and not (request.user.is_staff or request.user.is_superuser)
+        ):
             raise PermissionDenied("Setup is for property managers.")
         return membership
 
     def get(self, request):
         self.check_access(request)
-        return Response(setup_status(request.user))
+        return Response(setup_status(request.user, request))
 
     @transaction.atomic
     def post(self, request):
         # Serialize repeat submissions and prevent two workspaces for a new account.
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
-        membership = self.check_access(request)
-        if not setup_status(request.user)["can_setup"]:
+        self.check_access(request)
+        if not setup_status(request.user, request)["can_setup"]:
             raise PermissionDenied("Only a workspace owner or admin can complete setup.")
         serializer = SetupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        if membership:
-            org = Organization.objects.select_for_update().get(pk=membership.organization_id)
+        resolved = resolve_workspace(request)
+        if resolved:
+            org = Organization.objects.select_for_update().get(pk=resolved.pk)
             if Property.objects.for_organization(org).exists():
                 raise ValidationError(
                     {
@@ -132,6 +143,8 @@ class OnboardingView(APIView):
             OrganizationMembership.objects.create(
                 organization=org, user=request.user, role=OrganizationMembership.Role.OWNER
             )
+            request.organization = org
+            request._request.organization = org
         property_obj = Property.objects.create(
             organization=org,
             name=data["property_name"],
@@ -145,4 +158,4 @@ class OnboardingView(APIView):
             name=data["unit_name"],
             rent_amount=data["rent_amount"],
         )
-        return Response(setup_status(request.user), status=201)
+        return Response(setup_status(request.user, request), status=201)

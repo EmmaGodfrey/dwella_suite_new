@@ -1,7 +1,9 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from apps.common.permissions import CanManageOrganization, IsOrganizationMember
+from apps.common.workspaces import resolve_workspace
 
 from .models import Organization, OrganizationMembership
 from .serializers import OrganizationMembershipSerializer, OrganizationSerializer
@@ -20,6 +22,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permissions]
 
     def get_queryset(self):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            return Organization.objects.filter(pk=resolve_workspace(self.request).pk)
         queryset = Organization.objects.filter(
             memberships__user=self.request.user,
             memberships__is_active=True,
@@ -36,12 +40,19 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            raise PermissionDenied("Create workspaces through the platform console.")
         organization = serializer.save()
         OrganizationMembership.objects.create(
             organization=organization,
             user=self.request.user,
             role=OrganizationMembership.Role.OWNER,
         )
+
+    def perform_destroy(self, instance):
+        if self.request.user.is_staff or self.request.user.is_superuser:
+            raise PermissionDenied("Delete workspaces through the platform console.")
+        instance.delete()
 
 
 class OrganizationMembershipViewSet(viewsets.ReadOnlyModelViewSet):
