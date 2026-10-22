@@ -10,6 +10,7 @@ from apps.common.permissions import IsPlatformAdmin
 from apps.organizations.services import create_workspace
 
 from .services import record_event
+from .user_actions import UserAccountActions
 from .user_serializers import CreateUserInput, PlatformUserSerializer, UserFilters, UserProfileInput
 from .user_services import change_membership, lock_target, require_superuser, send_access_email
 
@@ -17,12 +18,13 @@ User = get_user_model()
 
 
 class PlatformUserViewSet(
+    UserAccountActions,
     mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
     mixins.UpdateModelMixin, viewsets.GenericViewSet,
 ):
     permission_classes = [IsPlatformAdmin]
     serializer_class = PlatformUserSerializer
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     search_fields = ["first_name", "last_name", "email", "profile__phone_number"]
 
     def get_queryset(self):
