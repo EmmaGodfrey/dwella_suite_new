@@ -42,4 +42,3 @@ Responsive examples: [Users](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW
 Thirty editable review frames were composed. Native-node inspection confirmed text, frames, vectors and component instances; image fills are only the existing small brand mark. All rendered text uses Figtree or Montserrat. Horizontal bounds were checked across the set and corrected. Main screens, drawers, confirmations, states, mobile acting mode and light/dark acting views were visually inspected.
 
 No frontend files were changed, so no frontend build or browser-flow claim is made for Phase 0. Figma is the review artifact. After user feedback, update these frames before starting frontend work. Backend validation and usage are documented in [ADMIN_CONSOLE.md](ADMIN_CONSOLE.md).
-

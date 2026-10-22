@@ -112,4 +112,3 @@ def test_session_authentication_still_enforces_csrf(context):
 def test_malformed_end_id_is_not_a_server_error(context):
     client, _, _, _ = context
     assert client.post(f"{URL}bad-uuid/end/").status_code == 404
-

@@ -17,4 +17,3 @@ def context():
     client = APIClient()
     client.force_authenticate(user)
     return client, user, org, other
-

@@ -40,4 +40,3 @@ def test_real_token_authentication_and_logout_ends_all_sessions(context):
     assert not Token.objects.filter(user=user).exists()
     assert AuditEvent.objects.filter(action="support_session.ended").count() == 2
     assert client.get("/api/v1/properties/").status_code in (401, 403)
-

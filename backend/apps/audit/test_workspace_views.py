@@ -71,4 +71,3 @@ def test_existing_landlord_can_read_and_update_second_membership_workspace(conte
     )
     foreign = Organization.objects.create(name="Unrelated workspace")
     assert client.get(f"/api/v1/organizations/{foreign.public_id}/").status_code == 404
-

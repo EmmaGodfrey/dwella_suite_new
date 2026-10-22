@@ -98,4 +98,3 @@ def test_revoked_staff_access_cannot_reuse_support_session(context):
         client.get("/api/v1/accounts/me/").json()["response_data"]["access"]["acting_workspace"]
         is None
     )
-

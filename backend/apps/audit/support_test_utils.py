@@ -25,4 +25,3 @@ def start(client, org):
     assert response.status_code == 201, response.content
     client.credentials(HTTP_X_DWELLA_WORKSPACE=str(org.public_id))
     return SupportSession.objects.get(public_id=response.json()["response_data"]["id"])
-
