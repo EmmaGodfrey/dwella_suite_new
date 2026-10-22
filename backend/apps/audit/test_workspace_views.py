@@ -3,13 +3,28 @@ import pytest
 from django.contrib.auth import get_user_model
 
 from apps.organizations.models import Organization, OrganizationMembership
+from apps.properties.models import Property
 
 from .models import AuditEvent
 from .support_test_utils import LANDLORD_URLS, start
 
 pytestmark = pytest.mark.django_db
 
-@pytest.mark.parametrize("url", LANDLORD_URLS)
+
+def test_selected_dashboard_is_scoped_and_invalid_context_cannot_fall_back(context):
+    client, _, org, other = context
+    Property.objects.create(organization=org, name="Selected", address="Selected address")
+    Property.objects.create(organization=other, name="Private", address="Private address")
+    start(client, org)
+    response = client.get("/api/v1/properties/dashboard/")
+    data = response.json()["response_data"]
+    assert data["properties"]["total"] == 1
+    assert data["platform"] is None
+    assert [p["name"] for p in data["recent_properties"]] == ["Selected"]
+    client.credentials(HTTP_X_DWELLA_WORKSPACE="malformed")
+    assert client.get("/api/v1/properties/dashboard/").status_code == 403
+
+@pytest.mark.parametrize("url", [u for u in LANDLORD_URLS if u != "/api/v1/properties/dashboard/"])
 def test_admin_must_choose_workspace(context, url):
     client, _, _, _ = context
     response = client.get(url)

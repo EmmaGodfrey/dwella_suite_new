@@ -6,9 +6,10 @@ from django_filters import rest_framework as filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import CanViewPortfolio, get_user_access
+from apps.common.permissions import CanViewPortfolio, IsPlatformAdmin, get_user_access
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.common.workspaces import resolve_workspace
+from apps.organizations.models import Organization, OrganizationMembership
 
 from .models import Property, PropertyOwner, Unit
 from .serializers import PropertyOwnerSerializer, PropertySerializer, UnitSerializer
@@ -27,60 +28,45 @@ def percentage(part, whole):
 class PropertyDashboardSummaryView(APIView):
     permission_classes = [CanViewPortfolio]
 
+    def get_permissions(self):
+        # Keep the shipped Administration page working until the platform UI ships.
+        # A supplied workspace still requires an explicit valid support session.
+        user = self.request.user
+        if (
+            user.is_authenticated
+            and (user.is_staff or user.is_superuser)
+            and "X-Dwella-Workspace" not in self.request.headers
+        ):
+            return [IsPlatformAdmin()]
+        return super().get_permissions()
+
     def get_organization(self):
-        return resolve_workspace(self.request)
+        return resolve_workspace(self.request, required=False)
 
     def get(self, request):
         access = get_user_access(request.user, request)
         organization = self.get_organization()
         if organization is None:
-            return Response(
-                {
-                    "access": access,
-                    "organization": None,
-                    "platform": {"organizations": 0, "landlords": 0},
-                    "properties": {
-                        "total": 0,
-                        "active": 0,
-                        "managed": 0,
-                        "prospect": 0,
-                        "archived": 0,
-                        "by_status": [],
-                        "by_type": [],
-                    },
-                    "units": {
-                        "total": 0,
-                        "occupied": 0,
-                        "vacant": 0,
-                        "maintenance": 0,
-                        "reserved": 0,
-                        "occupancy_rate": 0,
-                        "by_status": [],
-                    },
-                    "finance": {
-                        "monthly_rent_roll": 0,
-                        "occupied_rent_roll": 0,
-                        "vacancy_loss": 0,
-                        "average_unit_rent": 0,
-                    },
-                    "portfolio": {
-                        "towns_count": 0,
-                        "towns": [],
-                        "average_units_per_property": 0,
-                    },
-                    "recent_properties": [],
-                    "top_units": [],
-                }
-            )
-
-        properties = Property.objects.for_organization(organization)
-        units = Unit.objects.for_organization(organization).select_related("property")
-        organization_data = {
-            "id": str(organization.public_id),
-            "name": organization.name,
-            "display_name": organization.display_name,
-        }
-        platform_data = None
+            # Aggregate platform figures only; individual records require support access.
+            properties = Property.objects.all()
+            units = Unit.objects.all()
+            organization_data = {
+                "id": None, "name": "Dwella Suite", "display_name": "Platform overview"
+            }
+            platform_data = {
+                "organizations": Organization.objects.count(),
+                "landlords": OrganizationMembership.objects.filter(is_active=True, role="owner")
+                .values("user_id").distinct().count(),
+            }
+        else:
+            properties = Property.objects.for_organization(organization)
+            units = Unit.objects.for_organization(organization).select_related("property")
+            organization_data = {
+                "id": str(organization.public_id),
+                "name": organization.name,
+                "display_name": organization.display_name,
+            }
+            platform_data = None
 
         property_totals = properties.aggregate(
             total=Count("id"),
@@ -132,7 +118,7 @@ class PropertyDashboardSummaryView(APIView):
                 if property_obj.cover_image
                 else None,
             }
-            for property_obj in properties.annotate(
+            for property_obj in (properties if organization else properties.none()).annotate(
                 units_count=Count("units"),
                 occupied_units=Count(
                     "units", filter=Q(units__occupancy_status=Unit.OccupancyStatus.OCCUPIED)
@@ -143,7 +129,8 @@ class PropertyDashboardSummaryView(APIView):
         ]
 
         towns = sorted(
-            properties.exclude(town="").order_by().values_list("town", flat=True).distinct()
+            (properties if organization else properties.none())
+            .exclude(town="").order_by().values_list("town", flat=True).distinct()
         )
 
         top_units = [
@@ -154,7 +141,7 @@ class PropertyDashboardSummaryView(APIView):
                 "occupancy_status": unit.occupancy_status,
                 "rent_amount": decimal_to_float(unit.rent_amount),
             }
-            for unit in units.order_by("-rent_amount")[:5]
+            for unit in (units if organization else units.none()).order_by("-rent_amount")[:5]
         ]
 
         return Response(

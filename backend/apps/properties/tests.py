@@ -376,12 +376,14 @@ def test_dashboard_summary_handles_user_without_organization():
 
 
 @pytest.mark.django_db
-def test_platform_admin_requires_workspace_for_dashboard_and_properties():
+@pytest.mark.parametrize("staff,superuser", [(True, False), (False, True)])
+def test_platform_admin_dashboard_summary_does_not_grant_portfolio_access(staff, superuser):
     admin = User.objects.create_user(
         username="platform@example.com",
         email="platform@example.com",
         password="StrongerPass123",
-        is_staff=True,
+        is_staff=staff,
+        is_superuser=superuser,
     )
     first = Organization.objects.create(name="First Landlord")
     second = Organization.objects.create(name="Second Landlord")
@@ -412,7 +414,15 @@ def test_platform_admin_requires_workspace_for_dashboard_and_properties():
         format="json",
     )
 
-    assert dashboard.status_code == 400
+    assert dashboard.status_code == 200
+    summary = dashboard.json()["response_data"]
+    assert summary["platform"] == {"organizations": 2, "landlords": 2}
+    assert summary["properties"]["total"] == 2
+    assert summary["recent_properties"] == []
+    assert summary["top_units"] == []
+    assert summary["portfolio"]["towns"] == []
+    assert summary["access"]["can_view_portfolio"] is False
+    assert client.get("/api/v1/properties/").status_code == 400
     assert create.status_code == 400
     assert not Property.objects.filter(name="Admin Property").exists()
 
