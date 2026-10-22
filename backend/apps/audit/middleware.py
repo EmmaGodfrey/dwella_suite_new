@@ -1,6 +1,9 @@
 import uuid
 
 from django.db import transaction
+from rest_framework.permissions import SAFE_METHODS
+
+from apps.common.workspaces import is_workspace_scoped
 
 from .services import record_event
 
@@ -11,6 +14,8 @@ class RequestAuditContextMiddleware:
 
     def __call__(self, request):
         request.request_id = (request.headers.get("X-Request-ID") or str(uuid.uuid4()))[:120]
+        if request.method in SAFE_METHODS or not is_workspace_scoped(request):
+            return self.get_response(request)
         # Keep the business write and its audit record in the same transaction.
         with transaction.atomic():
             response = self.get_response(request)
