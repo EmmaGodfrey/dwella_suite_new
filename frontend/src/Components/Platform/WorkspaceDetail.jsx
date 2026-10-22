@@ -2,20 +2,22 @@ import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@fluentui/react-components";
 import { toast } from "react-toastify";
-import { usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
+import { usePlatformChoices, usePlatformDetail, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, ConfirmAction, money, nameOf, when, workspaceName } from "./AdminUI";
 import { occupancy, profileFields } from "./Workspaces";
+import { useSupportAccess } from "./SupportAccess";
 
 export default function WorkspaceDetail() {
   const { id } = useParams();
   const query = usePlatformDetail("workspaces", id);
   const current = useCurrentUserQuery();
   const [dialog, setDialog] = useState(null);
-  const owners = usePlatformList("users", { active: "true", page_size: 200 }, { enabled: dialog === "transfer" });
+  const owners = usePlatformChoices("users", { active: "true" }, { enabled: dialog === "transfer" });
   const mutation = usePlatformMutation();
   const navigate = useNavigate();
+  const openWorkspace = useSupportAccess();
   const workspace = query.data;
   const update = async (action, body, method = "post") => {
     await mutation.mutateAsync({ resource: "workspaces", id, action, body, method });
@@ -32,6 +34,7 @@ export default function WorkspaceDetail() {
         <MenuItem disabled={!workspace?.is_active} onClick={() => setDialog("transfer")}>Transfer ownership</MenuItem>
         {current.data?.is_superuser && <MenuItem disabled={workspace?.is_active} onClick={() => setDialog("delete")}>Permanently delete</MenuItem>}
       </MenuList></MenuPopover></Menu>
+      <Button appearance="primary" disabled={!workspace?.is_active} onClick={() => openWorkspace(workspace)}>Open workspace</Button>
     </AdminHeader>
     <section className="admin-card"><dl className="admin-metrics">
       {[['Properties / units', `${workspace?.properties_count} / ${workspace?.units_count}`], ['Occupancy', occupancy(workspace || {})], ['Active leases', workspace?.active_leases], ['Outstanding', money(workspace?.outstanding_balance)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}

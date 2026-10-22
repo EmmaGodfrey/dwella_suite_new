@@ -7,6 +7,8 @@ import { useCurrentUserQuery, useSetupQuery } from "../Services/queries";
 import { getUserAccess } from "../shared/access";
 import { AppSideNav, AppTopbar, PageActionsSlot, PageHeader } from "../shared/components";
 import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navigation";
+import { SupportAccessProvider, SupportBanner } from "../Components/Platform/SupportAccess";
+import { toast } from "react-toastify";
 
 const getCachedUser = () => {
   try {
@@ -55,14 +57,18 @@ const AppLayout = () => {
     [collapsed, mobileOpen]
   );
 
-  const handleLogout = () => {
-    logout();
-    queryClient.clear();
-    navigate("/login", { replace: true });
+  const handleLogout = async () => {
+    if (queryClient.isMutating()) { toast.info("Wait for the current change to finish before signing out."); return; }
+    try {
+      await logout();
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      navigate("/login", { replace: true });
+    } catch (error) { toast.error(`Couldn’t sign out: ${error.message}. Try again.`); }
   };
 
   return (
-    <div className={shellClass}>
+    <SupportAccessProvider user={user}><div className={shellClass}>
       <AppSideNav
         collapsed={collapsed}
         mobileOpen={mobileOpen}
@@ -77,15 +83,16 @@ const AppLayout = () => {
 
       <div className="dwella-main-frame">
         <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
+        <SupportBanner />
 
         <main className="dwella-content">
           <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
             {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} /> : null}
-            <Outlet />
+            {getUserAccess(user).workspace_suspended ? <div role="status" className="admin-card"><h1>Workspace suspended</h1><p>Contact Dwella support to restore access to your workspace.</p></div> : <Outlet />}
           </PageActionsSlot.Provider>
         </main>
       </div>
-    </div>
+    </div></SupportAccessProvider>
   );
 };
 

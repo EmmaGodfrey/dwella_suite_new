@@ -1,4 +1,5 @@
 .admin-screen { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+button.dwella-workspace { text-align: left; font: inherit; color: inherit; cursor: pointer; }
 .admin-screen .dwella-page-header { margin-bottom: 0; }
 .admin-screen .dwella-page-header-copy { min-width: 0; }
 .admin-screen .dwella-page-header-copy p { overflow-wrap: anywhere; }
@@ -15,6 +16,15 @@
 .admin-loading { display: grid; gap: .75rem; }
 .admin-loading > div { height: 3.5rem; border-radius: .5rem; }
 .admin-error { color: var(--dwella-danger); }
+.admin-support-banner { display: flex; align-items: center; gap: 1rem; padding: 1rem 2rem;
+  background: var(--dwella-primary-soft); border-bottom: 1px solid var(--dwella-line); }
+.admin-support-banner > div { flex: 1; min-width: 0; }
+.admin-support-banner p { margin: .25rem 0 0; font-size: .75rem; color: var(--dwella-muted); overflow-wrap: anywhere; }
+.admin-support-banner strong { font-size: .8125rem; }
+.admin-support-shield { color: white; background: var(--dwella-primary); padding: .5rem; display: flex; border-radius: .5rem; }
+.admin-support-time { font-size: .75rem; white-space: nowrap; }
+.admin-workspace-picker { display: grid; gap: .5rem; }
+.admin-workspace-picker button { justify-content: flex-start; min-height: 3rem; }
 .admin-drawer { width: min(30rem, 100vw) !important; }
 .admin-drawer form { display: grid; gap: 1.25rem; padding-block: .75rem; }
 .admin-drawer .fui-DrawerFooter { justify-content: flex-end; }
@@ -38,6 +48,8 @@
 .admin-metrics dd { font: 600 1.75rem/1.3 var(--font-display); margin: .5rem 0 0; }
 @media (max-width: 1000px) { .admin-two-columns { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) {
+  .admin-support-banner { flex-wrap: wrap; padding: 1rem; gap: .75rem; }
+  .admin-support-banner > div { flex-basis: calc(100% - 4rem); }
   .admin-filters > * { flex: 1 1 8rem; }
   .admin-search { flex-basis: 100%; }
   .admin-card { padding: 1rem; }

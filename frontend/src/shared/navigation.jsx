@@ -16,18 +16,21 @@ import { getUserAccess } from "./access";
 // Sidebar sections, in display order. An item's `group` places it under one of
 // these; a group with no visible items for the persona is not rendered.
 export const navigationGroups = [
+  { value: "platform", label: "Platform" },
   { value: "overview", label: "Overview" },
   { value: "portfolio", label: "Portfolio" },
   { value: "operations", label: "Operations" },
-  { value: "platform", label: "Platform" },
 ];
 
 const operationalItems = [
+  { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
+  { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
+  { to: "/setup", value: "workspace-setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
   { to: "/admin/workspaces", value: "workspaces", group: "platform", label: "Workspaces", icon: <Building24Regular />, personas: ["platform_admin"] },
   { to: "/admin/identity-checks", value: "identity-checks", group: "platform", label: "Identity checks", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
   { to: "/admin/users", value: "admin-users", group: "platform", label: "Users", icon: <People24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "unassigned"] },
-  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
+  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["landlord", "tenant"] },
   { to: "/reports", value: "reports", group: "overview", label: "Reports", icon: <DataTrending24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/properties", value: "properties", group: "portfolio", label: "Properties", icon: <Building24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/tenants", value: "tenants", group: "portfolio", label: "Tenants", icon: <People24Regular />, personas: ["platform_admin", "landlord"] },
@@ -41,6 +44,7 @@ export function getNavigationItems(user) {
   const access = getUserAccess(user);
   return operationalItems
     .filter((item) => item.personas.includes(access.persona))
+    .filter((item) => access.persona !== "platform_admin" || item.group === "platform" || Boolean(access.acting_workspace))
     .map((item) => ({
       ...item,
       label: access.persona === "tenant" && item.tenantLabel ? item.tenantLabel : item.label,
@@ -48,6 +52,7 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/workspace/dashboard": ["Dashboard", "Workspace overview."],
   "/admin/workspaces": ["Workspaces", "Manage landlord workspaces and audited support access."],
   "/admin/identity-checks": ["Identity checks", "Review submitted identity documents."],
   "/admin/users": ["Users", "Manage accounts, workspace access and identity checks."],

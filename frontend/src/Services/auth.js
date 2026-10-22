@@ -1,4 +1,5 @@
 import { api, setAuthToken } from "./apiClient";
+import { setSupportWorkspace } from "./supportContext";
 
 export async function login({ email, password }) {
   const response = await api.post("/accounts/login/", { email, password });
@@ -73,7 +74,9 @@ export async function submitIdentityVerification(payload) {
   return user;
 }
 
-export function logout() {
+export async function logout() {
+  await api.post("/accounts/logout/", {});
+  setSupportWorkspace(null);
   setAuthToken(null);
   localStorage.removeItem("dwella_user");
 }

@@ -19,7 +19,8 @@ import "./notifications.scss";
 
 export function NotificationBell() {
   const { data: user } = useCurrentUserQuery();
-  const enabled = getUserAccess(user).persona === "landlord";
+  const access = getUserAccess(user);
+  const enabled = access.persona === "landlord" || Boolean(access.acting_workspace);
   const query = useNotificationsQuery({ enabled });
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);

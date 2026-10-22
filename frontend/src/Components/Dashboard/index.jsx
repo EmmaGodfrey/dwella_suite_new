@@ -501,7 +501,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const access = getUserAccess(user);
-  const isPlatformAdmin = access.persona === "platform_admin";
+  const isPlatformAdmin = access.persona === "platform_admin" && !access.acting_workspace;
   const isTenant = access.persona === "tenant";
   const enabled = Boolean(user) && !isTenant;
   const { data = emptySummary, error, isLoading } = useDashboardSummaryQuery({ enabled });

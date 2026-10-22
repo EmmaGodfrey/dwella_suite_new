@@ -14,6 +14,7 @@ import { accessLabel, getUserAccess } from "../access";
 import { getNavigationItems, navigationGroups } from "../navigation";
 import { BrandMark } from "./BrandMark";
 import { UserMenu } from "./UserMenu";
+import { useSupportAccess } from "../../Components/Platform/SupportAccess";
 
 // Ctrl/cmd/shift/alt-click and non-primary buttons must fall through to the
 // browser so the anchors keep working as real links.
@@ -22,7 +23,7 @@ const opensOutsideTheApp = (event) =>
 
 const workspaceFor = (user) => {
   const access = getUserAccess(user);
-  if (access.persona === "platform_admin") return { name: "Dwella Platform", initials: "DW" };
+  if (access.persona === "platform_admin") return { name: access.acting_workspace?.name || "Platform", initials: "DW" };
   const membership =
     user?.memberships?.find((item) => item.is_active && item.organization?.id === access.organization_id) ||
     user?.memberships?.find((item) => item.is_active);
@@ -36,6 +37,9 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
   const showLabels = !collapsed || mobileOpen;
   const navigationItems = getNavigationItems(user);
   const workspace = workspaceFor(user);
+  const openWorkspace = useSupportAccess();
+  const isAdmin = getUserAccess(user).persona === "platform_admin";
+  const WorkspaceControl = isAdmin ? "button" : "div";
 
   const handleNavItemSelect = (event, data) => {
     const destination = navigationItems.find((item) => item.value === data.value);
@@ -59,15 +63,16 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
 
         {/* Shows which organisation the figures belong to. It is a label, not a
             switcher: there is no second workspace to switch to yet. */}
-        <div className="dwella-workspace" title={!showLabels ? workspace.name : undefined}>
+        <WorkspaceControl type={isAdmin ? "button" : undefined} onClick={isAdmin ? () => openWorkspace() : undefined}
+          className="dwella-workspace" title={!showLabels ? workspace.name : undefined} aria-label={isAdmin ? "Choose workspace" : undefined}>
           <span className="dwella-workspace-avatar" aria-hidden="true">{workspace.initials}</span>
           {showLabels ? (
             <span className="dwella-workspace-copy">
               <strong>{workspace.name}</strong>
-              <small>{accessLabel(user)}</small>
+              <small>{isAdmin ? getUserAccess(user).acting_workspace ? "Support session · 4h" : "Choose workspace" : accessLabel(user)}</small>
             </span>
           ) : null}
-        </div>
+        </WorkspaceControl>
 
         <Nav
           role="navigation"

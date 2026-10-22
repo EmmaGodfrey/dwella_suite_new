@@ -18,9 +18,9 @@ export function getUserAccess(user) {
     return {
       persona: "platform_admin",
       role: "platform_admin",
-      can_view_portfolio: true,
+      can_view_portfolio: false,
       can_manage_properties: false,
-      can_view_reports: true,
+      can_view_reports: false,
     };
   }
 

@@ -22,6 +22,7 @@ import Workspaces from "../Components/Platform/Workspaces";
 import WorkspaceDetail from "../Components/Platform/WorkspaceDetail";
 
 export const routes = [
+  { path: "/workspace/dashboard", title: "Dashboard", Component: <Dashboard /> },
   { path: "/admin/workspaces", title: "Workspaces", Component: <Workspaces /> },
   { path: "/admin/workspaces/:id", title: "Workspace detail", Component: <WorkspaceDetail /> },
   { path: "/admin/identity-checks", title: "Identity checks", Component: <IdentityChecks /> },
