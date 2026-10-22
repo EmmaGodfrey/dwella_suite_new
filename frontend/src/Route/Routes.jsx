@@ -15,8 +15,12 @@ import Properties from "../Components/Properties";
 import Profile from "../Components/Profile";
 import Security from "../Components/Security";
 import BetaSignups from "../Components/BetaSignups";
+import Users from "../Components/Platform/Users";
+import UserDetail from "../Components/Platform/UserDetail";
 
 export const routes = [
+  { path: "/admin/users", title: "Users", Component: <Users /> },
+  { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },
   { path: "/billing/receipts", title: "Receipts", Component: <Receipts /> },
   { path: "/billing/receipts/:id", title: "Receipt", Component: <Receipt /> },
