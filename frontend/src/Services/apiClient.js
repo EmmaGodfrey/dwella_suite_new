@@ -1,3 +1,5 @@
+import { expireSupportContext, getSupportRequestContext, isCurrentSupportContext } from "./supportContext";
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 const AUTH_TOKEN_KEY = "dwella_access_token";
 
@@ -30,6 +32,8 @@ export function setAuthToken(token) {
 export async function apiRequest(path, options = {}) {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
+  const context = getSupportRequestContext();
+  if (context.workspace) headers.set("X-Dwella-Workspace", context.workspace);
 
   if (!headers.has("Content-Type") && options.body && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
@@ -43,7 +47,10 @@ export async function apiRequest(path, options = {}) {
   const response = await fetch(`${getApiBaseUrl()}/${path.replace(/^\//, "")}`, {
     ...fetchOptions,
     headers,
+    signal: options.signal ? AbortSignal.any([options.signal, context.signal]) : context.signal,
   });
+
+  if (!isCurrentSupportContext(context.generation)) throw new DOMException("Workspace changed", "AbortError");
 
   if (response.ok && responseType === "blob") return response.blob();
   const contentType = response.headers.get("content-type") || "";
@@ -59,6 +66,9 @@ export async function apiRequest(path, options = {}) {
     // from here to mark the offending field instead of only toasting.
     error.status = response.status;
     error.data = typeof payload === "object" ? payload.response_data : undefined;
+    if (response.status === 403 && /workspace support session|invalid workspace|workspace is suspended/i.test(error.message)) {
+      expireSupportContext();
+    }
     throw error;
   }
 
