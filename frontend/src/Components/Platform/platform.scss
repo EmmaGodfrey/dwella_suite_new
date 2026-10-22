@@ -1,0 +1,51 @@
+.admin-screen { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
+.admin-screen .dwella-page-header { margin-bottom: 0; }
+.admin-screen .dwella-page-header-copy { min-width: 0; }
+.admin-screen .dwella-page-header-copy p { overflow-wrap: anywhere; }
+.admin-title { min-width: 0; }
+.admin-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+.admin-search { flex: 0 1 18.75rem; min-width: 12rem; }
+.admin-table-card { min-width: 0; }
+.admin-table-scroll { overflow-x: auto; }
+.admin-screen .dwella-table th { font-weight: 500; }
+.admin-screen .dwella-table td { vertical-align: middle; }
+.admin-screen .dwella-table-link { color: var(--dwella-ink); font-weight: 600; text-decoration: none; }
+.admin-screen .dwella-table-link:hover { color: var(--dwella-primary); text-decoration: underline; }
+.admin-note { color: var(--dwella-muted); font-size: .75rem; display: block; margin-top: .25rem; }
+.admin-loading { display: grid; gap: .75rem; }
+.admin-loading > div { height: 3.5rem; border-radius: .5rem; }
+.admin-error { color: var(--dwella-danger); }
+.admin-drawer { width: min(30rem, 100vw) !important; }
+.admin-drawer form { display: grid; gap: 1.25rem; padding-block: .75rem; }
+.admin-drawer .fui-DrawerFooter { justify-content: flex-end; }
+.admin-two-columns { display: grid; grid-template-columns: minmax(0, 1fr) 22.5rem; gap: 1rem; }
+.admin-stack { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.admin-card { background: var(--dwella-paper); border-radius: .75rem; padding: 1.5rem; min-width: 0; }
+.admin-card h2 { font: 600 1.0625rem/1.5 var(--fontFamilyBase); margin: 0 0 1rem; }
+.admin-card dl { display: grid; gap: .75rem; margin: 0; }
+.admin-card dt { color: var(--dwella-muted); font-size: .75rem; }
+.admin-card dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.admin-card .dwella-table-card { border: 0; box-shadow: none; }
+.admin-card-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.admin-title { display: flex; align-items: center; gap: 1rem; }
+.admin-initials { width: 3rem; height: 3rem; border-radius: .5rem; display: grid; place-items: center;
+  background: var(--dwella-primary-soft); color: var(--dwella-primary); font-weight: 600; flex-shrink: 0; }
+.admin-title h1 { margin: 0; }
+.admin-badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.admin-metrics { display: flex; flex-wrap: wrap; gap: 2rem; }
+.admin-metrics > div { flex: 1; min-width: 8rem; }
+.admin-metrics dt { color: var(--dwella-muted); font-size: .8125rem; }
+.admin-metrics dd { font: 600 1.75rem/1.3 var(--font-display); margin: .5rem 0 0; }
+@media (max-width: 1000px) { .admin-two-columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .admin-filters > * { flex: 1 1 8rem; }
+  .admin-search { flex-basis: 100%; }
+  .admin-card { padding: 1rem; }
+  .admin-table-scroll .dwella-table, .admin-table-scroll tbody, .admin-table-scroll tr { display: block; }
+  .admin-table-scroll thead { display: none; }
+  .admin-table-scroll .dwella-table td { display: grid; grid-template-columns: 7rem minmax(0, 1fr);
+    gap: .75rem; padding: .5rem 1rem; border: 0; white-space: normal; overflow-wrap: anywhere; }
+  .admin-table-scroll .dwella-table td::before { content: attr(data-label); color: var(--dwella-muted); font-weight: 400; }
+  .admin-table-scroll tr { padding-block: .75rem; border-bottom: 1px solid var(--dwella-line-soft); }
+}
+@media (prefers-reduced-motion: reduce) { .admin-screen *, .admin-drawer * { animation: none !important; transition: none !important; } }

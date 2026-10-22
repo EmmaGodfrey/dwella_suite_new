@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiRequest } from "./apiClient";
+import { queryKeys } from "./queryKeys";
 
 const search = (filters) => {
   const params = new URLSearchParams();
@@ -35,6 +36,7 @@ export function usePlatformMutation(options = {}) {
     ...options,
     onSuccess: async (data, variables) => {
       await cache.invalidateQueries({ queryKey: ["platform"] });
+      await cache.invalidateQueries({ queryKey: queryKeys.currentUser });
       options.onSuccess?.(data, variables);
     },
   });
