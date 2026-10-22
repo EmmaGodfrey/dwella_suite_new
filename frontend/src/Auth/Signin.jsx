@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { useLoginMutation, usePasswordResetConfirmMutation, usePasswordResetRequestMutation, useTwoFactorLoginMutation } from "../Services/mutations";
 import { useFormErrors } from "../shared/useFormErrors";
 import AuthTour from "./AuthTour";
+import { useRegistrationQuery } from "../Services/queries";
 
 const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
 const validateEmail = (value) => {
@@ -30,9 +31,12 @@ const modeCopy = {
   "reset-confirm": ["Set a new password", "At least 10 characters, and not all digits."],
   "2fa": ["Enter your code", "Open your authenticator app and enter the current 6-digit code."],
 };
+// Beta-day emails reuse the reset link for brand-new accounts (`welcome=1`).
+const welcomeCopy = ["Choose your password", "Your Dwella beta account is ready. At least 10 characters, and not all digits."];
 
 const Signin = () => {
   const navigate = useNavigate();
+  const registration = useRegistrationQuery();
   const [searchParams] = useSearchParams();
   // Local-dev convenience only. `import.meta.env.DEV` folds to false in a
   // production build, so these literals are stripped from the shipped bundle.
@@ -45,6 +49,7 @@ const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const resetUid = searchParams.get("reset_uid");
   const resetToken = searchParams.get("reset_token");
+  const welcome = searchParams.get("welcome") === "1";
   const { validate, clearError, clearAll, fieldProps } = useFormErrors();
 
   // Each mode is a different form; stale messages should not carry across.
@@ -54,7 +59,7 @@ const Signin = () => {
     setMode(next);
   };
 
-  const [heading, blurb] = modeCopy[mode];
+  const [heading, blurb] = mode === "reset-confirm" && welcome ? welcomeCopy : modeCopy[mode];
 
   const loginMutation = useLoginMutation({
     onSuccess: (data) => {
@@ -77,7 +82,7 @@ const Signin = () => {
   });
   const resetConfirmMutation = usePasswordResetConfirmMutation({
     onSuccess: () => {
-      toast.success("Password reset complete. Sign in with your new password.");
+      toast.success(welcome ? "Password set. Sign in with your email and new password." : "Password reset complete. Sign in with your new password.");
       setMode("login");
       navigate("/login", { replace: true });
     },
@@ -242,8 +247,7 @@ const Signin = () => {
             </button>
           ) : (
             <p className="dwella-auth-signup">
-              New to Dwella? The beta opens 18 November.{" "}
-              <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a>
+              {registration.data?.open ? <>New to Dwella? <button type="button" className="dwella-text-link" onClick={() => navigate("/register")}>Create your account</button></> : <>New to Dwella? The beta opens 18 November. <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a></>}
             </p>
           )}
         </form>

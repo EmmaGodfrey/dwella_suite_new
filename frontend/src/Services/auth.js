@@ -11,6 +11,13 @@ export async function login({ email, password }) {
   return response;
 }
 
+export async function registerAccount(payload) {
+  const response = await api.post("/accounts/register/", payload);
+  setAuthToken(response.token);
+  localStorage.setItem("dwella_user", JSON.stringify(response.user));
+  return response;
+}
+
 export async function verifyTwoFactorLogin({ challengeToken, code }) {
   const response = await api.post("/accounts/login/2fa/", {
     challenge_token: challengeToken,

@@ -98,7 +98,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+# Business dates follow the Zambia beta market; aware timestamps remain UTC in storage.
+TIME_ZONE = "Africa/Lusaka"
 USE_I18N = True
 USE_TZ = True
 
@@ -115,6 +116,9 @@ EMAIL_HOST = __import__("os").getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(__import__("os").getenv("EMAIL_PORT", "1025"))
 EMAIL_HOST_USER = __import__("os").getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = __import__("os").getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 
@@ -171,13 +175,24 @@ REST_FRAMEWORK = {
         "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
         "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
+        "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
         "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
-        "beta_application": __import__(
-            "os"
-        ).getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
+        "beta_application": __import__("os").getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
     },
 }
+
+BETA_REGISTRATION_OPEN = (
+    __import__("os").getenv("APP_BETA_REGISTRATION_OPEN", "false").lower() == "true"
+)
+# Beta applicant emails stay off until real delivery is configured, so nothing is
+# marked as sent while EMAIL_BACKEND is still the console. Turning it on later
+# catches up any welcome emails that were missed.
+BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
+BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
+BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
+MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
+PUBLIC_API_URL = __import__("os").getenv("PUBLIC_API_URL", "http://localhost:8000")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Dwella Suite API",

@@ -439,7 +439,7 @@ function UnitStatusCard({ data, loading, navigate }) {
 }
 
 function RecentPayments({ navigate, enabled }) {
-  const paymentsQuery = usePaymentsQuery({ ordering: "-paid_on", page_size: 5 }, { enabled, staleTime: 30_000 });
+  const paymentsQuery = usePaymentsQuery({ ordering: "-paid_on", page_size: 5, reversed: false }, { enabled, staleTime: 30_000 });
   const payments = paymentsQuery.data?.results || [];
   const loading = !enabled || paymentsQuery.isLoading;
   return (

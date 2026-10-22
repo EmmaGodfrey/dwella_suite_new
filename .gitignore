@@ -44,3 +44,6 @@ Desktop.ini
 backend/.pytest_tmp*/
 output/
 frontend/output/
+
+# Shared agent memory (personal notes, contacts; never commit)
+.agents/memory/

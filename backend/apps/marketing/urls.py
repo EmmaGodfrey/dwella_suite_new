@@ -1,7 +1,7 @@
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import BetaApplicationAdminViewSet, BetaApplicationCreateView
+from .views import BetaApplicationAdminViewSet, BetaApplicationCreateView, unsubscribe
 
 app_name = "marketing"
 
@@ -14,5 +14,6 @@ router.register(
 
 urlpatterns = [
     path("beta-applications/", BetaApplicationCreateView.as_view(), name="beta-application"),
+    path("unsubscribe/<str:token>/", unsubscribe, name="beta-unsubscribe"),
     path("", include(router.urls)),
 ]

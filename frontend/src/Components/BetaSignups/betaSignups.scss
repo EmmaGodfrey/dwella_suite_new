@@ -112,3 +112,57 @@
     min-width: 42rem;
   }
 }
+
+.dwella-beta-emails {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-beta-emails ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-beta-emails li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+}
+
+.dwella-beta-emails li svg {
+  color: var(--dwella-subtle);
+}
+
+.dwella-beta-emails li.is-sent {
+  color: var(--dwella-ink);
+}
+
+.dwella-beta-emails li.is-sent svg {
+  color: var(--dwella-success);
+}
+
+.dwella-beta-emails li .dwella-cell-note {
+  margin: 0;
+  text-align: right;
+}
+
+.dwella-beta-emails > p.dwella-cell-note {
+  margin: 0;
+}
+
+.dwella-beta-emails > .fui-Button {
+  justify-self: start;
+}
+
+// Keep inputs their natural height when a neighbour shows an error.
+.dwella-beta-signup-grid {
+  align-items: start;
+}

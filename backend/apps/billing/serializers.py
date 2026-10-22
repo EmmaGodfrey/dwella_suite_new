@@ -53,6 +53,8 @@ class PaymentSerializer(OrganizationScopedSerializer):
             "reference",
             "notes",
             "recorded_by_name",
+            "reversed_at",
+            "reversal_reason",
             "created_at",
         ]
         read_only_fields = fields
@@ -60,6 +62,52 @@ class PaymentSerializer(OrganizationScopedSerializer):
     def get_recorded_by_name(self, obj):
         user = obj.recorded_by
         return (user.get_full_name() or user.username) if user else None
+
+
+class ReceiptSerializer(PaymentSerializer):
+    issuer = serializers.SerializerMethodField()
+    property_name = serializers.CharField(source="invoice.unit.property.name", default=None)
+    unit_name = serializers.CharField(source="invoice.unit.name", default=None)
+    tenant_phone = serializers.CharField(source="tenant.phone_number", read_only=True)
+    invoice_total = serializers.DecimalField(
+        source="invoice.total", max_digits=12, decimal_places=2, read_only=True
+    )
+    current_balance = serializers.DecimalField(
+        source="invoice.balance", max_digits=12, decimal_places=2, read_only=True
+    )
+    reversed_by_name = serializers.SerializerMethodField()
+
+    class Meta(PaymentSerializer.Meta):
+        fields = [
+            *PaymentSerializer.Meta.fields,
+            "issuer",
+            "property_name",
+            "unit_name",
+            "tenant_phone",
+            "invoice_total",
+            "current_balance",
+            "reversed_by_name",
+        ]
+        read_only_fields = fields
+
+    def get_issuer(self, obj):
+        org = obj.organization
+        return {
+            "name": str(org),
+            "address": org.address,
+            "town": org.town,
+            "phone_number": org.phone_number,
+            "email": org.email,
+            "currency": org.currency,
+        }
+
+    def get_reversed_by_name(self, obj):
+        user = obj.reversed_by
+        return (user.get_full_name() or user.username) if user else None
+
+
+class ReversePaymentSerializer(serializers.Serializer):
+    reason = serializers.CharField(max_length=500, min_length=5)
 
 
 class InvoiceSerializer(OrganizationScopedSerializer):
@@ -223,7 +271,7 @@ class GenerateInvoicesSerializer(serializers.Serializer):
 
     def validate_period(self, value):
         match = re.fullmatch(r"(\d{4})-(\d{2})", value.strip())
-        if not match or not 1 <= int(match.group(2)) <= 12:
+        if not match or not 1 <= int(match.group(2)) <= 12 or int(match.group(1)) < 1:
             raise serializers.ValidationError("Use the format YYYY-MM, for example 2026-11.")
         period = date(int(match.group(1)), int(match.group(2)), 1)
         today = timezone.localdate()

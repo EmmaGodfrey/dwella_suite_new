@@ -1,6 +1,11 @@
 export const queryKeys = {
   health: ["health"],
   currentUser: ["accounts", "me"],
+  registration: ["accounts", "registration"],
+  onboarding: ["organizations", "onboarding"],
+  notifications: ["notifications"],
+  report: (report, filters = {}) => ["reports", report, filters],
+  receipt: (id) => ["billing", "receipt", id],
   dashboardSummary: ["properties", "dashboard"],
   organizations: ["organizations"],
   properties: (filters = {}) => ["properties", filters],
@@ -20,4 +25,5 @@ export const queryKeys = {
   maintenanceSummary: ["maintenance", "summary"],
   vendors: (filters = {}) => ["maintenance", "vendors", filters],
   betaApplications: (filters = {}) => ["marketing", "betaApplications", filters],
+  betaEmailSettings: ["marketing", "betaEmailSettings"],
 };

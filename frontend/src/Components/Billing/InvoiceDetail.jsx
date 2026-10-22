@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Button,
   Dialog,
@@ -49,6 +49,7 @@ function NoteEditor({ invoice }) {
 
 export default function InvoiceDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const canManage = getUserAccess(user).can_manage_properties;
   const invoiceQuery = useInvoiceQuery(id, { staleTime: 15_000 });
@@ -102,7 +103,7 @@ export default function InvoiceDetail() {
         </div>
         {canManage && !isVoid ? (
           <div className="dwella-detail-actions">
-            {!invoice.payments.length ? <Button onClick={() => setConfirmVoid(true)}>Void</Button> : null}
+            {!invoice.payments.some((payment) => !payment.reversed_at) ? <Button onClick={() => setConfirmVoid(true)}>Void</Button> : null}
             {owing ? (
               <Button appearance="primary" icon={<Money20Regular />} onClick={() => setPaying(true)}>Record payment</Button>
             ) : null}
@@ -151,7 +152,7 @@ export default function InvoiceDetail() {
                     <div>
                       <strong>{formatMoney(payment.amount)}</strong>
                       <small>{paymentMethodLabel(payment.method)} · {formatDate(payment.paid_on)}{payment.reference ? ` · ${payment.reference}` : ""}</small>
-                      <small>{payment.receipt_number}{payment.recorded_by_name ? ` · recorded by ${payment.recorded_by_name}` : ""}</small>
+                      <small><Link to={`/billing/receipts/${payment.id}`}>{payment.receipt_number}</Link>{payment.reversed_at ? " · Reversed" : ""}{payment.recorded_by_name ? ` · recorded by ${payment.recorded_by_name}` : ""}</small>
                     </div>
                   </li>
                 ))}
@@ -170,7 +171,10 @@ export default function InvoiceDetail() {
         </aside>
       </div>
 
-      {paying ? <RecordPaymentDrawer invoice={invoice} onClose={() => setPaying(false)} onSaved={() => setPaying(false)} /> : null}
+      {paying ? <RecordPaymentDrawer invoice={invoice} onClose={() => setPaying(false)} onSaved={(data) => {
+        setPaying(false);
+        if (data.recorded_payment) navigate(`/billing/receipts/${data.recorded_payment.id}`);
+      }} /> : null}
 
       <Dialog open={confirmVoid} onOpenChange={(_, data) => !voidMutation.isPending && setConfirmVoid(data.open)}>
         <DialogSurface>

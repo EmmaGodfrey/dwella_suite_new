@@ -2,6 +2,7 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Signin from "../Auth/Signin";
+import Signup from "../Auth/Signup";
 import LayoutRoutes from "../Route/LayoutRoutes";
 import PrivateRoute from "./PrivateRoute";
 
@@ -36,6 +37,7 @@ const Routers = () => {
               <Route path={`/*`} element={<LayoutRoutes />} />
             </Route>
             <Route exact path={`/login`} element={<Signin />} />
+            <Route path="/register" element={<Signup />} />
           </Routes>
         </Suspense>
       </>

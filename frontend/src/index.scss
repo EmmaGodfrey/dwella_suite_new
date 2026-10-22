@@ -527,6 +527,7 @@ body.dark-only .dwella-brand-mark {
 
 .dwella-breadcrumbs {
   min-width: 0;
+  overflow: hidden;
 }
 
 .dwella-breadcrumbs ol {
@@ -1426,6 +1427,9 @@ body.dark-only .dwella-auth-compact-brand img {
 }
 
 @media (max-width: 640px) {
+  .dwella-breadcrumbs ol > :nth-last-child(n + 4) { display: none; }
+  .dwella-breadcrumbs .fui-BreadcrumbButton { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   .dwella-topbar {
     gap: 8px;
     padding: 0 12px;

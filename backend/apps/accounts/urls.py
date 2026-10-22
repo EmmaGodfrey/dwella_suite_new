@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .registration import RegistrationView
 from .views import (
     CurrentUserAvatarView,
     CurrentUserView,
@@ -16,6 +17,7 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("register/", RegistrationView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
     path("login/2fa/", TwoFactorLoginVerifyView.as_view(), name="login-2fa"),
     path("me/", CurrentUserView.as_view(), name="me"),

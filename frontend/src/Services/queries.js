@@ -40,6 +40,49 @@ export function useCurrentUserQuery(options = {}) {
   });
 }
 
+export function useReceiptQuery(id, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.receipt(id),
+    queryFn: () => apiRequest(`/billing/payments/${id}/`),
+    enabled: Boolean(id),
+    ...options,
+  });
+}
+
+export function useSetupQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.onboarding,
+    queryFn: () => apiRequest("/organizations/onboarding/"),
+    ...options,
+  });
+}
+
+export function useRegistrationQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.registration,
+    queryFn: () => apiRequest("/accounts/register/"),
+    staleTime: 60_000,
+    ...options,
+  });
+}
+
+export function useReportQuery(report, filters = {}, options = {}) {
+  return useQuery({
+    queryKey: queryKeys.report(report, filters),
+    queryFn: () => apiRequest(`/reports/${report}/${toSearchParams(filters)}`),
+    ...options,
+  });
+}
+
+export function useNotificationsQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.notifications,
+    queryFn: () => apiRequest("/notifications/"),
+    refetchInterval: 60_000,
+    ...options,
+  });
+}
+
 export function useDashboardSummaryQuery(options = {}) {
   return useQuery({
     queryKey: queryKeys.dashboardSummary,
@@ -190,6 +233,15 @@ export function useVendorsQuery(filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.vendors(filters),
     queryFn: () => apiRequest(`/maintenance/vendors/${toSearchParams(filters)}`),
+    ...options,
+  });
+}
+
+export function useBetaEmailSettingsQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.betaEmailSettings,
+    queryFn: () => apiRequest("/marketing/admin/beta-applications/email-settings/"),
+    staleTime: 5 * 60_000,
     ...options,
   });
 }

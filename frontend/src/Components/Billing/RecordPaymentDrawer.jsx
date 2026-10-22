@@ -36,7 +36,7 @@ export default function RecordPaymentDrawer({ invoice, onClose, onSaved }) {
   const { validate, clearError, fieldProps, showServerErrors } = useFormErrors();
   const mutation = useRecordPaymentMutation({
     onSuccess: (data) => {
-      const receipt = data.payments?.[0]?.receipt_number;
+      const receipt = data.recorded_payment?.receipt_number;
       toast.success(receipt ? `Payment recorded · ${receipt}` : "Payment recorded.");
       onSaved?.(data);
     },
