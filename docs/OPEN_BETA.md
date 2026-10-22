@@ -91,3 +91,48 @@ launch actions. Nothing here authorizes pushing to main or deploying.
   fallback. Confirm production font delivery during the launch review.
 - Local development SQLite was backed up before applying pending migrations;
   the user's existing portfolio data was not seeded or replaced.
+
+## Beta applicant emails (added 22 October 2026)
+
+Everyone who signs up at dwella.properties, or whom an administrator adds from
+Beta signups → Add signup, gets this sequence by email (`apps/marketing/emails.py`):
+
+| Step | When (Africa/Lusaka) |
+| --- | --- |
+| Welcome | Straight after signing up |
+| Two weeks to go (what to have ready) | 4 November, from 08:00 |
+| One week to go (the first ten minutes) | 11 November, from 08:00 |
+| Beta tomorrow (watch your inbox) | 17 November, from 08:00 |
+| Sign-in details | 18 November, from 08:00 |
+
+- Each step is sent once (`BetaEmail` log) and retried if delivery fails. A late
+  run sends the current step but never one a later step has replaced. Someone who
+  signs up after a step's date doesn't get that step, because the welcome covers it.
+- Beta day creates a normal landlord account (never staff) with the applicant's email as
+  username and no password, and emails a one-time set-password link
+  (`/login?reset_uid=…&welcome=1`, valid for PASSWORD_RESET_TIMEOUT, three days by default). After
+  that, Forgot password works as usual. If an account already exists for that email, it is
+  linked and the applicant is told to sign in; its password is not touched.
+- Declined signups get nothing more. Signups with no email can't receive anything:
+  add their email in the detail panel. "Stop countdown emails" (one-click
+  `List-Unsubscribe`) stops steps 2–4 only; sign-in details are still sent.
+- Admins can send sign-in details early, or resend a fresh link, from the detail
+  panel. Doing so marks the signup Accepted. Signups after beta day get their
+  sign-in details right away.
+- Public signups with an email that is already on the list get the usual success
+  response without a second row or a second welcome.
+
+### Turning it on in production
+
+1. Configure real SMTP in `.env.prod`: `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`,
+   `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`,
+   `EMAIL_USE_TLS=true` (port 587) or `EMAIL_USE_SSL=true` (port 465), and
+   `EMAIL_FROM_ADDRESS` on a domain with SPF/DKIM set up (for example `beta@dwella.properties`).
+2. Set `FRONTEND_URL=https://app.dwella.properties`, `PUBLIC_API_URL=https://api.dwella.properties`,
+   optional `APP_BETA_EMAIL_REPLY_TO`, and finally `APP_BETA_EMAILS_ENABLED=true`.
+   The first scheduler run sends any welcome emails that are still owed to existing signups.
+3. The `beta-mailer` service in `deploy/docker-compose.prod.yml` runs
+   `manage.py send_beta_emails` every 15 minutes. To run it once by hand:
+   `docker compose --env-file .env.prod -f deploy/docker-compose.prod.yml exec backend python manage.py send_beta_emails`.
+4. Deploy the dwella.properties form change (email now required) after email is on,
+   because its success message says a welcome email was sent.
