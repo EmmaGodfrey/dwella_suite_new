@@ -240,19 +240,19 @@ def test_tenant_persona_and_anonymous_users_are_blocked(org):
 
 
 @pytest.mark.django_db
-def test_platform_admin_reads_all_tenants_but_cannot_create(org):
+def test_platform_admin_requires_workspace_for_tenants(org):
     Tenant.objects.create(organization=org, full_name="Mine", phone_number="+260971111111")
     admin = User.objects.create_user(username="admin", password="StrongerPass123", is_staff=True)
     client = APIClient()
     client.force_authenticate(user=admin)
-    assert len(client.get("/api/v1/tenants/").json()["response_data"]) == 1
+    assert client.get("/api/v1/tenants/").status_code == 400
     assert (
         client.post(
             "/api/v1/tenants/",
             {"full_name": "New Person", "phone_number": "0972222222"},
             format="json",
         ).status_code
-        == 403
+        == 400
     )
 
 

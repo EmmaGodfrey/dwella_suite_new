@@ -376,7 +376,7 @@ def test_dashboard_summary_handles_user_without_organization():
 
 
 @pytest.mark.django_db
-def test_platform_admin_sees_all_portfolios_but_cannot_create_properties():
+def test_platform_admin_requires_workspace_for_dashboard_and_properties():
     admin = User.objects.create_user(
         username="platform@example.com",
         email="platform@example.com",
@@ -412,16 +412,8 @@ def test_platform_admin_sees_all_portfolios_but_cannot_create_properties():
         format="json",
     )
 
-    assert dashboard.status_code == 200
-    data = dashboard.json()["response_data"]
-    assert data["access"]["persona"] == "platform_admin"
-    assert data["platform"] == {"organizations": 2, "landlords": 2}
-    assert data["properties"]["total"] == 2
-    assert {item["organization_name"] for item in data["recent_properties"]} == {
-        "First Landlord",
-        "Second Landlord",
-    }
-    assert create.status_code == 403
+    assert dashboard.status_code == 400
+    assert create.status_code == 400
     assert not Property.objects.filter(name="Admin Property").exists()
 
 

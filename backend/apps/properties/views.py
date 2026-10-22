@@ -6,9 +6,9 @@ from django_filters import rest_framework as filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.permissions import CanViewPortfolio, get_active_membership, get_user_access
+from apps.common.permissions import CanViewPortfolio, get_user_access
 from apps.common.viewsets import OrganizationScopedModelViewSet
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.common.workspaces import resolve_workspace
 
 from .models import Property, PropertyOwner, Unit
 from .serializers import PropertyOwnerSerializer, PropertySerializer, UnitSerializer
@@ -28,14 +28,12 @@ class PropertyDashboardSummaryView(APIView):
     permission_classes = [CanViewPortfolio]
 
     def get_organization(self):
-        membership = get_active_membership(self.request.user)
-        return membership.organization if membership else None
+        return resolve_workspace(self.request)
 
     def get(self, request):
-        access = get_user_access(request.user)
+        access = get_user_access(request.user, request)
         organization = self.get_organization()
-        is_platform_admin = access["persona"] == "platform_admin"
-        if organization is None and not is_platform_admin:
+        if organization is None:
             return Response(
                 {
                     "access": access,
@@ -75,33 +73,14 @@ class PropertyDashboardSummaryView(APIView):
                 }
             )
 
-        if is_platform_admin:
-            properties = Property.objects.select_related("organization")
-            units = Unit.objects.select_related("property", "organization")
-            organization_data = {
-                "id": None,
-                "name": "Dwella Suite",
-                "display_name": "All landlord portfolios",
-            }
-            platform_data = {
-                "organizations": Organization.objects.count(),
-                "landlords": OrganizationMembership.objects.filter(
-                    is_active=True,
-                    role=OrganizationMembership.Role.OWNER,
-                )
-                .values("user_id")
-                .distinct()
-                .count(),
-            }
-        else:
-            properties = Property.objects.for_organization(organization)
-            units = Unit.objects.for_organization(organization).select_related("property")
-            organization_data = {
-                "id": str(organization.public_id),
-                "name": organization.name,
-                "display_name": organization.display_name,
-            }
-            platform_data = None
+        properties = Property.objects.for_organization(organization)
+        units = Unit.objects.for_organization(organization).select_related("property")
+        organization_data = {
+            "id": str(organization.public_id),
+            "name": organization.name,
+            "display_name": organization.display_name,
+        }
+        platform_data = None
 
         property_totals = properties.aggregate(
             total=Count("id"),
