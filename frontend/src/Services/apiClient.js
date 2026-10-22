@@ -39,11 +39,13 @@ export async function apiRequest(path, options = {}) {
     headers.set("Authorization", `Token ${token}`);
   }
 
+  const { responseType, ...fetchOptions } = options;
   const response = await fetch(`${getApiBaseUrl()}/${path.replace(/^\//, "")}`, {
-    ...options,
+    ...fetchOptions,
     headers,
   });
 
+  if (response.ok && responseType === "blob") return response.blob();
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json") ? await response.json() : await response.text();
 
@@ -87,5 +89,7 @@ export const api = {
       method: "PATCH",
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
-  delete: (path, options) => apiRequest(path, { ...options, method: "DELETE" }),
+  delete: (path, body, options) => apiRequest(path, {
+    ...options, method: "DELETE", ...(body ? { body: JSON.stringify(body) } : {}),
+  }),
 };
