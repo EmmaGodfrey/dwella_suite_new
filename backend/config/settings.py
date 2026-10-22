@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import dj_database_url
+from corsheaders.defaults import default_headers
 
 from .env import env_bool, env_list, load_root_env
 
@@ -139,6 +140,8 @@ CONTENT_SECURITY_POLICY = __import__("os").getenv(
     "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 )
 
+CORS_ALLOW_HEADERS = [*default_headers, "x-dwella-workspace", "x-request-id"]
+
 CORS_ALLOWED_ORIGINS = env_list(
     "APP_CORS_ALLOWED_ORIGINS",
     "http://localhost:3000,http://127.0.0.1:3000",
@@ -147,8 +150,8 @@ CORS_ALLOWED_ORIGINS = env_list(
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
+        "apps.common.authentication.WorkspaceSessionAuthentication",
+        "apps.common.authentication.WorkspaceTokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_FILTER_BACKENDS": [
@@ -174,6 +177,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
         "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
+        "support_session": "10/hour",
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
         "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
