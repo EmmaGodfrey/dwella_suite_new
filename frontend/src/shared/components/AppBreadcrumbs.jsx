@@ -35,6 +35,11 @@ export const AppBreadcrumbs = () => {
   if (section !== "/dashboard") crumbs.push({ to: section, label: getPageMeta(section, user)[0] });
   if (pathname.startsWith("/billing/receipts")) crumbs.push({ to: "/billing/receipts", label: "Receipts" });
   if (detail) crumbs.push({ to: pathname, label: detail });
+  if (pathname.startsWith("/admin/")) {
+    const sectionPath = pathname.split("/").slice(0, 3).join("/");
+    crumbs.splice(1, crumbs.length, { to: sectionPath, label: getPageMeta(sectionPath, user)[0] });
+    if (pathname !== sectionPath) crumbs.push({ to: pathname, label: "Details" });
+  }
 
   return (
     <Breadcrumb className="dwella-breadcrumbs" aria-label="Breadcrumb" size="medium">
