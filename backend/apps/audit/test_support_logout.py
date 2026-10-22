@@ -29,7 +29,9 @@ def test_real_token_authentication_and_logout_ends_all_sessions(context):
     )
     assert client.get("/api/v1/accounts/me/").status_code == 200
     client.credentials(HTTP_AUTHORIZATION=f"Token {token.key}", HTTP_X_DWELLA_WORKSPACE="bad")
-    assert client.get("/api/v1/accounts/me/").status_code == 403
+    stale = client.get("/api/v1/accounts/me/")
+    assert stale.status_code == 200
+    assert stale.json()["response_data"]["access"]["acting_workspace"] is None
     client.credentials(
         HTTP_AUTHORIZATION=f"Token {token.key}", HTTP_X_DWELLA_WORKSPACE=str(org.public_id)
     )

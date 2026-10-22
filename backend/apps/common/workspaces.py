@@ -14,27 +14,36 @@ def resolve_workspace(request, *, user=None, required=True):
         organization, session = None, None
         if user.is_staff or user.is_superuser:
             header = request.headers.get("X-Dwella-Workspace")
+            # Account/lifecycle operations must remain usable with stale browser state.
+            # /me/ still reports a valid optional context for the workspace banner.
+            path = request.path_info
+            if path.startswith("/api/v1/platform/") or (
+                path.startswith("/api/v1/accounts/") and path != "/api/v1/accounts/me/"
+            ):
+                header = None
             if header is not None:
                 from apps.audit.models import SupportSession
 
                 try:
                     workspace_id = UUID(header)
-                except (ValueError, TypeError, AttributeError) as exc:
-                    raise PermissionDenied("Invalid workspace support session.") from exc
-                session = (
-                    SupportSession.objects.select_for_update()
-                    .select_related("organization")
-                    .filter(
-                        admin=user,
-                        organization__public_id=workspace_id,
-                        ended_at__isnull=True,
-                        expires_at__gt=timezone.now(),
+                except (ValueError, TypeError, AttributeError):
+                    request._workspace_error = "Invalid workspace support session."
+                else:
+                    session = (
+                        SupportSession.objects.select_for_update()
+                        .select_related("organization")
+                        .filter(
+                            admin=user,
+                            organization__public_id=workspace_id,
+                            ended_at__isnull=True,
+                            expires_at__gt=timezone.now(),
+                        )
+                        .first()
                     )
-                    .first()
-                )
-                if session is None:
-                    raise PermissionDenied("Workspace support session has expired or ended.")
-                organization = session.organization
+                    if session is None:
+                        request._workspace_error = "Workspace support session has expired or ended."
+                    else:
+                        organization = session.organization
         else:
             from .permissions import get_active_membership
 
@@ -49,5 +58,7 @@ def resolve_workspace(request, *, user=None, required=True):
         raw.support_session = session
     organization = getattr(request, "organization", None)
     if required and organization is None and (user.is_staff or user.is_superuser):
+        if error := getattr(request, "_workspace_error", None):
+            raise PermissionDenied(error)
         raise ValidationError("Choose a workspace first.")
     return organization
