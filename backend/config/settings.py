@@ -116,6 +116,9 @@ EMAIL_HOST = __import__("os").getenv("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(__import__("os").getenv("EMAIL_PORT", "1025"))
 EMAIL_HOST_USER = __import__("os").getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = __import__("os").getenv("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
+EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
+EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 
@@ -182,6 +185,14 @@ REST_FRAMEWORK = {
 BETA_REGISTRATION_OPEN = (
     __import__("os").getenv("APP_BETA_REGISTRATION_OPEN", "false").lower() == "true"
 )
+# Beta applicant emails stay off until real delivery is configured, so nothing is
+# marked as sent while EMAIL_BACKEND is still the console. Turning it on later
+# catches up any welcome emails that were missed.
+BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
+BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
+BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
+MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
+PUBLIC_API_URL = __import__("os").getenv("PUBLIC_API_URL", "http://localhost:8000")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Dwella Suite API",

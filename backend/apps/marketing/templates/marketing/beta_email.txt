@@ -1,0 +1,14 @@
+{% autoescape off %}{% for paragraph in message.paragraphs %}{{ paragraph|striptags }}
+
+{% endfor %}{% for item in message.checklist %}- {{ item }}
+{% endfor %}{% if message.checklist %}
+{% endif %}{% if message.cta_url %}{{ message.cta_label }}: {{ message.cta_url }}
+
+{% endif %}{% if message.footnote %}{{ message.footnote }}
+
+{% endif %}The Dwella team
+
+--
+You're receiving this because you signed up for the Dwella beta at {{ site_url }}.{% if unsubscribe_url %}
+Stop countdown emails: {{ unsubscribe_url }}{% endif %}
+{% endautoescape %}
