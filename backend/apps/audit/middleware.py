@@ -20,6 +20,22 @@ class RequestAuditContextMiddleware:
         with transaction.atomic():
             response = self.get_response(request)
             session = getattr(request, "support_session", None)
+            if not session and response.status_code < 400:
+                match = request.resolver_match
+                important = {
+                    "invoice-record-payment": "payment.recorded",
+                    "invoice-void": "invoice.voided",
+                    "payment-reverse": "payment.reversed",
+                    "lease-end": "lease.ended",
+                }
+                if action := important.get(match.url_name if match else ""):
+                    event = record_event(request, action)
+                    event.resource_type = {
+                        "payment.recorded": "billing.invoice", "invoice.voided": "billing.invoice",
+                        "payment.reversed": "billing.payment", "lease.ended": "leases.lease",
+                    }[action]
+                    event.resource_id = str(match.kwargs.get("public_id", ""))
+                    event.save(update_fields=["resource_type", "resource_id"])
             if session and request.method not in {"GET", "HEAD", "OPTIONS"}:
                 if response.status_code >= 400:
                     transaction.set_rollback(True)

@@ -15,6 +15,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.services import record_event
+
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
@@ -40,8 +42,13 @@ User = get_user_model()
 signer = TimestampSigner(salt="accounts.two_factor.challenge")
 
 
+@transaction.atomic
 def issue_auth_response(user, request):
     token, _ = Token.objects.get_or_create(user=user)
+    user.last_login = timezone.now()
+    user.save(update_fields=["last_login"])
+    request.user = user
+    record_event(request, "account.signed_in", user)
     return Response(
         {
             "token": token.key,
@@ -107,11 +114,13 @@ class TwoFactorLoginVerifyView(APIView):
 class TwoFactorSetupView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         device, _ = TwoFactorDevice.objects.update_or_create(
             user=request.user,
             defaults={"secret": make_totp_secret(), "is_confirmed": False, "confirmed_at": None},
         )
+        record_event(request, "account.2fa_setup_started", request.user)
         return Response(
             {
                 "secret": device.secret,
@@ -124,6 +133,7 @@ class TwoFactorSetupVerifyView(APIView):
     permission_classes = [IsAuthenticated]
     throttle_scope = "two_factor"
 
+    @transaction.atomic
     def post(self, request):
         device = getattr(request.user, "two_factor_device", None)
         if not device:
@@ -135,14 +145,17 @@ class TwoFactorSetupVerifyView(APIView):
         serializer = TwoFactorSetupVerifySerializer(data=request.data, context={"device": device})
         serializer.is_valid(raise_exception=True)
         device.mark_confirmed()
+        record_event(request, "account.2fa_enabled", request.user)
         return Response({"enabled": True})
 
 
 class TwoFactorDisableView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
     def post(self, request):
         TwoFactorDevice.objects.filter(user=request.user).delete()
+        record_event(request, "account.2fa_disabled", request.user)
         return Response({"enabled": False})
 
 
