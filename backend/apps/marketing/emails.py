@@ -56,6 +56,9 @@ def due_steps(application, now=None):
     if not application.email or application.status == BetaApplication.Status.DECLINED:
         return []
     sent = {email.kind: email for email in application.emails.all()}
+    # Early access already delivered the sign-in details; the countdown would only confuse.
+    if Kind.ACCESS in sent:
+        return []
     working_hours = now.hour >= SEND_FROM_HOUR
 
     if today >= beta_open_date():
@@ -126,7 +129,7 @@ class Message:
     countdown: bool = True
 
 
-def build_message(application, kind):
+def build_message(application, kind, now=None):
     opens = f"{beta_open_date():%A} {beta_open_date().day} {beta_open_date():%B}"
     # Paragraphs are trusted HTML, so anything the applicant typed is escaped here.
     first_name = escape(application.name.strip().split(" ")[0])
@@ -197,12 +200,15 @@ def build_message(application, kind):
         )
 
     user = application.account
+    early = timezone.localdate(now or timezone.now()) < beta_open_date()
     if user.has_usable_password():
         return Message(
-            subject="The Dwella beta is open",
+            subject="You're in early" if early else "The Dwella beta is open",
             preheader="Sign in with your existing Dwella account.",
             paragraphs=[
-                f"Hi {first_name}, the Dwella beta is open.",
+                f"Hi {first_name}, you have early access to Dwella."
+                if early
+                else f"Hi {first_name}, the Dwella beta is open.",
                 f"You already have an account. Sign in with <strong>{escape(user.email)}</strong> "
                 "and your existing password.",
             ],
@@ -214,6 +220,26 @@ def build_message(application, kind):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     days = max(1, settings.PASSWORD_RESET_TIMEOUT // 86400)
+    if early:
+        return Message(
+            subject="You're in early: your Dwella account is ready",
+            preheader=f"Early access ahead of the {opens} beta. Set your password and sign in.",
+            paragraphs=[
+                f"Hi {first_name}, you're one of the first people to use Dwella, ahead of "
+                f"the beta opening on <strong>{opens}</strong>.",
+                f"Your username is your email address: <strong>{escape(user.email)}</strong>. "
+                "Choose a password to sign in:",
+                "Anything confusing, broken or missing? Reply to this email and tell us. "
+                "Early feedback shapes what we fix before the beta opens.",
+            ],
+            cta_label="Set your password",
+            cta_url=f"{frontend_reset_url(uid, token)}&welcome=1",
+            footnote=(
+                f"This link works for {days} days and only once. After that, use Forgot "
+                f"password at {sign_in} with this email address."
+            ),
+            countdown=False,
+        )
     return Message(
         subject="Your Dwella beta account is ready",
         preheader="Set your password and sign in.",
@@ -254,7 +280,7 @@ def send_message(application, message):
     email.send(fail_silently=False)
 
 
-def deliver(application, kind, *, resend=False):
+def deliver(application, kind, *, resend=False, now=None):
     """Send one step. Returns False if it was already sent and resend is off."""
     if not settings.BETA_EMAILS_ENABLED:
         raise BetaEmailError("Beta emails are turned off (APP_BETA_EMAILS_ENABLED).")
@@ -272,7 +298,7 @@ def deliver(application, kind, *, resend=False):
     try:
         if kind == Kind.ACCESS:
             provision_account(application)
-        send_message(application, build_message(application, kind))
+        send_message(application, build_message(application, kind, now))
     except Exception:
         if created:
             record.delete()
@@ -298,7 +324,7 @@ def send_due_emails(applications=None, now=None):
     for application in applications:
         for kind in due_steps(application, now):
             try:
-                sent += deliver(application, kind)
+                sent += deliver(application, kind, now=now)
             except Exception:
                 failed += 1
                 logger.exception("Beta email %s to application %s failed", kind, application.pk)

@@ -359,3 +359,32 @@ def test_unsubscribe_rejects_tampered_tokens():
     assert response.status_code == 404
     application.refresh_from_db()
     assert application.unsubscribed_at is None
+
+
+@pytest.mark.django_db
+def test_early_access_stops_the_welcome_and_countdown():
+    application = applicant()
+    BetaEmail.objects.create(application=application, kind=Kind.ACCESS, sent_at=oct_(22))
+    application.refresh_from_db()
+
+    assert due_steps(application, oct_(23)) == []
+    assert due_steps(application, at(4)) == []
+    assert due_steps(application, at(17)) == []
+    assert due_steps(application, at(18)) == []
+
+
+@pytest.mark.django_db
+def test_access_before_beta_day_is_worded_as_early_access():
+    application = applicant()
+    client = admin_client()
+
+    with mock.patch("django.utils.timezone.now", return_value=oct_(22)):
+        response = client.post(f"{ADMIN_URL}{application.pk}/send-access/")
+
+    assert response.status_code == 200
+    message = mail.outbox[-1]
+    assert message.subject == "You're in early: your Dwella account is ready"
+    assert "the beta is open" not in message.body
+    application = BetaApplication.objects.prefetch_related("emails").get(pk=application.pk)
+    send_due_emails([application], at(4))
+    assert len(mail.outbox) == 1
