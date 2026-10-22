@@ -6,6 +6,7 @@ from .views import (
     CurrentUserView,
     IdentityVerificationSubmitView,
     LoginView,
+    LogoutView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     TwoFactorDisableView,
@@ -17,6 +18,7 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("logout/", LogoutView.as_view(), name="logout"),
     path("register/", RegistrationView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),
     path("login/2fa/", TwoFactorLoginVerifyView.as_view(), name="login-2fa"),

@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth import logout as session_logout
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
+from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
@@ -161,6 +163,36 @@ class CurrentUserView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(CurrentUserSerializer(user, context={"request": request}).data)
+
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request):
+        from apps.audit.models import SupportSession
+        from apps.audit.services import record_event
+
+        now = timezone.now()
+        sessions = SupportSession.objects.select_for_update().filter(
+            admin=request.user, ended_at__isnull=True
+        )
+        for support_session in sessions:
+            support_session.ended_at = now
+            support_session.save(update_fields=["ended_at", "updated_at"])
+            record_event(
+                request,
+                "support_session.ended",
+                support_session,
+                organization=support_session.organization,
+                support_session=str(support_session.public_id),
+                reason=support_session.reason,
+                cause="sign_out",
+            )
+        Token.objects.filter(user=request.user).delete()
+        session_logout(request)
+        request._request.support_event_recorded = True
+        return Response({"signed_out": True})
 
 
 class CurrentUserAvatarView(APIView):
