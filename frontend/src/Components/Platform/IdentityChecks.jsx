@@ -3,22 +3,29 @@ import { Link } from "react-router-dom";
 import { Button, Field, Input } from "@fluentui/react-components";
 import { Search20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
-import { downloadPlatformFile, usePlatformList, usePlatformMutation } from "../../Services/platform";
+import { downloadPlatformFile, usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, Filter, choice, nameOf, when, workspaceName } from "./AdminUI";
 
 export default function IdentityChecks() {
-  const [filters, setFilters] = useState({ status: "pending", search: "", page: 1 });
+  const [filters, setFilters] = useState({ status: "pending", search: "", page: 1, submitted_after: "", submitted_before: "" });
   const [selected, setSelected] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const query = usePlatformList("identity-verifications", filters);
+  const totals = usePlatformDetail("identity-verifications", "summary");
   const mutation = usePlatformMutation();
   const change = (key, value) => setFilters((f) => ({ ...f, [key]: value, page: 1 }));
   return <div className="admin-screen">
     <AdminHeader title="Identity checks" description="Review submitted identity documents and record a clear decision." />
+    <AdminState query={totals}><dl className="admin-metrics">
+      {[["Pending review", "pending"], ["Approved", "approved"], ["Rejected", "rejected"]].map(([label, key]) => <div key={key}><dt>{label}</dt><dd>{totals.data?.[key]}</dd></div>)}
+    </dl></AdminState>
     <div className="admin-filters"><Field label="Search identity checks" className="admin-search">
       <Input contentBefore={<Search20Regular />} placeholder="Name or email" value={filters.search} onChange={(_, d) => change("search", d.value)} />
-    </Field><Filter label="Status" value={filters.status} onChange={(v) => change("status", v)} options={["pending", "approved", "rejected"].map(choice)} /></div>
+    </Field><Filter label="Status" value={filters.status} onChange={(v) => change("status", v)} options={["pending", "approved", "rejected"].map(choice)} />
+      <Field label="Submitted from"><Input type="date" value={filters.submitted_after} onChange={(_, d) => change("submitted_after", d.value)} /></Field>
+      <Field label="Submitted to"><Input type="date" value={filters.submitted_before} min={filters.submitted_after || undefined} onChange={(_, d) => change("submitted_before", d.value)} /></Field>
+    </div>
     <AdminState query={query} empty={!query.data?.results?.length} title="No identity checks to review">
       <AdminTable rows={query.data?.results || []} pagination={query.data?.pagination} setPage={(page) => setFilters((f) => ({ ...f, page }))} columns={[
         { key: "applicant", label: "Applicant", render: (r) => <><Link className="dwella-table-link" to={`/admin/users/${r.user.id}`}>{nameOf(r.user)}</Link><span className="admin-note">{r.user.email}</span></> },
