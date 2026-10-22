@@ -110,7 +110,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
         return IdentityVerificationSerializer(verification, context=self.context).data
 
     def get_access(self, obj):
-        return get_user_access(obj)
+        return get_user_access(obj, self.context.get("request"))
 
 
 class CurrentUserUpdateSerializer(serializers.ModelSerializer):
