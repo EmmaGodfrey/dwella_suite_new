@@ -1,30 +1,28 @@
 import React, { useState } from "react";
-import {
-  Button,
-  DrawerBody,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerHeaderTitle,
-  Dropdown,
-  Field,
-  Option,
-  OverlayDrawer,
-} from "@fluentui/react-components";
-import { Dismiss24Regular } from "@fluentui/react-icons";
+import { Dropdown, Field, Option } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 
 import { useSaveLeaseMutation } from "../../Services/mutations";
 import { useTenantsQuery } from "../../Services/queries";
 import { LEASE_FIELDS, emptyLease, leasePayload, leaseRules } from "../../shared/tenancy";
 import { useFormErrors } from "../../shared/useFormErrors";
-import LeaseFields from "./LeaseFields";
+import LeaseFields, { LeaseStatus } from "./LeaseFields";
+import { FormDrawer } from "../../shared/components/FormFlow";
+import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
+
+const groups = [
+  ["tenant", "unit"],
+  LEASE_FIELDS.filter((name) => name !== "unit"),
+];
 
 // New lease for a tenant already on file (e.g. a renewal or a move to
 // another unit). New tenants get their lease from the Add tenant drawer.
 export default function LeaseDrawer({ open, onClose, onSaved }) {
+  const [step, setStep] = useState(0);
   const [tenantId, setTenantId] = useState("");
   const [lease, setLease] = useState(emptyLease);
-  const { validate, clearError, fieldProps, showServerErrors } = useFormErrors();
+  const { errors, validate, clearError, fieldProps, showServerErrors } =
+    useFormErrors();
   const tenantsQuery = useTenantsQuery({ page_size: 200, ordering: "full_name" }, { staleTime: 30_000 });
   const tenants = tenantsQuery.data?.results || [];
   const selected = tenants.find((tenant) => tenant.id === tenantId);
@@ -35,6 +33,7 @@ export default function LeaseDrawer({ open, onClose, onSaved }) {
       onSaved?.(data);
     },
     onError: (error) => {
+      setStep(firstErrorStep(error.data, groups, step));
       if (!showServerErrors(error.data, ["tenant", ...LEASE_FIELDS])) toast.error(error.message || "Could not create the lease.");
     },
   });
@@ -47,24 +46,54 @@ export default function LeaseDrawer({ open, onClose, onSaved }) {
   const submit = (event) => {
     event.preventDefault();
     if (mutation.isPending) return;
-    const ok = validate({ tenant: () => (tenantId ? "" : "Choose a tenant."), ...leaseRules(lease) }, event.currentTarget);
-    if (ok) mutation.mutate({ payload: { tenant: tenantId, ...leasePayload(lease) } });
+    const allRules = {
+      tenant: () => (tenantId ? "" : "Choose a tenant."),
+      ...leaseRules(lease),
+    };
+    const rules =
+      step === 1
+        ? allRules
+        : Object.fromEntries(
+            Object.entries(allRules).filter(([name]) =>
+              groups[step].includes(name),
+            ),
+          );
+    if (!validate(rules, event.currentTarget)) {
+      setStep(firstErrorStep(ruleErrors(rules), groups, step));
+      return;
+    }
+    if (step < 1) setStep(step + 1);
+    else
+      mutation.mutate({ payload: { tenant: tenantId, ...leasePayload(lease) } });
   };
 
   return (
-    <OverlayDrawer open={open} position="end" size="medium" className="dwella-drawer" onOpenChange={(_, data) => !data.open && !mutation.isPending && onClose()}>
-      <DrawerHeader>
-        <DrawerHeaderTitle action={<Button appearance="subtle" aria-label="Close" icon={<Dismiss24Regular />} disabled={mutation.isPending} onClick={onClose} />}>
-          New lease
-        </DrawerHeaderTitle>
-        <p className="dwella-drawer-note">For a tenant already on file. To add someone new, use Add tenant on the Tenants page.</p>
-      </DrawerHeader>
-      <form id="lease-form" noValidate onSubmit={submit} className="dwella-drawer-form">
-        <DrawerBody>
-          <fieldset disabled={mutation.isPending}>
-            <section className="dwella-form-section">
-              <h3>Tenant</h3>
-              <Field label="Tenant" required {...fieldProps("tenant")}>
+    <FormDrawer
+      open={open}
+      title="New lease"
+      description="Create a lease for a tenant already on file."
+      steps={["Tenant and unit", "Terms"]}
+      step={step}
+      stepTitle={
+        ["Tenant and unit", "Terms and rent"][step]
+      }
+      stepDescription={
+        [
+          "Choose a tenant and an available unit.",
+          "Keep dates and financial terms together.",
+        ][step]
+      }
+      onSubmit={submit}
+      onBack={() => setStep(step - 1)}
+      onClose={onClose}
+      errors={errors}
+      busy={mutation.isPending}
+      submitLabel="Create lease"
+      pendingLabel="Creating lease…"
+    >
+      {step === 0 ? (
+        <>
+          <Field label="Tenant" required {...fieldProps("tenant")}>
                 <Dropdown
                   placeholder={tenantsQuery.isLoading ? "Loading tenants…" : "Choose a tenant"}
                   disabled={tenantsQuery.isLoading || !tenants.length}
@@ -85,20 +114,19 @@ export default function LeaseDrawer({ open, onClose, onSaved }) {
                   ))}
                 </Dropdown>
               </Field>
-            </section>
-            <section className="dwella-form-section">
-              <h3>Unit and terms</h3>
-              <LeaseFields lease={lease} onChange={updateLease} fieldProps={fieldProps} />
-            </section>
-          </fieldset>
-        </DrawerBody>
-      </form>
-      <DrawerFooter className="dwella-drawer-footer">
-        <Button onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
-        <Button appearance="primary" type="submit" form="lease-form" disabled={mutation.isPending}>
-          {mutation.isPending ? "Creating…" : "Create lease"}
-        </Button>
-      </DrawerFooter>
-    </OverlayDrawer>
+          <LeaseFields
+            section="unit"
+            lease={lease}
+            onChange={updateLease}
+            fieldProps={fieldProps}
+          />
+        </>
+      ) : (
+        <>
+          <LeaseFields section="terms" lease={lease} onChange={updateLease} fieldProps={fieldProps} />
+          <LeaseStatus lease={lease} onChange={updateLease} />
+        </>
+      )}
+    </FormDrawer>
   );
 }
