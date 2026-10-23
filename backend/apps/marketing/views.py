@@ -75,15 +75,43 @@ class BetaApplicationAdminViewSet(
     ordering_fields = ["created_at", "name", "status"]
     ordering = ["-created_at"]
 
+    def get_queryset(self):
+        from datetime import date
+
+        from django.db.models import Exists, OuterRef
+
+        query = super().get_queryset()
+        early = self.request.query_params.get("early_access")
+        if early is not None:
+            if early not in ("true", "false"):
+                raise ValidationError({"early_access": "Use true or false."})
+            access = BetaEmail.objects.filter(
+                application_id=OuterRef("pk"),
+                kind="access",
+                sent_at__date__lt=date.fromisoformat(settings.BETA_OPEN_DATE),
+            )
+            query = query.annotate(has_early_access=Exists(access)).filter(
+                has_early_access=early == "true",
+            )
+        return query
+
     def get_serializer_class(self):
         if self.action == "create":
             return BetaApplicationAdminCreateSerializer
         return super().get_serializer_class()
 
+    @transaction.atomic
     def perform_create(self, serializer):
         send_welcome = serializer.validated_data.get("send_welcome", True)
+        early = serializer.validated_data.get("give_early_access", False)
         application = serializer.save()
-        if send_welcome:
+        if early:
+            from apps.audit.services import record_event
+            from apps.outreach.early_access import deliver_access
+
+            record_event(self.request, "marketing.beta_early_access", application)
+            deliver_access(application)
+        elif send_welcome:
             send_welcome_after_commit(application)
 
     @action(detail=True, methods=["post"], url_path="send-access")
