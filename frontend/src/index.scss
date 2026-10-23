@@ -813,14 +813,23 @@ body.dark-only .dwella-brand-mark {
 }
 
 .dwella-empty-state {
-  min-height: 210px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 260px;
+  padding: 36px 24px;
+  background: var(--dwella-paper);
+  border-radius: 8px;
   display: grid;
-  place-items: center;
+  justify-items: start;
   align-content: center;
-  gap: 8px;
+  gap: 12px;
   color: var(--dwella-muted);
-  text-align: center;
+  text-align: left;
 }
+
+.dwella-empty-state > .fui-Title3 { color: var(--dwella-ink); font-size: var(--fs-lead); }
+.dwella-empty-state > .fui-Text { max-width: 48ch; }
+.dwella-empty-state > .fui-Button { margin-top: 8px; }
 
 .dwella-empty-state > svg {
   width: 36px;
