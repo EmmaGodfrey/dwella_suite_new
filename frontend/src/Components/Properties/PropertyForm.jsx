@@ -38,7 +38,7 @@ export default function PropertyForm({ property, onClose, onSaved }) {
   const [removePhoto, setRemovePhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const picker = useRef(null);
-  const { validate, clearError, fieldProps } = useFormErrors();
+  const { validate, clearError, fieldProps, showServerErrors } = useFormErrors();
   useEffect(() => {
     if (!photo) {
       setPreview("");
@@ -54,8 +54,10 @@ export default function PropertyForm({ property, onClose, onSaved }) {
       toast.success(property ? "Property updated." : "Property added.");
       onSaved?.(data);
     },
-    onError: (error) =>
-      toast.error(error.message || "Could not save property."),
+    onError: (error) => {
+      if (!showServerErrors(error.data, Object.keys(initialForm)))
+        toast.error(error.message || "Could not save property.");
+    },
   });
   const update = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
