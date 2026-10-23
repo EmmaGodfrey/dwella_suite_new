@@ -1,6 +1,6 @@
 import React from "react";
 import "./dashboard.scss";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@fluentui/react-components";
 import {
   ArrowRight20Regular,
@@ -25,6 +25,7 @@ import {
 import { getUserAccess } from "../../shared/access";
 import { paymentMethodLabel } from "../../shared/billing";
 import { daysUntil, formatDate, toIsoDate } from "../../shared/format";
+import Administration from "../Platform/Administration";
 
 const money = new Intl.NumberFormat("en-ZM", {
   style: "currency",
@@ -499,15 +500,17 @@ const lastSixMonths = () => {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const access = getUserAccess(user);
-  const isPlatformAdmin = access.persona === "platform_admin" && !access.acting_workspace;
+  const isPlatformAdmin = access.persona === "platform_admin" && pathname === "/dashboard";
   const isTenant = access.persona === "tenant";
-  const enabled = Boolean(user) && !isTenant;
+  const enabled = Boolean(user) && !isTenant && !isPlatformAdmin;
   const { data = emptySummary, error, isLoading } = useDashboardSummaryQuery({ enabled });
   const billingQuery = useBillingSummaryQuery({ enabled });
 
   if (isTenant) return <TenantDashboard navigate={navigate} />;
+  if (isPlatformAdmin) return <Administration />;
   const organizationName =
     data.organization?.display_name ||
     data.organization?.name ||

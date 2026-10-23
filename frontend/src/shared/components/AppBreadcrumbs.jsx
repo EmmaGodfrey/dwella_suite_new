@@ -40,6 +40,9 @@ export const AppBreadcrumbs = () => {
     crumbs.splice(1, crumbs.length, { to: sectionPath, label: getPageMeta(sectionPath, user)[0] });
     if (pathname !== sectionPath) crumbs.push({ to: pathname, label: "Details" });
   }
+  if (pathname === "/workspace/dashboard") {
+    crumbs.splice(1, crumbs.length, { to: pathname, label: "Workspace dashboard" });
+  }
 
   return (
     <Breadcrumb className="dwella-breadcrumbs" aria-label="Breadcrumb" size="medium">
