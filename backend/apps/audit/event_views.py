@@ -18,8 +18,7 @@ class AuditEventSerializer(PublicIdModelSerializer):
     actor_email = serializers.EmailField(source="actor.email", default="", read_only=True)
     workspace_id = serializers.UUIDField(source="organization.public_id", allow_null=True,
                                         read_only=True)
-    workspace_name = serializers.CharField(source="organization.__str__", default="",
-                                           read_only=True)
+    workspace_name = serializers.SerializerMethodField()
 
     class Meta:
         model = AuditEvent
@@ -30,6 +29,9 @@ class AuditEventSerializer(PublicIdModelSerializer):
     def get_actor_name(self, obj):
         return (obj.actor.get_full_name() or obj.actor.email or obj.actor.username
                 if obj.actor else "Deleted user / system")
+
+    def get_workspace_name(self, obj):
+        return str(obj.organization) if obj.organization_id else ""
 
 
 class EventFilters(serializers.Serializer):

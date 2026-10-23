@@ -11,6 +11,14 @@ pytestmark = pytest.mark.django_db
 URL = "/api/v1/platform/audit-events/"
 
 
+def test_platform_event_without_workspace_has_empty_workspace_name(context):
+    client, actor, _, _ = context
+    AuditEvent.objects.create(actor=actor, action="account.signed_in")
+    data = client.get(URL).json()["response_data"][0]
+    assert data["workspace_name"] == ""
+    assert data["workspace_id"] is None
+
+
 def test_audit_filters_details_and_csv_are_authoritative(context):
     client, actor, org, other = context
     session = str(uuid4())
