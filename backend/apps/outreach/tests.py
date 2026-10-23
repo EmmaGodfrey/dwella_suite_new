@@ -178,6 +178,19 @@ def test_missing_fields_and_unsafe_merge_syntax_block_render_and_approval(staff)
         assert response.status_code == 400
 
 
+def test_braces_in_contact_data_render_literally_and_can_be_approved(staff):
+    client, _ = staff
+    person = contact(client, organization="Acme {Rentals}")
+    entry = enroll(client, person)
+    path = BASE + f"enrollments/{entry['id']}/"
+    line = {"personal_line": "Loved the {offer} post."}
+    assert client.patch(path, line, format="json").status_code == 200
+    assert approve(client, path).status_code == 200
+    first = OutreachMessage.objects.order_by("step").first()
+    assert "Acme {Rentals}" in first.subject + first.body
+    assert "Loved the {offer} post." in first.body
+
+
 def test_suppression_survives_deletion_recreation_and_stops_approved_messages(staff):
     client, _ = staff
     person = contact(client)

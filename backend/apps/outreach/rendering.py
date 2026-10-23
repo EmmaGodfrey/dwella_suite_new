@@ -40,9 +40,9 @@ def render_text(value, context):
     )
     if missing:
         raise ValidationError({"missing_fields": missing})
+    # Fields were validated and filled above; format_map does not re-expand values, so
+    # braces in contact data (e.g. an organization name) are literal text, not fields.
     rendered = value.format_map(context)
-    if re.search(r"\{[^{}]+\}", rendered):
-        raise ValidationError("The rendered message still contains an unfilled merge field.")
     return re.sub(r"\n{3,}", "\n\n", rendered).strip()
 
 
