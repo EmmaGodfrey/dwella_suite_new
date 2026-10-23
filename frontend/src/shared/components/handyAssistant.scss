@@ -1,4 +1,10 @@
-.dwella-assistant-fab { position: fixed; right: 24px; bottom: 24px; z-index: 30; width: 48px; height: 48px; box-shadow: var(--dwella-shadow-overlay); }
+.dwella-assistant-fab { position: fixed; right: 24px; bottom: 24px; z-index: 30; width: 60px; height: 60px; box-shadow: var(--dwella-shadow-overlay); }
+.dwella-assistant-mark { position: relative; display: inline-flex; flex: 0 0 auto; width: 32px; height: 32px; }
+.dwella-assistant-mark img { width: 100%; height: 100%; object-fit: contain; }
+.dwella-assistant-mark > span { position: absolute; right: -5px; bottom: -4px; width: 19px; height: 19px; display: grid; place-items: center; background: var(--dwella-success-soft); color: var(--dwella-accent-text); border-radius: 5px; }
+.dwella-assistant-mark > span svg { width: 16px; height: 16px; }
+.dwella-assistant-fab .fui-Button__icon { width: 38px; height: 38px; }
+.dwella-assistant-fab .dwella-assistant-mark { width: 38px; height: 38px; padding: 3px; background: white; border-radius: 6px; box-sizing: border-box; }
 .dwella-assistant-drawer.fui-OverlayDrawer { width: min(480px, 100vw); background: var(--dwella-paper); color: var(--dwella-ink); }
 .dwella-assistant-drawer .fui-DrawerHeader { padding: 20px; border-bottom: 1px solid var(--dwella-line-soft); }
 .dwella-assistant-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-lead); white-space: nowrap; }

@@ -12,7 +12,6 @@ import {
 import {
   Add24Regular,
   BotSparkle24Regular,
-  ChatSparkle24Regular,
   Checkmark20Regular,
   Dismiss20Regular,
   Dismiss24Regular,
@@ -35,6 +34,13 @@ import { queryClient } from "../../Services/queryClient";
 import "./handyAssistant.scss";
 
 const emptyConversation = { sessionId: null, messages: [] };
+
+function AssistantMark() {
+  return <span className="dwella-assistant-mark" aria-hidden="true">
+    <img src={`${import.meta.env.BASE_URL}assets/images/logo/dwella-mark.png`} alt="" />
+    <span><BotSparkle24Regular /></span>
+  </span>;
+}
 
 function appendSegment(segments, event) {
   const last = segments.at(-1);
@@ -162,7 +168,7 @@ function AgentMessage({ message, busy, onDecision, onAnswer }) {
   if (!message.segs?.length && !message.error) return null;
   return (
     <div className="dwella-assistant-message is-agent">
-      <span className="dwella-assistant-avatar"><BotSparkle24Regular /></span>
+      <span className="dwella-assistant-avatar"><AssistantMark /></span>
       <div className={`dwella-assistant-bubble${message.error ? " is-error" : ""}`}>
         {(message.segs || []).map((segment, index) => {
           if (segment.kind === "text") return <div className="dwella-assistant-copy" key={index}>{segment.text}</div>;
@@ -364,8 +370,8 @@ export default function HandyAssistant() {
     }
   };
 
-  if (!enabled || (!identity && !identityError)) return null;
-  if (!identity?.thinker && !identity?.actor && !identityError) return null;
+  if (!enabled || !getAuthToken()) return null;
+  const ready = Boolean(identity?.thinker || identity?.actor);
 
   return (
     <>
@@ -375,7 +381,7 @@ export default function HandyAssistant() {
           appearance="primary"
           shape="circular"
           size="large"
-          icon={open ? <Dismiss24Regular /> : <ChatSparkle24Regular />}
+          icon={open ? <Dismiss24Regular /> : <AssistantMark />}
           aria-label={open ? "Close Dwella assistant" : "Open Dwella assistant"}
           onClick={() => setOpen((value) => !value)}
         />
@@ -402,14 +408,15 @@ export default function HandyAssistant() {
               </div>
             )}
           >
-            <span className="dwella-assistant-title"><BotSparkle24Regular /> Dwella assistant</span>
+            <span className="dwella-assistant-title"><AssistantMark /> Dwella assistant</span>
           </DrawerHeaderTitle>
           <p className="dwella-assistant-subtitle">
-            {busy ? "Working on it..." : identity?.actor ? "Reads your data and asks before making changes" : "Reads and explains your Dwella data"}
+            {!identity && !identityError ? "Connecting to your workspace..." : busy ? "Working on it..." : identity?.actor ? "Reads your data and asks before making changes" : "Reads and explains your Dwella data"}
           </p>
         </DrawerHeader>
         <DrawerBody ref={bodyRef} className="dwella-assistant-body">
           {identityError ? <div role="alert"><p>{identityError}</p><Button onClick={loadIdentity}>Try again</Button></div> : null}
+          {!identity && !identityError ? <Spinner size="small" label="Connecting to Dwella assistant" /> : null}
           {history ? (
             <section className="dwella-assistant-history">
               <h2>Past conversations</h2>
@@ -424,9 +431,9 @@ export default function HandyAssistant() {
             </section>
           ) : (
             <>
-              {!conversation.messages.length ? (
+              {ready && !conversation.messages.length ? (
                 <section className="dwella-assistant-empty">
-                  <span className="dwella-assistant-empty-icon"><BotSparkle24Regular /></span>
+                  <span className="dwella-assistant-empty-icon"><AssistantMark /></span>
                   <h2>What can I help with?</h2>
                   <p>Ask about your portfolio. Any change will be shown to you before it is saved.</p>
                   <span>Try asking</span>
@@ -456,7 +463,7 @@ export default function HandyAssistant() {
                 resize="none"
                 rows={2}
                 value={message}
-                disabled={busy || Boolean(pendingCards.length)}
+                disabled={!ready || busy || Boolean(pendingCards.length)}
                 placeholder={pendingCards.length ? "Review the proposed change above" : "Ask about your portfolio"}
                 aria-label="Message Dwella assistant"
                 onChange={(_, data) => setMessage(data.value)}
@@ -467,7 +474,7 @@ export default function HandyAssistant() {
                   }
                 }}
               />
-              <Button appearance="primary" shape="circular" icon={<Send24Filled />} aria-label="Send message" type="submit" disabled={busy || !message.trim() || Boolean(pendingCards.length)} />
+              <Button appearance="primary" shape="circular" icon={<Send24Filled />} aria-label="Send message" type="submit" disabled={!ready || busy || !message.trim() || Boolean(pendingCards.length)} />
             </div>
           </form>
         ) : null}
