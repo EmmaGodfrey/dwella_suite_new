@@ -51,7 +51,10 @@ export default function Workspaces() {
         { key: "status", label: "Status", render: (w) => <StatusBadge value={w.is_active ? "active" : "suspended"} color={w.is_active ? "success" : "warning"} /> },
       ]} />
     </AdminState>
-    {creating && <AdminDrawer title="Create workspace" submitLabel="Create workspace" onClose={() => setCreating(false)}
+    {creating && <AdminDrawer steps={[
+      { title: "Owner and contact", fields: ["owner", "display_name", "email", "phone_number"] },
+      { title: "Location and defaults", fields: ["address", "town", "country", "currency", "timezone"] },
+    ]} wideFields={["owner", "display_name", "address"]} title="Create workspace" submitLabel="Create workspace" onClose={() => setCreating(false)}
       initial={{ country: "Zambia", currency: "ZMW", timezone: "Africa/Lusaka" }} fields={[
         { key: "owner", label: "Owner", type: "select", required: true, options: (owners.data?.results || []).map((u) => ({ value: u.id, label: `${nameOf(u)} · ${u.email}` })) },
         ...profileFields,

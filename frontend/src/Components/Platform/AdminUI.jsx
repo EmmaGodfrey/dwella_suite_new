@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import {
   Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle,
-  DrawerBody, DrawerFooter, DrawerHeader, DrawerHeaderTitle, Field, Input,
-  OverlayDrawer, Select, Textarea,
+  Field, Input, Select, Textarea,
 } from "@fluentui/react-components";
-import { Dismiss24Regular } from "@fluentui/react-icons";
 import { EmptyState } from "../../shared/components/EmptyState";
 import { useFormErrors } from "../../shared/useFormErrors";
 import "./platform.scss";
+import { FormDrawer } from "../../shared/components/FormFlow";
+import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
 
 export const nameOf = (user) => `${user?.first_name || ""} ${user?.last_name || ""}`.trim()
   || user?.email || user?.username || "Deleted user";
@@ -68,54 +68,147 @@ export function Filter({ label, value, onChange, options }) {
   </Select></Field>;
 }
 
-export function AdminDrawer({ title, initial = {}, fields, submitLabel = "Save changes", onSubmit,
-  onClose, children }) {
+export function AdminDrawer({
+  title,
+  initial = {},
+  fields,
+  submitLabel = "Save changes",
+  onSubmit,
+  onClose,
+  children,
+  steps,
+  wideFields = [],
+  summary,
+}) {
   const [values, setValues] = useState(initial);
+  const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const { validate, fieldProps, clearError, showServerErrors } = useFormErrors();
+  const { errors, validate, fieldProps, clearError, showServerErrors } =
+    useFormErrors();
   const visible = typeof fields === "function" ? fields(values) : fields;
+  const groups = steps?.map((item) => item.fields);
+  const activeFields = steps
+    ? visible.filter((field) => groups[step].includes(field.key))
+    : visible;
   const submit = async (event) => {
     event.preventDefault();
     if (busy) return;
-    const rules = Object.fromEntries(visible.map((field) => [field.key, () => {
-      const value = String(values[field.key] ?? "").trim();
-      if (field.required && !value) return `Enter ${field.label.toLowerCase()}.`;
-      if (field.minLength && value.length < field.minLength) return `Use at least ${field.minLength} characters.`;
-      if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email.";
-      if (field.pattern && value && !field.pattern.test(value)) return "Enter a valid value.";
-      if (field.confirmation && value !== field.confirmation) return `Type ${field.confirmation} to continue.`;
-      return "";
-    }]));
-    if (!validate(rules, event.currentTarget)) return;
-    setBusy(true); setError("");
-    try { await onSubmit(values); }
-    catch (failure) { showServerErrors(failure.data, visible.map((f) => f.key)); setError(failure.message); }
-    finally { setBusy(false); }
+    const allRules = Object.fromEntries(
+      visible.map((field) => [
+        field.key,
+        () => {
+          const value = String(values[field.key] ?? "").trim();
+          if (field.required && !value) return `Enter ${field.label.toLowerCase()}.`;
+          if (field.minLength && value.length < field.minLength) return `Use at least ${field.minLength} characters.`;
+          if (field.type === "email" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "Enter a valid email.";
+          if (field.pattern && value && !field.pattern.test(value)) return "Enter a valid value.";
+          if (field.confirmation && value !== field.confirmation) return `Type ${field.confirmation} to continue.`;
+          return "";
+        },
+      ]),
+    );
+    const last = !steps || step === steps.length - 1;
+    const rules = last
+      ? allRules
+      : Object.fromEntries(
+          Object.entries(allRules).filter(([key]) =>
+            groups[step].includes(key),
+          ),
+        );
+    if (!validate(rules, event.currentTarget)) {
+      if (steps) setStep(firstErrorStep(ruleErrors(rules), groups, step));
+      return;
+    }
+    if (!last) {
+      setStep(step + 1);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onSubmit(values);
+    } catch (failure) {
+      if (steps) setStep(firstErrorStep(failure.data, groups, step));
+      showServerErrors(
+        failure.data,
+        visible.map((f) => f.key),
+      );
+      setError(failure.message);
+    } finally {
+      setBusy(false);
+    }
   };
-  return <OverlayDrawer open position="end" className="admin-drawer"
-    onOpenChange={(_, d) => { if (!d.open && !busy) onClose(); }}>
-    <DrawerHeader><DrawerHeaderTitle action={<Button appearance="subtle" aria-label="Close"
-      disabled={busy} icon={<Dismiss24Regular />} onClick={onClose} />}>{title}</DrawerHeaderTitle></DrawerHeader>
-    <DrawerBody><form id="admin-drawer-form" onSubmit={submit} noValidate>
-      {children}{error && <p className="admin-error" role="alert">{error}</p>}
-      {visible.map((field) => {
+  const renderedFields = (
+    <div
+      className={
+        visible.length >= 5 ? "dwella-form-grid" : "admin-fields"
+      }
+    >
+      {activeFields.map((field) => {
         const controlProps = {
-          value: String(values[field.key] ?? ""), disabled: busy || field.disabled,
+          name: field.key,
+          value: String(values[field.key] ?? ""),
+          disabled: busy || field.disabled,
           onChange: (_, d) => { setValues((v) => ({ ...v, [field.key]: d.value })); clearError(field.key); },
         };
-        return <Field key={field.key} label={field.label} required={field.required} {...fieldProps(field.key)}>
-          {field.type === "select" ? <Select {...controlProps}><option value="">Choose…</option>
-            {field.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </Select> : field.type === "textarea" ? <Textarea {...controlProps} maxLength={field.maxLength || 300} />
-            : <Input {...controlProps} type={field.type === "email" ? "email" : "text"} maxLength={field.maxLength || 300} />}
-        </Field>;
+        const wide =
+          wideFields.includes(field.key) || field.type === "textarea";
+        return (
+          <Field
+            key={field.key}
+            label={field.label}
+            required={field.required}
+            {...fieldProps(field.key)}
+            className={`${wide ? "dwella-field-wide" : ""} ${fieldProps(field.key).className || ""}`}
+          >
+            {field.type === "select" ? (
+              <Select {...controlProps}>
+                <option value="">Choose…</option>
+                {field.options.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            ) : field.type === "textarea" ? (
+              <Textarea {...controlProps} maxLength={field.maxLength || 300} />
+            ) : (
+              <Input {...controlProps} type={field.type === "email" ? "email" : "text"} maxLength={field.maxLength || 300} />
+            )}
+          </Field>
+        );
       })}
-    </form></DrawerBody>
-    <DrawerFooter><Button disabled={busy} onClick={onClose}>Cancel</Button>
-      <Button appearance="primary" form="admin-drawer-form" type="submit" disabled={busy}>
-        {busy ? "Saving…" : submitLabel}</Button></DrawerFooter>
-  </OverlayDrawer>;
+    </div>
+  );
+  return (
+    <FormDrawer
+      compact={!steps && visible.length < 5}
+      title={title}
+      description={activeFields.some((field) => field.required) ? "Fields marked * are required." : undefined}
+      steps={steps?.map((item) => item.title)}
+      step={step}
+      stepTitle={steps?.[step].title || "Details"}
+      stepDescription={steps?.[step].description}
+      onSubmit={submit}
+      onBack={() => setStep(step - 1)}
+      onClose={onClose}
+      busy={busy}
+      errors={errors}
+      submitLabel={submitLabel}
+      notice={
+        error && (
+          <p className="admin-error" role="alert">
+            {error}
+          </p>
+        )
+      }
+    >
+      {(!steps || step === 0) && children}
+      {renderedFields}
+      {summary && (!steps || step === steps.length - 1) && summary(values)}
+    </FormDrawer>
+  );
 }
 
 export function ConfirmAction({ title, description, confirmation, label = "Confirm", onConfirm, onClose }) {

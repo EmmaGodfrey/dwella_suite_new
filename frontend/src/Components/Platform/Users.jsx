@@ -49,7 +49,7 @@ export default function Users() {
       <AdminTable rows={query.data?.results || []} columns={columns} pagination={query.data?.pagination}
         setPage={(page) => setFilters((f) => ({ ...f, page }))} />
     </AdminState>
-    {creating && <AdminDrawer title="Create user" submitLabel="Create and send access link"
+    {creating && <AdminDrawer wideFields={["full_name", "account_type", "workspace_name"]} title="Create user" submitLabel="Create and send access link"
       initial={{ account_type: "landlord", full_name: "", email: "", phone_number: "" }}
       onClose={() => setCreating(false)} fields={(values) => [
         ...baseFields,

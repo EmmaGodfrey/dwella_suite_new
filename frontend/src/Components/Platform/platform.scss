@@ -25,9 +25,7 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
 .admin-support-time { font-size: .75rem; white-space: nowrap; }
 .admin-workspace-picker { display: grid; gap: .5rem; }
 .admin-workspace-picker button { justify-content: flex-start; min-height: 3rem; }
-.admin-drawer { width: min(30rem, 100vw) !important; }
-.admin-drawer form { display: grid; gap: 1.25rem; padding-block: .75rem; }
-.admin-drawer .fui-DrawerFooter { justify-content: flex-end; }
+.admin-fields { display: grid; gap: 1.25rem; }
 .admin-two-columns { display: grid; grid-template-columns: minmax(0, 1fr) 22.5rem; gap: 1rem; }
 .admin-stack { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 .admin-card { background: var(--dwella-paper); border-radius: .75rem; padding: 1.5rem; min-width: 0; }
@@ -50,7 +48,7 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
   background: var(--dwella-primary-soft); color: var(--dwella-primary); font-weight: 600; flex-shrink: 0; }
 .admin-title h1 { margin: 0; }
 .admin-badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
-.admin-card dl.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 2rem; }
+.admin-metrics, .admin-card dl.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 2rem; margin: 0; }
 .admin-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 .admin-activity-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .admin-dashboard a { text-decoration: none; }
@@ -77,4 +75,4 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
   .admin-table-scroll .dwella-table td::before { content: attr(data-label); color: var(--dwella-muted); font-weight: 400; }
   .admin-table-scroll tr { padding-block: .75rem; border-bottom: 1px solid var(--dwella-line-soft); }
 }
-@media (prefers-reduced-motion: reduce) { .admin-screen *, .admin-drawer * { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .admin-screen * { animation: none !important; transition: none !important; } }
