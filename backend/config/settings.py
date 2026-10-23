@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "apps.notifications",
     "apps.reports",
     "apps.audit",
+    "apps.outreach",
     "apps.subscriptions",
     "apps.integrations",
     "apps.marketing",
