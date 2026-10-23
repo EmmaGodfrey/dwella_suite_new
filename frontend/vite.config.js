@@ -43,6 +43,7 @@ export default defineConfig({
     "import.meta.env.VITE_HANDY_AGENT_ENABLED": JSON.stringify(
       process.env.VITE_HANDY_AGENT_ENABLED || "false"
     ),
+    "import.meta.env.VITE_HANDY_AGENT_URL": JSON.stringify(process.env.VITE_HANDY_AGENT_URL || ""),
   },
   resolve: {
     alias: {

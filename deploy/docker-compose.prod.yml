@@ -80,6 +80,8 @@ services:
       args:
         VITE_APP_NAME: Dwella Suite
         VITE_API_BASE_URL: https://api.dwella.properties/api/v1
+        VITE_HANDY_AGENT_ENABLED: ${VITE_HANDY_AGENT_ENABLED:-false}
+        VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-}
     restart: unless-stopped
     depends_on:
       backend:

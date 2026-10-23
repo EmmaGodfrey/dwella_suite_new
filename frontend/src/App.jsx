@@ -6,6 +6,7 @@ import { ToastContainer } from "react-toastify";
 import Routers from "./Route";
 import { installHandyAgent } from "./Services/handyAgent";
 import { queryClient } from "./Services/queryClient";
+import "./shared/components/environmentBanner.scss";
 import { applyThemeMode, dwellaDarkTheme, dwellaLightTheme, getStoredThemeMode } from "./theme/dwellaTheme";
 
 // Fluent renders no class for a Button's appearance, so the stylesheet could
@@ -24,6 +25,7 @@ export const DwellaThemeContext = createContext({
 });
 
 const App = () => {
+  const isTest = import.meta.env.VITE_BASE_PATH === "/test/";
   const [darkMode, setDarkMode] = useState(getStoredThemeMode);
   const themeContext = useMemo(() => ({ darkMode, setDarkMode }), [darkMode]);
 
@@ -34,10 +36,11 @@ const App = () => {
   useEffect(() => installHandyAgent(), []);
 
   return (
-    <div className="App">
+    <div className={isTest ? "App is-test-environment" : "App"}>
       <QueryClientProvider client={queryClient}>
         <DwellaThemeContext.Provider value={themeContext}>
           <FluentProvider theme={darkMode ? dwellaDarkTheme : dwellaLightTheme} customStyleHooks_unstable={customStyleHooks}>
+            {isTest ? <aside className="dwella-environment-banner" aria-label="Test environment"><strong>TEST</strong><span>Separate test data. Changes here do not affect production.</span></aside> : null}
             <Routers />
             <ToastContainer position="top-right" newestOnTop />
           </FluentProvider>

@@ -3,7 +3,7 @@ import { queryClient } from "./queryClient";
 
 const SCRIPT_ID = "dwella-handy-agent-widget";
 const SCRIPT_URL = "https://handyai.wazabanda.dev/widget/v1/agent.js";
-const AGENT_URL = "https://dwella.handyagents.wazabanda.dev/agent";
+const AGENT_URL = (import.meta.env.VITE_HANDY_AGENT_URL || "").replace(/\/+$/, "");
 const SUGGESTIONS = [
   "Which tenants are overdue on rent this month?",
   "How many units are vacant right now?",
@@ -46,6 +46,10 @@ function refreshWidget() {
 
 export function installHandyAgent() {
   if (import.meta.env.VITE_HANDY_AGENT_ENABLED !== "true") return undefined;
+  if (!AGENT_URL) {
+    console.warn("Handy widget is enabled but VITE_HANDY_AGENT_URL is missing.");
+    return undefined;
+  }
 
   // The official widget expects the unwrapped short-lived token response.
   // Dwella's durable login token is only used by our own API client.

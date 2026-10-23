@@ -1,0 +1,25 @@
+.dwella-environment-banner {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-inline: 12px;
+  box-sizing: border-box;
+  background: var(--dwella-warning-soft);
+  color: var(--dwella-warning);
+  font-size: 12px;
+  line-height: 16px;
+}
+.is-test-environment { padding-top: 28px; }
+.is-test-environment .dwella-sidebar { top: 28px; }
+.is-test-environment .dwella-topbar { top: 28px; }
+.is-test-environment .dwella-app-shell,
+.is-test-environment .dwella-main-frame { min-height: calc(100dvh - 28px); }
+@media (max-width: 480px) {
+  .dwella-environment-banner { font-size: 11px; gap: 6px; }
+  .dwella-environment-banner span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
