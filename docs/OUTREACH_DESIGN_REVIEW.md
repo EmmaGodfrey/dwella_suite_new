@@ -50,13 +50,52 @@ Representative desktop, drawer, message and dark/mobile compositions were visual
 checked. The final native-node check found no horizontal text overflow across all
 15 frames. Implementation must keep the screens accessible and reflowing at zoom.
 
+## Claude review (23 October 2026)
+
+Reviewed all 15 frames against the outreach plan. Fixed in Figma, preserving frame IDs:
+
+- Page-header actions now sit on the right content edge (the title column was a
+  fixed 768px, leaving buttons floating about 120px short).
+- Sidebar account email truncates on one line instead of wrapping ".co" onto a
+  third line.
+- Contacts and Outbox status columns use `Badge` tones (New/Scheduled info,
+  Queued/Blocked warning, Interested/Replied success, Do not contact/Opted out
+  danger). Actionable "Next step" cells use `text/link`; "Suppressed permanently"
+  stays plain because it is not an action.
+- Segment, Status and CSV column-mapping fields show the dropdown chevron, so they
+  read as selects. Apply filters is bottom-aligned with the inputs.
+- Review queue (light and dark): the open item has a selected surface, and each
+  item's state is a badge. The footnote no longer says "Sending is currently
+  paused", which contradicted the Outbox (2 sent, one scheduled at 14:20).
+- Missing offer: the error under the offer field said "Enter a valid email
+  address." It now says "Add the partnership offer before approving.", and a
+  disabled Approve email button shows what is blocked.
+- Sequences: merge fields are insertable chips, and the list now matches the
+  template ({salutation} was used but not listed).
+- Beta signup: "Give early access now" is a real `Toggle`, not a badge.
+- Settings frame renamed "Settings — Before mailbox setup" to explain why it
+  shows "Not configured" and "Sending paused" alongside running Outbox examples.
+
+Still open for implementation (not blocking design approval):
+
+- Contact detail lacks the plan's Stop and Send next step now actions, and the
+  activity timeline should expand to show each sent email's rendered text.
+- Settings signature and the template message body should be editable text
+  areas in code, not static text.
+- Mobile review queue needs the app's mobile top bar/navigation and the personal
+  opening line field; its email copy is a shortened variant of the desktop one.
+- Loading state should use skeleton rows, not a "Loading…" button.
+- Plan placed early access in the existing Add signup drawer; the frame shows a
+  full page. Implement it as the toggle inside the existing drawer.
+
 ## Next step
 
-Review these frames before frontend code, as required by the outreach plan's
-"Admin screens (Figma first)" section: **"Stop for the user's review before frontend
-code."** Apply feedback here first. Backend Phase 1 can proceed independently with
-staff-only contacts/templates/sequences, render validation, suppression, CSV preview
-and audited writes, with permission and failure-path tests.
+The user approved Claude's refined frames on **23 October 2026**, lifting the
+outreach frontend gate. The management API and frontend are implemented; see
+[OUTREACH.md](OUTREACH.md) for usage, safeguards, validation and the remaining engine
+work. Claude's implementation notes above were applied, including editable message
+and signature text areas, merge-field chips, message expansion, enrollment actions,
+mobile shell/opening line, skeleton loading and the existing signup drawer toggle.
 
 Before enabling the sending engine, confirm the monitored sender mailbox/provider,
 the influencer offer and the initial daily cap. The design illustrates a starting cap
