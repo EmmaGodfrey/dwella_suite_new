@@ -118,14 +118,6 @@ export function usePropertyQuery(id, options = {}) {
   });
 }
 
-export function usePropertyOwnersQuery(filters = {}, options = {}) {
-  return useQuery({
-    queryKey: queryKeys.propertyOwners(filters),
-    queryFn: () => apiRequest(`/properties/owners/${toSearchParams(filters)}`),
-    ...options,
-  });
-}
-
 export function useUnitsQuery(filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.units(filters),

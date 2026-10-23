@@ -64,7 +64,7 @@ export default function WorkspaceDetail() {
       onClose={() => setDialog(null)} onSubmit={(values) => update(null, Object.fromEntries(profileFields.map((f) => [f.key, values[f.key]])), "patch")} />}
     {dialog === "transfer" && <AdminDrawer title="Transfer ownership" submitLabel="Transfer ownership" onClose={() => setDialog(null)} fields={[
       { key: "owner", label: "New owner", type: "select", required: true, options: (owners.data?.results || []).map((u) => ({ value: u.id, label: `${nameOf(u)} · ${u.email}` })) },
-    ]} onSubmit={(values) => update("transfer-owner", { owner: Number(values.owner) })}><p>Previous owners become workspace admins. The new owner receives full control of this workspace.</p>
+    ]} onSubmit={(values) => update("transfer-owner", { owner: Number(values.owner) })}><p>The new owner is added as a landlord with full control. Existing landlords keep their access.</p>
       {owners.isError && <p role="alert" className="admin-error">Owners couldn’t be loaded. <Button onClick={() => owners.refetch()}>Retry</Button></p>}
     </AdminDrawer>}
     {dialog === "status" && <ConfirmAction title={workspace.is_active ? "Suspend workspace?" : "Reactivate workspace?"}

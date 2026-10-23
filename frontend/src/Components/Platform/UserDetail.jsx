@@ -27,7 +27,7 @@ export default function UserDetail() {
     "password-reset": { title: "Send password reset link?", description: "A secure password reset link will be emailed to this user.", action: "password-reset" },
     "sign-out": { title: "Sign out everywhere?", description: "Their login token and active support sessions will be revoked.", action: "sign-out" },
     "reset-2fa": { title: "Reset two-factor authentication?", description: "Their authenticator will be removed and they will be signed out. Verify their identity before continuing.", action: "reset-2fa" },
-    "admin-access": { title: user?.is_staff || user?.is_superuser ? "Revoke platform access?" : "Grant platform access?", description: "Platform administrators can manage users and request audited support access to workspaces.", action: "admin-access", body: { enabled: !(user?.is_staff || user?.is_superuser) } },
+    "admin-access": { title: user?.is_staff || user?.is_superuser ? "Revoke platform access?" : "Grant platform access?", description: "Super admins can manage users and workspaces, and request audited support access to a workspace.", action: "admin-access", body: { enabled: !(user?.is_staff || user?.is_superuser) } },
   };
   const confirm = confirmations[dialog?.type];
   return <AdminState query={query}><div className="admin-screen">
@@ -70,7 +70,7 @@ export default function UserDetail() {
         <Button disabled={!user?.is_active} onClick={() => setDialog({ type: "password-reset" })}>Send reset link</Button>
         <Button onClick={() => setDialog({ type: "sign-out" })}>Sign out everywhere</Button>
         {user?.has_two_factor && <Button onClick={() => setDialog({ type: "reset-2fa" })}>Reset 2FA</Button>}
-      </div><p className="admin-note">Platform access and permanent deletion require a superuser. Your own account and the last superuser are protected.</p></section>
+      </div><p className="admin-note">Only a super admin can change platform access or permanently delete. Your own account and the last super admin are protected.</p></section>
     </aside></div>
     {dialog?.type === "edit" && <AdminDrawer title="Edit profile" onClose={() => setDialog(null)}
       initial={{ full_name: nameOf(user), email: user.email, phone_number: user.profile?.phone_number || "" }} fields={[
@@ -79,7 +79,7 @@ export default function UserDetail() {
         { key: "phone_number", label: "Phone number", pattern: /^\+?[\d\s-]{7,32}$/, maxLength: 32 },
       ]} onSubmit={(values) => run(null, values, "patch")} />}
     {dialog?.type === "membership" && <AdminDrawer title={dialog.membership ? "Change workspace access" : "Add to workspace"}
-      onClose={() => setDialog(null)} initial={{ organization: dialog.membership?.organization?.id || "", role: dialog.membership?.role || "viewer", remove: "false" }}
+      onClose={() => setDialog(null)} initial={{ organization: dialog.membership?.organization?.id || "", role: dialog.membership?.role || "landlord", remove: "false" }}
       fields={(values) => [
         { key: "organization", label: "Workspace", type: "select", required: true, disabled: Boolean(dialog.membership),
           options: [...new Map([...(workspaces.data?.results || []), ...(dialog.membership ? [dialog.membership.organization] : [])].map((w) => [w.id, { value: w.id, label: workspaceName(w) }])).values()] },

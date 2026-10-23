@@ -23,7 +23,6 @@ import {
   ChevronDown16Regular,
   Edit20Regular,
   Location20Regular,
-  Person20Regular,
   Search20Regular,
 } from "@fluentui/react-icons";
 import {
@@ -172,12 +171,6 @@ function PropertyDetail({ property, onEdit, canManage }) {
                 <Building20Regular />
                 {labelize(property.property_type)}
               </li>
-              {property.owner_name ? (
-                <li>
-                  <Person20Regular />
-                  Owner: {property.owner_name}
-                </li>
-              ) : null}
             </ul>
           </div>
           {canManage ? (

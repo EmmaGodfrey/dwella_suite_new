@@ -10,7 +10,6 @@ export const queryKeys = {
   organizations: ["organizations"],
   properties: (filters = {}) => ["properties", filters],
   property: (id) => ["properties", "detail", id],
-  propertyOwners: (filters = {}) => ["properties", "owners", filters],
   units: (filters = {}) => ["properties", "units", filters],
   tenants: (filters = {}) => ["tenants", filters],
   tenant: (id) => ["tenants", "detail", id],

@@ -44,7 +44,7 @@ export default function Workspaces() {
     </div>
     <AdminState query={query} empty={!query.data?.results?.length} title="No workspaces match your filters">
       <AdminTable rows={query.data?.results || []} pagination={query.data?.pagination} setPage={(page) => setFilters((f) => ({ ...f, page }))} columns={[
-        { key: "workspace", label: "Workspace / owner", render: (w) => <><Link className="dwella-table-link" to={`/admin/workspaces/${w.id}`}>{workspaceName(w)}</Link><span className="admin-note">{w.members?.filter((m) => m.role === "owner" && m.is_active).map((m) => m.name).join(", ") || "No active owner"}{w.town ? ` · ${w.town}` : ""}</span></> },
+        { key: "workspace", label: "Workspace / owner", render: (w) => <><Link className="dwella-table-link" to={`/admin/workspaces/${w.id}`}>{workspaceName(w)}</Link><span className="admin-note">{w.members?.filter((m) => m.role === "landlord" && m.is_active).map((m) => m.name).join(", ") || "No active landlord"}{w.town ? ` · ${w.town}` : ""}</span></> },
         { key: "units", label: "Properties / units", render: (w) => `${w.properties_count} properties · ${w.units_count} units` },
         { key: "occupancy", label: "Occupancy", render: occupancy },
         { key: "balance", label: "Balance", render: (w) => money(w.outstanding_balance) },

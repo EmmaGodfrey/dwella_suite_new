@@ -18,7 +18,7 @@ export const when = (value) => value ? new Date(value).toLocaleString("en-GB", {
   day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
 }) : "—";
 export const workspaceName = (workspace) => workspace?.display_name || workspace?.name || "Platform";
-export const roles = ["owner", "admin", "manager", "staff", "viewer", "tenant"];
+export const roles = ["landlord", "tenant"];
 export const choice = (value) => ({ value, label: value.replaceAll("_", " ") });
 
 export function AdminHeader({ title, description, children, badge, initials }) {

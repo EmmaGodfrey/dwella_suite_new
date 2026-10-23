@@ -27,7 +27,7 @@ export default function Users() {
   const workspaceOptions = (workspaces.data?.results || []).map((w) => ({ value: w.id, label: workspaceName(w) }));
   const columns = [
     { key: "user", label: "User", render: (u) => <><Link className="dwella-table-link" to={`/admin/users/${u.id}`}>{nameOf(u)}</Link><span className="admin-note">{u.email}</span></> },
-    { key: "role", label: "Role / persona", render: (u) => <StatusBadge value={u.is_staff || u.is_superuser ? "platform_admin" : u.access?.persona || "unassigned"} /> },
+    { key: "role", label: "Role / persona", render: (u) => <StatusBadge value={u.is_staff || u.is_superuser ? "platform_admin" : u.access?.persona || "unassigned"}>{u.is_staff || u.is_superuser ? "Super admin" : undefined}</StatusBadge> },
     { key: "workspace", label: "Workspace", render: (u) => u.memberships?.filter((m) => m.is_active).map((m) => <span className="admin-note" key={m.id}>{workspaceName(m.organization)} · {m.role}</span>) },
     { key: "identity", label: "Identity", render: (u) => <StatusBadge value={u.identity_verification?.status || "not_submitted"} /> },
     { key: "status", label: "Status", render: (u) => <><StatusBadge value={u.is_active ? "active" : "inactive"} /><span className="admin-note">2FA {u.has_two_factor ? "on" : "off"}</span></> },
@@ -54,7 +54,7 @@ export default function Users() {
       onClose={() => setCreating(false)} fields={(values) => [
         ...baseFields,
         { key: "account_type", label: "Account type", type: "select", required: true,
-          options: [choice("landlord"), choice("member"), ...(current.data?.is_superuser ? [choice("platform_admin")] : [])] },
+          options: [{ value: "landlord", label: "Landlord with a new workspace" }, { value: "member", label: "Add to an existing workspace" }, ...(current.data?.is_superuser ? [{ value: "platform_admin", label: "Super admin" }] : [])] },
         ...(values.account_type === "landlord" ? [{ key: "workspace_name", label: "Workspace name", required: true, maxLength: 180 }] : []),
         ...(values.account_type === "member" ? [
           { key: "organization", label: "Workspace", type: "select", required: true, options: workspaceOptions },

@@ -1,5 +1,6 @@
-const MANAGEMENT_ROLES = new Set(["owner", "admin", "manager"]);
-const PORTFOLIO_ROLES = new Set(["owner", "admin", "manager", "staff", "viewer"]);
+// Three account types: super admins (platform), landlords and tenants.
+const MANAGEMENT_ROLES = new Set(["landlord"]);
+const PORTFOLIO_ROLES = new Set(["landlord"]);
 
 export function getUserAccess(user) {
   if (user?.access) return user.access;
@@ -36,12 +37,8 @@ export function getUserAccess(user) {
 
 export function accessLabel(user) {
   const { persona, role } = getUserAccess(user);
-  if (persona === "platform_admin") return "Platform administrator";
+  if (persona === "platform_admin") return "Super admin";
   if (persona === "tenant") return "Tenant";
-  if (role === "owner") return "Landlord";
-  if (role === "manager") return "Property manager";
-  if (role === "admin") return "Organization administrator";
-  if (role === "staff") return "Property staff";
-  if (role === "viewer") return "Portfolio viewer";
+  if (role === "landlord") return "Landlord";
   return "Access pending";
 }
