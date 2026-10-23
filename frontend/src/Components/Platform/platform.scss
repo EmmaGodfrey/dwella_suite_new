@@ -32,6 +32,14 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
 .admin-stack { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 .admin-card { background: var(--dwella-paper); border-radius: .75rem; padding: 1.5rem; min-width: 0; }
 .admin-card h2 { font: 600 1.0625rem/1.5 var(--fontFamilyBase); margin: 0 0 1rem; }
+.admin-activity { list-style: none; padding: 0; margin: 0; display: grid; gap: .75rem; }
+.admin-activity li { display: flex; gap: 1rem; align-items: baseline; }
+.admin-activity time { color: var(--dwella-muted); font-size: .75rem; white-space: nowrap; }
+.admin-activity button { text-align: left; justify-content: flex-start; white-space: normal; }
+.admin-event-details { display: grid; gap: 1rem; }
+.admin-event-details dt { color: var(--dwella-muted); }
+.admin-event-details dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.admin-event-json { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .75rem; }
 .admin-card dl { display: grid; gap: .75rem; margin: 0; }
 .admin-card dt { color: var(--dwella-muted); font-size: .75rem; }
 .admin-card dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
@@ -42,12 +50,21 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
   background: var(--dwella-primary-soft); color: var(--dwella-primary); font-weight: 600; flex-shrink: 0; }
 .admin-title h1 { margin: 0; }
 .admin-badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
-.admin-metrics { display: flex; flex-wrap: wrap; gap: 2rem; }
+.admin-card dl.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 2rem; }
+.admin-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+.admin-activity-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.admin-dashboard a { text-decoration: none; }
+.admin-dashboard .dwella-pulse-stat a { color: inherit; }
+.admin-dashboard a:hover { text-decoration: underline; }
+.admin-dashboard .dwella-pulse-stats { flex-wrap: wrap; }
+.admin-dashboard .dwella-pulse-legend { flex-wrap: wrap; }
 .admin-metrics > div { flex: 1; min-width: 8rem; }
 .admin-metrics dt { color: var(--dwella-muted); font-size: .8125rem; }
 .admin-metrics dd { font: 600 1.75rem/1.3 var(--font-display); margin: .5rem 0 0; }
 @media (max-width: 1000px) { .admin-two-columns { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) {
+  .admin-detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-activity li { flex-wrap: wrap; gap: .25rem; }
   .admin-support-banner { flex-wrap: wrap; padding: 1rem; gap: .75rem; }
   .admin-support-banner > div { flex-basis: calc(100% - 4rem); }
   .admin-filters > * { flex: 1 1 8rem; }

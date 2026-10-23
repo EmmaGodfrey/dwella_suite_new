@@ -2,16 +2,19 @@ import React, { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@fluentui/react-components";
 import { toast } from "react-toastify";
-import { usePlatformChoices, usePlatformDetail, usePlatformMutation } from "../../Services/platform";
+import { usePlatformChoices, usePlatformDetail, usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, ConfirmAction, money, nameOf, when, workspaceName } from "./AdminUI";
 import { occupancy, profileFields } from "./Workspaces";
 import { useSupportAccess } from "./SupportAccess";
+import { RecentActivity } from "./AuditLog";
 
 export default function WorkspaceDetail() {
   const { id } = useParams();
   const query = usePlatformDetail("workspaces", id);
+  const [propertyPage, setPropertyPage] = useState(1);
+  const properties = usePlatformList(`workspaces/${id}/properties`, { page: propertyPage });
   const current = useCurrentUserQuery();
   const [dialog, setDialog] = useState(null);
   const owners = usePlatformChoices("users", { active: "true" }, { enabled: dialog === "transfer" });
@@ -46,6 +49,17 @@ export default function WorkspaceDetail() {
       { key: "status", label: "Status", render: (m) => <StatusBadge value={m.is_active ? "active" : "inactive"} /> },
       { key: "action", label: "Action", render: (m) => <Link to={`/admin/users/${m.user_id}`}>Manage membership</Link> },
     ]} />{!workspace?.members?.length && <p className="admin-note">No members.</p>}</section>
+    <section className="admin-card"><h2>Properties</h2>
+      <AdminState query={properties} empty={!properties.data?.results?.length} title="No properties in this workspace">
+        <AdminTable rows={properties.data?.results || []} pagination={properties.data?.pagination} setPage={setPropertyPage} columns={[
+          { key: "name", label: "Property" }, { key: "town", label: "Town" },
+          { key: "property_type", label: "Type" },
+          { key: "units_count", label: "Units" }, { key: "occupied_units", label: "Occupied" },
+          { key: "management_status", label: "Status", render: (p) => <StatusBadge value={p.management_status} /> },
+        ]} />
+      </AdminState>
+    </section>
+    <RecentActivity filters={{ workspace: id }} />
     {dialog === "edit" && <AdminDrawer title="Edit workspace profile" initial={workspace} fields={profileFields}
       onClose={() => setDialog(null)} onSubmit={(values) => update(null, Object.fromEntries(profileFields.map((f) => [f.key, values[f.key]])), "patch")} />}
     {dialog === "transfer" && <AdminDrawer title="Transfer ownership" submitLabel="Transfer ownership" onClose={() => setDialog(null)} fields={[

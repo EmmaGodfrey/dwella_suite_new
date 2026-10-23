@@ -38,6 +38,7 @@ const operationalItems = [
   { to: "/billing", value: "billing", group: "operations", label: "Billing", tenantLabel: "Payments", icon: <Payment24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
   { to: "/maintenance", value: "maintenance", group: "operations", label: "Maintenance", icon: <Wrench24Regular />, personas: ["platform_admin", "landlord", "tenant"] },
   { to: "/beta-signups", value: "beta-signups", group: "platform", label: "Beta signups", icon: <FormMultiple24Regular />, personas: ["platform_admin"] },
+  { to: "/admin/audit-log", value: "audit-log", group: "platform", label: "Audit log", icon: <DocumentText24Regular />, personas: ["platform_admin"] },
 ];
 
 export function getNavigationItems(user) {
@@ -52,6 +53,7 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/admin/audit-log": ["Audit log", "Account and workspace actions with support context."],
   "/workspace/dashboard": ["Dashboard", "Workspace overview."],
   "/admin/workspaces": ["Workspaces", "Manage landlord workspaces and audited support access."],
   "/admin/identity-checks": ["Identity checks", "Review submitted identity documents."],

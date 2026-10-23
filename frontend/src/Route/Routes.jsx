@@ -20,8 +20,10 @@ import UserDetail from "../Components/Platform/UserDetail";
 import IdentityChecks from "../Components/Platform/IdentityChecks";
 import Workspaces from "../Components/Platform/Workspaces";
 import WorkspaceDetail from "../Components/Platform/WorkspaceDetail";
+import AuditLog from "../Components/Platform/AuditLog";
 
 export const routes = [
+  { path: "/admin/audit-log", title: "Audit log", Component: <AuditLog /> },
   { path: "/workspace/dashboard", title: "Dashboard", Component: <Dashboard /> },
   { path: "/admin/workspaces", title: "Workspaces", Component: <Workspaces /> },
   { path: "/admin/workspaces/:id", title: "Workspace detail", Component: <WorkspaceDetail /> },

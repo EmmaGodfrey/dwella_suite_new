@@ -6,6 +6,7 @@ import { usePlatformChoices, usePlatformDetail, usePlatformMutation } from "../.
 import { useCurrentUserQuery } from "../../Services/queries";
 import { StatusBadge } from "../../shared/components/StatusBadge";
 import { AdminDrawer, AdminHeader, AdminState, AdminTable, ConfirmAction, choice, nameOf, roles, when, workspaceName } from "./AdminUI";
+import { RecentActivity } from "./AuditLog";
 
 export default function UserDetail() {
   const { id } = useParams();
@@ -54,6 +55,7 @@ export default function UserDetail() {
         {!user?.memberships?.length && <p className="admin-note">No workspace memberships.</p>}
         <div className="admin-card-actions"><Button onClick={() => setDialog({ type: "membership" })}>Add to workspace</Button></div>
       </section>
+      <RecentActivity filters={{ user: id }} />
     </div><aside className="admin-stack">
       <section className="admin-card"><h2>Profile</h2><dl>
         <div><dt>Email</dt><dd>{user?.email}</dd></div>
