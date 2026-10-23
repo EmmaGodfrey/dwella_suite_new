@@ -1,5 +1,6 @@
 import { api, setAuthToken } from "./apiClient";
 import { setSupportWorkspace } from "./supportContext";
+import { USER_STORAGE_KEY } from "../shared/storage";
 
 export async function login({ email, password }) {
   const response = await api.post("/accounts/login/", { email, password });
@@ -8,14 +9,14 @@ export async function login({ email, password }) {
   }
 
   setAuthToken(response.token);
-  localStorage.setItem("dwella_user", JSON.stringify(response.user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
   return response;
 }
 
 export async function registerAccount(payload) {
   const response = await api.post("/accounts/register/", payload);
   setAuthToken(response.token);
-  localStorage.setItem("dwella_user", JSON.stringify(response.user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
   return response;
 }
 
@@ -25,7 +26,7 @@ export async function verifyTwoFactorLogin({ challengeToken, code }) {
     code,
   });
   setAuthToken(response.token);
-  localStorage.setItem("dwella_user", JSON.stringify(response.user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
   return response;
 }
 
@@ -51,7 +52,7 @@ export async function disableTwoFactor() {
 
 export async function updateProfile(payload) {
   const user = await api.patch("/accounts/me/", payload);
-  localStorage.setItem("dwella_user", JSON.stringify(user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   return user;
 }
 
@@ -59,7 +60,7 @@ export async function uploadAvatar(file) {
   const formData = new FormData();
   formData.append("avatar", file);
   const user = await api.post("/accounts/me/avatar/", formData);
-  localStorage.setItem("dwella_user", JSON.stringify(user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   return user;
 }
 
@@ -70,7 +71,7 @@ export async function submitIdentityVerification(payload) {
   formData.append("document_number", payload.documentNumber);
   formData.append("document_image", payload.documentImage);
   const user = await api.post("/accounts/me/verification/", formData);
-  localStorage.setItem("dwella_user", JSON.stringify(user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   return user;
 }
 
@@ -78,5 +79,5 @@ export async function logout() {
   await api.post("/accounts/logout/", {});
   setSupportWorkspace(null);
   setAuthToken(null);
-  localStorage.removeItem("dwella_user");
+  localStorage.removeItem(USER_STORAGE_KEY);
 }

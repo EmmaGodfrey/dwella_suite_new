@@ -5,6 +5,9 @@ import Signin from "../Auth/Signin";
 import Signup from "../Auth/Signup";
 import LayoutRoutes from "../Route/LayoutRoutes";
 import PrivateRoute from "./PrivateRoute";
+import { AUTHENTICATED_STORAGE_KEY } from "../shared/storage";
+
+const routerBasePath = (import.meta.env.VITE_BASE_PATH || "/").replace(/\/$/, "") || "/";
 
 const Routers = () => {
   const [currentUser, setCurrentUser] = useState(false);
@@ -12,7 +15,7 @@ const Routers = () => {
 
   useEffect(() => {
     let abortController = new AbortController();
-    setAuthenticated(JSON.parse(localStorage.getItem("authenticated")));
+    setAuthenticated(JSON.parse(localStorage.getItem(AUTHENTICATED_STORAGE_KEY)));
     console.ignoredYellowBox = ["Warning: Each", "Warning: Failed"];
         console.disableYellowBox = true;
     return () => {
@@ -21,7 +24,7 @@ const Routers = () => {
   }, []);
 
   return (
-    <BrowserRouter basename={"/"}>
+    <BrowserRouter basename={routerBasePath}>
       <>
         <Suspense fallback={<div className="dwella-route-loading">Loading Dwella Suite</div>}>
           <Routes>

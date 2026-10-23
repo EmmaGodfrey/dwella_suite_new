@@ -1,6 +1,7 @@
 import { api } from "./apiClient";
 import { queryKeys } from "./queryKeys";
 import { getSupportWorkspace, setSupportWorkspace } from "./supportContext";
+import { USER_STORAGE_KEY } from "../shared/storage";
 
 export async function refreshSupportContext(cache, workspace) {
   await cache.cancelQueries();
@@ -8,7 +9,7 @@ export async function refreshSupportContext(cache, workspace) {
   cache.clear();
   const user = await api.get("/accounts/me/");
   cache.setQueryData(queryKeys.currentUser, user);
-  localStorage.setItem("dwella_user", JSON.stringify(user));
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   return user;
 }
 

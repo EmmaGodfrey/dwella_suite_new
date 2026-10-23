@@ -9,10 +9,11 @@ import { AppSideNav, AppTopbar, PageActionsSlot, PageHeader } from "../shared/co
 import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navigation";
 import { SupportAccessProvider, SupportBanner } from "../Components/Platform/SupportAccess";
 import { toast } from "react-toastify";
+import { USER_STORAGE_KEY } from "../shared/storage";
 
 const getCachedUser = () => {
   try {
-    return JSON.parse(localStorage.getItem("dwella_user") || "null");
+    return JSON.parse(localStorage.getItem(USER_STORAGE_KEY) || "null");
   } catch {
     return null;
   }

@@ -108,3 +108,17 @@ Pushing to `main` deploys to production. Day-to-day work happens on `develop`
 and `APP_TRUSTED_PROXY_COUNT=1` so rate limits use the real client address.
 
 Keep `.env.prod` on the server only. The production compose file persists PostgreSQL, Redis, uploaded media, and collected static files across deployments.
+
+## Staging Deployment
+
+Staging runs as a separate Compose project with its own database, Redis, media,
+and static volumes:
+
+```text
+app.dwella.properties/test/       -> 127.0.0.1:8131
+app.dwella.properties/test/api/   -> 127.0.0.1:8130
+```
+
+Normal pushes to `develop` do not deploy. Push an annotated `test-v*` tag on a
+commit contained in `develop` to run the staging pipeline. See
+`docs/STAGING.md` for setup and deployment commands.

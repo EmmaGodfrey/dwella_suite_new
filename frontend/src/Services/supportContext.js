@@ -1,4 +1,6 @@
-const KEY = "dwella_support_workspace";
+import { scopedStorageKey } from "../shared/storage.js";
+
+const KEY = scopedStorageKey("dwella_support_workspace");
 let controller = new AbortController();
 let generation = 0;
 

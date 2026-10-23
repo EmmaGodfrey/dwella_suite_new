@@ -1,0 +1,113 @@
+name: dwella-suite-test
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - dwella_test_postgres_data:/var/lib/postgresql/data
+      - ../data/postgres-tls:/run/postgres-tls:ro
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres-tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres-tls/server.key
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-gateway:
+    image: haproxy:3.0-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./postgres-gateway.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    # Host networking preserves the remote address used by the source ACL.
+    # PostgreSQL itself remains reachable only through its localhost mapping.
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - dwella_test_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    image: dwella-suite-test-backend:latest
+    restart: unless-stopped
+    env_file:
+      - ../.env.test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ../data/media:/app/backend/media
+      - dwella_test_static_data:/app/backend/staticfiles
+    ports:
+      - "127.0.0.1:8130:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; request = urllib.request.Request('http://127.0.0.1:8000/api/health/', headers={'Host': 'app.dwella.properties', 'X-Forwarded-Proto': 'https'}); urllib.request.urlopen(request, timeout=5)"
+      interval: 20s
+      timeout: 6s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_APP_NAME: Dwella Suite Test
+        VITE_BASE_PATH: /test/
+        VITE_API_BASE_URL: https://app.dwella.properties/test/api/v1
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    volumes:
+      - ../data/media:/usr/share/nginx/media:ro
+    ports:
+      - "127.0.0.1:8131:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dwella_test_postgres_data:
+  dwella_test_redis_data:
+  dwella_test_static_data:

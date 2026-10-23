@@ -4,8 +4,10 @@ WORKDIR /app
 
 ARG VITE_APP_NAME="Dwella Suite"
 ARG VITE_API_BASE_URL
+ARG VITE_BASE_PATH="/"
 ENV VITE_APP_NAME=${VITE_APP_NAME} \
-    VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+    VITE_BASE_PATH=${VITE_BASE_PATH}
 
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

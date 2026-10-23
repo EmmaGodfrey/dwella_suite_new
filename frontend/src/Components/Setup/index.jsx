@@ -8,6 +8,7 @@ import {
 import { useCurrentUserQuery, useSetupQuery } from "../../Services/queries";
 import { useSaveSetupMutation } from "../../Services/mutations";
 import { useFormErrors } from "../../shared/useFormErrors";
+import { scopedStorageKey } from "../../shared/storage";
 import "./setup.scss";
 
 const initial = {
@@ -25,7 +26,7 @@ const fields = Object.keys(initial);
 
 function SetupForm({ status, user }) {
   const navigate = useNavigate();
-  const draftKey = `dwella_setup_draft_${user.id}`;
+  const draftKey = scopedStorageKey(`dwella_setup_draft_${user.id}`);
   const [form, setForm] = useState(() => {
     try {
       return {

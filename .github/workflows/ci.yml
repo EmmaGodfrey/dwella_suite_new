@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
+    tags: ["test-v*"]
   workflow_dispatch:
 
 permissions:
@@ -121,3 +122,63 @@ jobs:
           ssh "$PROD_SSH_USER@$PROD_SSH_HOST" \
             "chmod +x '$PROD_DEPLOY_PATH.release/deploy/activate-release.sh' &&
              '$PROD_DEPLOY_PATH.release/deploy/activate-release.sh' '$PROD_DEPLOY_PATH'"
+
+  deploy-staging:
+    if: startsWith(github.ref, 'refs/tags/test-v')
+    needs: [backend, backend-postgres, frontend]
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency:
+      group: dwella-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require tagged commit to belong to develop
+        run: |
+          git fetch origin develop
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/develop || {
+            echo "Refusing staging deployment: $GITHUB_SHA is not contained in origin/develop."
+            exit 1
+          }
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Upload staging release
+        env:
+          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+        run: |
+          ssh "$STAGING_SSH_USER@$STAGING_SSH_HOST" "mkdir -p '$STAGING_DEPLOY_PATH.release'"
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'data/' \
+            --exclude 'node_modules/' \
+            --exclude 'dist/' \
+            --exclude '.venv/' \
+            --exclude '__pycache__/' \
+            --exclude '*.sqlite3' \
+            ./ "$STAGING_SSH_USER@$STAGING_SSH_HOST:$STAGING_DEPLOY_PATH.release/"
+          ssh "$STAGING_SSH_USER@$STAGING_SSH_HOST" \
+            "test -f '$STAGING_DEPLOY_PATH/.env.test' &&
+             cp '$STAGING_DEPLOY_PATH/.env.test' '$STAGING_DEPLOY_PATH.release/.env.test'"
+      - name: Activate staging release
+        env:
+          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+        run: |
+          ssh "$STAGING_SSH_USER@$STAGING_SSH_HOST" \
+            "chmod +x '$STAGING_DEPLOY_PATH.release/deploy/activate-test-release.sh' &&
+             '$STAGING_DEPLOY_PATH.release/deploy/activate-test-release.sh' '$STAGING_DEPLOY_PATH'"

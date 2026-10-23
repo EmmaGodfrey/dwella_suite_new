@@ -16,6 +16,7 @@ import {
 import { api, apiRequest } from "./apiClient";
 import { queryClient } from "./queryClient";
 import { queryKeys } from "./queryKeys";
+import { USER_STORAGE_KEY } from "../shared/storage";
 
 export function useLoginMutation(options = {}) {
   return useMutation({
@@ -48,7 +49,7 @@ export function useSaveSetupMutation(options = {}) {
     onSuccess: async (data, variables, context) => {
       await queryClient.invalidateQueries();
       const user = queryClient.getQueryData(queryKeys.currentUser);
-      if (user) localStorage.setItem("dwella_user", JSON.stringify(user));
+      if (user) localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
