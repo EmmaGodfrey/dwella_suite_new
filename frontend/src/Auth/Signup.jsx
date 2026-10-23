@@ -94,7 +94,7 @@ export default function Signup() {
             </p>
           ) : (
             <>
-              <div className="dwella-auth-fields">
+              <div className="dwella-auth-fields dwella-signup-fields">
                 {[
                   ["first_name", "First name", "given-name"],
                   ["last_name", "Last name", "family-name"],
@@ -102,7 +102,7 @@ export default function Signup() {
                   ["password", "Password", "new-password"],
                   ["confirm", "Confirm password", "new-password"],
                 ].map(([name, label, autoComplete]) => (
-                  <Field key={name} label={label} {...fieldProps(name)}>
+                  <Field key={name} label={label} {...fieldProps(name)} className={`${!["first_name", "last_name"].includes(name) ? "dwella-field-wide" : ""} ${fieldProps(name).className || ""}`}>
                     <Input
                       name={name}
                       value={form[name]}

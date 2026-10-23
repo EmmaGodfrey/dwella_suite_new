@@ -86,7 +86,7 @@ export default function RecordPaymentDrawer({ invoice, onClose, onSaved }) {
       <form id="payment-form" noValidate onSubmit={submit} className="dwella-drawer-form">
         <DrawerBody>
           <fieldset disabled={mutation.isPending}>
-            <div className="dwella-form-grid is-single">
+            <div className="dwella-form-grid">
               <Field label="Amount received (ZMW)" required {...fieldProps("amount")}>
                 <Input inputMode="decimal" value={form.amount} onChange={(_, d) => update("amount", d.value)} />
               </Field>
@@ -107,7 +107,7 @@ export default function RecordPaymentDrawer({ invoice, onClose, onSaved }) {
               <Field label="Reference" hint="Transaction ID, bank reference or cheque number." {...fieldProps("reference")}>
                 <Input maxLength={80} value={form.reference} onChange={(_, d) => update("reference", d.value)} />
               </Field>
-              <Field label="Note" {...fieldProps("notes")}>
+              <Field label="Note" {...fieldProps("notes")} className="dwella-field-wide">
                 <Textarea rows={2} value={form.notes} onChange={(_, d) => update("notes", d.value)} />
               </Field>
             </div>

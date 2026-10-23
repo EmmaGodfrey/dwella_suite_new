@@ -81,14 +81,14 @@ export default function UnitForm({ propertyId, unit, onClose, onSaved }) {
               {statuses.map((status) => <Option key={status.value} value={status.value}>{status.label}</Option>)}
             </Dropdown>
           </Field>
+          <Field label="Floor area (sq m)" {...fieldProps("floor_area")}>
+            <Input type="number" min="0" step="0.01" value={form.floor_area} onChange={(_, d) => update("floor_area", d.value)} />
+          </Field>
           <Field label="Bedrooms" {...fieldProps("bedrooms")}>
             <Input type="number" min="0" step="1" value={form.bedrooms} onChange={(_, d) => update("bedrooms", d.value)} />
           </Field>
           <Field label="Bathrooms" {...fieldProps("bathrooms")}>
             <Input type="number" min="0" step="0.5" value={form.bathrooms} onChange={(_, d) => update("bathrooms", d.value)} />
-          </Field>
-          <Field label="Floor area (sq m)" {...fieldProps("floor_area")}>
-            <Input type="number" min="0" step="0.01" value={form.floor_area} onChange={(_, d) => update("floor_area", d.value)} />
           </Field>
           <Field label="Notes" className="dwella-unit-form-wide">
             <Textarea rows={2} value={form.notes} onChange={(_, d) => update("notes", d.value)} />
