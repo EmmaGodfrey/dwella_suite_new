@@ -1,0 +1,145 @@
+.outreach-screen {
+  min-width: 0;
+}
+.outreach-screen .dwella-table th {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.outreach-screen .admin-filters > .fui-Field:first-child {
+  flex: 0 1 22rem;
+}
+.outreach-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.outreach-tabs a {
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  color: var(--dwella-primary);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+.outreach-tabs a.active {
+  background: var(--dwella-primary);
+  color: var(--dwella-on-primary);
+  box-shadow: var(--dwella-shadow-button);
+}
+.outreach-tabs a:focus-visible,
+.outreach-review-list button:focus-visible {
+  outline: 2px solid var(--dwella-primary);
+  outline-offset: 3px;
+}
+.outreach-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24.5rem;
+  gap: 1rem;
+  align-items: start;
+}
+.outreach-review-grid {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.outreach-review-list,
+.outreach-sequences {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.outreach-review-list > button,
+.outreach-sequences > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  text-align: left;
+  color: var(--dwella-ink);
+  cursor: pointer;
+}
+.outreach-review-list > button.is-selected,
+.outreach-sequences > button.is-selected {
+  background: var(--dwella-primary-soft);
+}
+.outreach-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+.outreach-preview h3 {
+  font-size: 0.875rem;
+}
+.outreach-preview > .dwella-status-badge {
+  align-self: flex-start;
+}
+.outreach-preview pre,
+.outreach-message pre,
+.outreach-message-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  line-height: 1.6;
+}
+.outreach-preview summary,
+.outreach-message summary {
+  cursor: pointer;
+}
+.outreach-message,
+.outreach-enrollment {
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--dwella-line-soft);
+}
+.outreach-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.25rem;
+}
+.outreach-form > button {
+  align-self: flex-start;
+}
+.outreach-merge-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.outreach-text-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dwella-primary);
+  cursor: pointer;
+  text-align: left;
+}
+.outreach-settings {
+  max-width: none;
+}
+.outreach-setting-limits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+@media (max-width: 1100px) {
+  .outreach-review-grid {
+    grid-template-columns: 16rem minmax(0, 1fr);
+  }
+  .outreach-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 700px) {
+  .outreach-review-grid,
+  .outreach-setting-limits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .outreach-tabs a {
+    padding: 0.5rem 0.65rem;
+  }
+}
