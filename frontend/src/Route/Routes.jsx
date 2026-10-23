@@ -21,8 +21,20 @@ import IdentityChecks from "../Components/Platform/IdentityChecks";
 import Workspaces from "../Components/Platform/Workspaces";
 import WorkspaceDetail from "../Components/Platform/WorkspaceDetail";
 import AuditLog from "../Components/Platform/AuditLog";
+import Outreach from "../Components/Outreach";
+import OutreachContact from "../Components/Outreach/ContactDetail";
+import OutreachSequences from "../Components/Outreach/Sequences";
+import OutreachReview from "../Components/Outreach/ReviewQueue";
+import OutreachOutbox from "../Components/Outreach/Outbox";
+import OutreachSettings from "../Components/Outreach/Settings";
 
 export const routes = [
+  { path: "/admin/outreach/contacts/:id", Component: <OutreachContact /> },
+  { path: "/admin/outreach/sequences", Component: <OutreachSequences /> },
+  { path: "/admin/outreach/review", Component: <OutreachReview /> },
+  { path: "/admin/outreach/outbox", Component: <OutreachOutbox /> },
+  { path: "/admin/outreach/settings", Component: <OutreachSettings /> },
+  { path: "/admin/outreach", Component: <Outreach /> },
   { path: "/admin/audit-log", title: "Audit log", Component: <AuditLog /> },
   { path: "/workspace/dashboard", title: "Dashboard", Component: <Dashboard /> },
   { path: "/admin/workspaces", title: "Workspaces", Component: <Workspaces /> },

@@ -43,6 +43,10 @@ export const AppBreadcrumbs = () => {
   if (pathname === "/workspace/dashboard") {
     crumbs.splice(1, crumbs.length, { to: pathname, label: "Workspace dashboard" });
   }
+  if (pathname.startsWith("/admin/outreach/")) {
+    const page = pathname.split("/")[3];
+    crumbs[crumbs.length - 1].label = ({sequences: "Sequences", review: "Review queue", outbox: "Outbox", settings: "Settings", contacts: "Contact"})[page] || "Outreach";
+  }
 
   return (
     <Breadcrumb className="dwella-breadcrumbs" aria-label="Breadcrumb" size="medium">
