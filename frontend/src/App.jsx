@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ToastContainer } from "react-toastify";
 import Routers from "./Route";
-import HandyAssistant from "./shared/components/HandyAssistant";
+import { installHandyAgent } from "./Services/handyAgent";
 import { queryClient } from "./Services/queryClient";
 import { applyThemeMode, dwellaDarkTheme, dwellaLightTheme, getStoredThemeMode } from "./theme/dwellaTheme";
 
@@ -31,6 +31,7 @@ const App = () => {
     applyThemeMode(darkMode);
   }, [darkMode]);
 
+  useEffect(() => installHandyAgent(), []);
 
   return (
     <div className="App">
@@ -38,7 +39,6 @@ const App = () => {
         <DwellaThemeContext.Provider value={themeContext}>
           <FluentProvider theme={darkMode ? dwellaDarkTheme : dwellaLightTheme} customStyleHooks_unstable={customStyleHooks}>
             <Routers />
-            <HandyAssistant />
             <ToastContainer position="top-right" newestOnTop />
           </FluentProvider>
         </DwellaThemeContext.Provider>
