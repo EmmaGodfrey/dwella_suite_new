@@ -30,12 +30,13 @@ const empty = { name: "", phone: "", email: "", role: "Landlord", units: "", tow
 export default function AddSignupDrawer({ emailsEnabled, onClose, onSaved }) {
   const [values, setValues] = useState(empty);
   const [sendWelcome, setSendWelcome] = useState(true);
+  const [earlyAccess, setEarlyAccess] = useState(false);
   const { validate, clearError, fieldProps, showServerErrors } = useFormErrors();
 
   const mutation = useCreateBetaApplicationMutation({
     onSuccess: (data) => {
       toast.success(
-        sendWelcome && emailsEnabled
+        earlyAccess ? `${data.name} has early access. Their account setup email was sent.` : sendWelcome && emailsEnabled
           ? `${data.name} is signed up. Their welcome email is on its way.`
           : `${data.name} is signed up.`
       );
@@ -67,7 +68,8 @@ export default function AddSignupDrawer({ emailsEnabled, onClose, onSaved }) {
       phone: values.phone.trim(),
       email: values.email.trim().toLowerCase(),
       town: values.town.trim(),
-      send_welcome: sendWelcome,
+      send_welcome: !earlyAccess && sendWelcome,
+      give_early_access: earlyAccess,
     });
   };
 
@@ -114,7 +116,10 @@ export default function AddSignupDrawer({ emailsEnabled, onClose, onSaved }) {
               </div>
             </section>
             <section className="dwella-form-section">
+              <Switch checked={earlyAccess} disabled={!emailsEnabled} onChange={(_, data) => setEarlyAccess(data.checked)} label="Give early access now" />
+              {earlyAccess && <p className="dwella-drawer-note">Send a one-time account setup link immediately. Welcome and countdown emails stop.</p>}
               <Switch
+                disabled={earlyAccess}
                 checked={sendWelcome}
                 onChange={(_, data) => setSendWelcome(data.checked)}
                 label="Send the welcome email now"

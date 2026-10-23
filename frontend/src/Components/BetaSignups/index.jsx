@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Dropdown, Field, Input, Option, Textarea } from "@fluentui/react-components";
+import { Button, Dropdown, Field, Input, Option, Switch, Textarea } from "@fluentui/react-components";
 import {
   Call20Regular,
   CheckmarkCircle16Filled,
@@ -251,11 +251,11 @@ export default function BetaSignups() {
     ? selectedId
     : applications[0]?.id;
   const selected = applications.find((item) => item.id === activeId);
-  const filtered = Boolean(filters.search || filters.status || filters.role);
+  const filtered = Boolean(filters.search || filters.status || filters.role || filters.early_access);
   const clearFilters = () => {
     setSearch("");
     setSelectedId(null);
-    setFilters((current) => ({ ...current, search: "", status: "", role: "", page: 1 }));
+    setFilters((current) => ({ ...current, search: "", status: "", role: "", early_access: "", page: 1 }));
   };
 
   return (
@@ -283,6 +283,9 @@ export default function BetaSignups() {
           <Option value="">All roles</Option>
           {roles.map((role) => <Option key={role} value={role}>{role}</Option>)}
         </Dropdown>
+        <Switch label="Early access only" checked={filters.early_access === "true"} onChange={(_, data) => {
+          setSelectedId(null); setFilters(current => ({...current, early_access: data.checked ? "true" : "", page: 1}));
+        }} />
         <Input
           className="dwella-toolbar-search"
           aria-label="Search beta signups"
@@ -355,7 +358,7 @@ export default function BetaSignups() {
                       <td><strong>{application.name}</strong><span className="dwella-cell-note">{application.phone}</span></td>
                       <td>{application.role}<span className="dwella-cell-note">{application.units} units · {application.town || "Town not provided"}</span></td>
                       <td>{dateTime.format(new Date(application.created_at))}</td>
-                      <td><StatusBadge value={application.status} color={statusColor[application.status]} /></td>
+                      <td><StatusBadge value={application.status} color={statusColor[application.status]} />{application.early_access && <StatusBadge value="early_access" color="success" />}</td>
                     </tr>
                   );
                 })}
