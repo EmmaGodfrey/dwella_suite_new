@@ -4,6 +4,7 @@ from .registration import RegistrationView
 from .views import (
     CurrentUserAvatarView,
     CurrentUserView,
+    HandyAgentTokenView,
     IdentityVerificationSubmitView,
     LoginView,
     LogoutView,
@@ -25,6 +26,7 @@ urlpatterns = [
     path("me/", CurrentUserView.as_view(), name="me"),
     path("me/avatar/", CurrentUserAvatarView.as_view(), name="me-avatar"),
     path("me/verification/", IdentityVerificationSubmitView.as_view(), name="me-verification"),
+    path("handy-agent/token/", HandyAgentTokenView.as_view(), name="handy-agent-token"),
     path("password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
     path(
         "password-reset/confirm/",

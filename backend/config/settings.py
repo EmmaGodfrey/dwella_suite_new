@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "apps.common",
+    "apps.assistant",
     "apps.accounts",
     "apps.organizations",
     "apps.properties",
@@ -123,6 +124,14 @@ EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
+HANDY_AGENT_SIGNING_SECRET = __import__("os").getenv("HANDY_AGENT_SIGNING_SECRET", "")
+HANDY_AGENT_ISSUER = __import__("os").getenv(
+    "HANDY_AGENT_ISSUER", "https://api.dwella.properties"
+)
+HANDY_AGENT_AUDIENCE = __import__("os").getenv("HANDY_AGENT_AUDIENCE", "handy-agent")
+HANDY_AGENT_TOKEN_TTL_SECONDS = int(
+    __import__("os").getenv("HANDY_AGENT_TOKEN_TTL_SECONDS", "900")
+)
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
@@ -184,6 +193,12 @@ REST_FRAMEWORK = {
         "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
         "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
+        "handy_agent_token": __import__("os").getenv(
+            "THROTTLE_HANDY_AGENT_TOKEN_RATE", "20/hour"
+        ),
+        "handy_agent_action": __import__("os").getenv(
+            "THROTTLE_HANDY_AGENT_ACTION_RATE", "120/hour"
+        ),
         "beta_application": __import__("os").getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
     },
 }
@@ -199,12 +214,25 @@ BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
 BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
 MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
 PUBLIC_API_URL = __import__("os").getenv("PUBLIC_API_URL", "http://localhost:8000")
+OPENAPI_SERVER_URL = __import__("os").getenv(
+    "OPENAPI_SERVER_URL", PUBLIC_API_URL.removesuffix("/api")
+)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Dwella Suite API",
     "DESCRIPTION": "Property management APIs for Dwella Suite.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SERVERS": [{"url": OPENAPI_SERVER_URL}],
+    "APPEND_COMPONENTS": {
+        "securitySchemes": {
+            "HandyAgentBearer": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+            }
+        }
+    },
 }
 
 CELERY_BROKER_URL = __import__("os").getenv("REDIS_URL", "redis://localhost:6379/0")

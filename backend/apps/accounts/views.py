@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 
+from .handy_agent import issue_handy_agent_token
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
@@ -40,6 +41,15 @@ from .serializers import (
 
 User = get_user_model()
 signer = TimestampSigner(salt="accounts.two_factor.challenge")
+
+
+class HandyAgentTokenView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "handy_agent_token"
+
+    def post(self, request):
+        token, expires_at = issue_handy_agent_token(request.user, request)
+        return Response({"token": token, "expires_at": expires_at.isoformat()})
 
 
 @transaction.atomic

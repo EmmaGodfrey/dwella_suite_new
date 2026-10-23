@@ -91,3 +91,37 @@ class IdentityVerification(models.Model):
 
     def __str__(self):
         return f"Identity verification for {self.user}"
+
+
+class HandyActionExecution(models.Model):
+    """Durable replay protection for an approved assistant action."""
+
+    organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="handy_action_executions",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="handy_action_executions",
+    )
+    idempotency_key = models.CharField(max_length=160)
+    operation = models.CharField(max_length=120)
+    payload_hash = models.CharField(max_length=64)
+    response_status = models.PositiveSmallIntegerField(default=201)
+    response_data = models.JSONField(default=dict)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "actor", "operation", "idempotency_key"],
+                name="unique_handy_action_execution",
+            )
+        ]
+        indexes = [models.Index(fields=["organization", "created_at"])]
+
+    def __str__(self):
+        return f"{self.operation} by {self.actor_id}"
