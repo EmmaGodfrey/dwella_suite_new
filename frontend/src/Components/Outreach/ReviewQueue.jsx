@@ -44,7 +44,20 @@ export default function ReviewQueue() {
   const changed = draft !== null && draft !== entry?.personal_line;
   const ready = query.data?.results.filter((e) => e.review?.ready) || [];
   const approve = async (ids) => {
-    const entries = query.data.results.filter((e) => ids.includes(e.id));
+    // Preview tokens expire after 10 minutes, so fetch fresh ones. Approve only if
+    // each message is still exactly the copy shown on screen.
+    const shown = Object.fromEntries(
+      query.data.results.map((e) => [e.id, e.review?.digest]),
+    );
+    const { data: fresh } = await query.refetch();
+    const entries = fresh?.results.filter((e) => ids.includes(e.id)) || [];
+    if (
+      entries.length !== ids.length ||
+      entries.some((e) => !e.review?.ready || e.review.digest !== shown[e.id])
+    ) {
+      toast.error("A message changed since you opened it. Check the refreshed copy, then approve.");
+      return;
+    }
     await mutation.mutateAsync({
       resource: "enrollments",
       action: "approve-many",
