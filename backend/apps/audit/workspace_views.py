@@ -63,6 +63,22 @@ class PlatformWorkspaceViewSet(WorkspaceActions, viewsets.ReadOnlyModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     search_fields = ["name", "display_name", "email", "town", "memberships__user__email"]
 
+    @action(detail=True, methods=["get"])
+    def properties(self, request, public_id=None):
+        from apps.properties.models import Property
+
+        workspace = self.get_object()
+        query = Property.objects.filter(organization=workspace).annotate(
+            units_count=Count("units"),
+            occupied_units=Count("units", filter=Q(units__occupancy_status="occupied")),
+        ).order_by("name", "pk")
+        page = self.paginate_queryset(query)
+        return self.get_paginated_response([{
+            "id": str(prop.public_id), "name": prop.name, "town": prop.town,
+            "property_type": prop.property_type, "management_status": prop.management_status,
+            "units_count": prop.units_count, "occupied_units": prop.occupied_units,
+        } for prop in page])
+
     @action(detail=False, methods=["get"])
     def summary(self, request):
         counts = Organization.objects.aggregate(
