@@ -121,6 +121,9 @@
 .outreach-settings {
   max-width: none;
 }
+.outreach-settings-fields { display: grid; gap: 1.25rem; border: 0; padding: 0; margin: 0; min-width: 0; }
+.outreach-settings-fields > .fui-Button { justify-self: start; }
+@media (max-width: 760px) { .outreach-settings-fields .dwella-form-grid, .outreach-settings .outreach-setting-limits { grid-template-columns: minmax(0, 1fr); } }
 .outreach-setting-limits {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

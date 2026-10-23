@@ -137,7 +137,15 @@ export function ContactDrawer({ contact, onClose }) {
   const mutation = useOutreachMutation();
   return (
     <AdminDrawer
+      steps={[
+        { title: "Contact", fields: ["name", "first_name", "salutation", "email", "phone", "whatsapp"] },
+        { title: "Context", fields: ["organization", "title", "segment", "platform", "handle", "town"] },
+        { title: "Source", fields: ["profile_url", "source", "notes"] },
+      ]}
+      wideFields={["name", "email", "profile_url", "source", "notes"]}
+      summary={(values) => <div className="dwella-form-context"><h3>{values.name}</h3><p>{[values.email, values.organization, values.town].filter(Boolean).join(" · ")}</p><p>Saving a contact does not send an email or enroll them in a sequence.</p></div>}
       title={contact ? "Edit contact" : "Add contact"}
+      submitLabel={contact ? "Save changes" : "Add contact"}
       fields={contactFields}
       initial={contact || { segment: "other", platform: "other" }}
       onClose={onClose}
