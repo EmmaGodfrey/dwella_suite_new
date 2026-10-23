@@ -3,7 +3,7 @@
 ## Phase 1: support access foundation
 
 The backend supports explicit, audited access to one landlord workspace. The admin
-console screens are awaiting Figma review; no frontend acting mode is enabled yet.
+console and acting mode are implemented following the approved Figma review.
 Apply the audit migration before using these endpoints.
 
 Staff and superusers can start support sessions. A superuser-only permission is
@@ -31,7 +31,7 @@ exception: it returns aggregate platform figures without individual property/uni
 5. `POST /api/v1/platform/support-sessions/<session UUID>/end/` ends the caller's
    session. Stale workspace headers do not block starting, listing or ending sessions.
 6. `POST /api/v1/accounts/logout/` ends all the caller's support sessions, revokes
-   their API token and ends their Django session. Future frontend logout must call
+   their API token and ends their Django session. Frontend logout calls
    this endpoint before clearing local credentials. Merely deleting a browser token
    does not notify the server; the four-hour expiry remains the backstop.
 
@@ -119,3 +119,39 @@ Ruff, Django check, migration consistency and fresh Postgres migrations passed.
 The two lock tests deliberately skip on SQLite and must remain enabled on Postgres.
 The GitHub workflow was parsed locally; its new job will run when a PR/push triggers CI.
 Nothing was pushed, merged into main or deployed. Frontend implementation remains paused.
+
+## Completed console (23 October 2026)
+
+The Platform sidebar provides Administration, Workspaces, Users, Identity checks,
+Beta signups and Audit log. Staff can manage ordinary users and memberships, review
+identity submissions, suspend/reactivate workspaces and transfer ownership. Granting
+platform admin rights and permanent deletion require a superuser. Self-protection,
+last-owner/last-superuser checks and typed deletion confirmations remain authoritative
+on the backend. Suspension blocks portfolio reads and writes and ends support access.
+
+Open a workspace from its detail screen or the sidebar picker, supply a 5–300 character
+reason, and use the normal landlord screens with owner access. The support banner
+shows workspace, reason, time remaining and Leave. Switching, leaving, expiry and logout
+abort old requests and clear the query cache. In-flight mutations prevent switching or
+logout. Platform pages remain available while acting: /dashboard shows platform
+Administration; /workspace/dashboard shows the selected landlord's dashboard.
+
+GET /api/v1/platform/dashboard/ returns aggregate workspace/user counts, beta statuses,
+open support sessions, pending identity checks and collections for the current Lusaka
+business month through today, excluding reversed payments. No individual financial
+records are returned. Workspace detail includes a paginated properties summary via
+GET /api/v1/platform/workspaces/{id}/properties/; private portfolio operations still
+require support access.
+
+Audit log supports actor, workspace, action, resource, date and support-session filters,
+a detail drawer and CSV export. User/workspace detail shows the latest five relevant
+events. CSV cells escape spreadsheet formulas and exports use private/no-store headers.
+Account sign-in/2FA changes and important landlord financial/lease actions are audited
+outside support mode too; support writes keep their reason and original actor.
+
+Validation on 23 October: full SQLite suite 411 passed / 2 Postgres-only skips; full
+isolated PostgreSQL 17 suite 413 passed, including competing-connection regressions.
+Django check, Ruff, migration consistency, support-context unit checks and production
+frontend build passed. Browser review covered audit filtering/export, workspace details,
+acting navigation, leave, light/dark, narrow screens and viewport reflow corresponding
+to 67%/200% zoom. Preview data/artifacts remain ignored; no deployment was performed.
