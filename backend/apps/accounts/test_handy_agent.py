@@ -78,6 +78,7 @@ def test_issues_scoped_short_lived_token_for_supported_roles(
         "actor": expected_actor,
         "ledger": False,
     }
+    assert response.data["host_authorization"] == f"Bearer {response.data['token']}"
     assert timedelta(minutes=14, seconds=55) <= (
         timezone.datetime.fromtimestamp(claims["exp"], tz=UTC) - timezone.now()
     ) <= timedelta(minutes=15)

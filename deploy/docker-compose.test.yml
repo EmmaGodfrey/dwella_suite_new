@@ -93,6 +93,7 @@ services:
         VITE_APP_NAME: Dwella Suite Test
         VITE_BASE_PATH: /test/
         VITE_API_BASE_URL: https://app.dwella.properties/test/api/v1
+        VITE_HANDY_AGENT_ENABLED: "true"
     restart: unless-stopped
     depends_on:
       backend:

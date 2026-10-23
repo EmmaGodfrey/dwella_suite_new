@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ToastContainer } from "react-toastify";
 import Routers from "./Route";
+import { installHandyAgent } from "./Services/handyAgent";
 import { queryClient } from "./Services/queryClient";
 import { applyThemeMode, dwellaDarkTheme, dwellaLightTheme, getStoredThemeMode } from "./theme/dwellaTheme";
 
@@ -29,6 +30,10 @@ const App = () => {
   useEffect(() => {
     applyThemeMode(darkMode);
   }, [darkMode]);
+
+  useEffect(() => {
+    installHandyAgent();
+  }, []);
 
   return (
     <div className="App">

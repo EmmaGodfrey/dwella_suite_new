@@ -24,10 +24,11 @@ export function getAuthToken() {
 export function setAuthToken(token) {
   if (token) {
     localStorage.setItem(AUTH_TOKEN_KEY, token);
-    return;
+  } else {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
   }
 
-  localStorage.removeItem(AUTH_TOKEN_KEY);
+  queueMicrotask(() => window.HandyAgent?.refresh?.());
 }
 
 export async function apiRequest(path, options = {}) {

@@ -49,7 +49,16 @@ class HandyAgentTokenView(APIView):
 
     def post(self, request):
         token, expires_at = issue_handy_agent_token(request.user, request)
-        return Response({"token": token, "expires_at": expires_at.isoformat()})
+        return Response(
+            {
+                "token": token,
+                "expires_at": expires_at.isoformat(),
+                # Handy forwards this only after the user approves an action.
+                # Reuse the short-lived, workspace-scoped JWT instead of
+                # exposing Dwella's durable API token to a third party.
+                "host_authorization": f"Bearer {token}",
+            }
+        )
 
 
 @transaction.atomic
