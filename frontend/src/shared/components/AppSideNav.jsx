@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 
 import { accessLabel, getUserAccess } from "../access";
 import { getNavigationItems, navigationGroups } from "../navigation";
+import { appHref } from "../storage";
 import { BrandMark } from "./BrandMark";
 import { UserMenu } from "./UserMenu";
 import { useSupportAccess } from "../../Components/Platform/SupportAccess";
@@ -94,7 +95,7 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
                     aria-label={item.label}
                     key={item.value}
                     value={item.value}
-                    href={item.to}
+                    href={appHref(item.to)}
                     icon={{ children: item.icon, className: "dwella-nav-item-icon" }}
                     title={!showLabels ? item.label : undefined}
                   >

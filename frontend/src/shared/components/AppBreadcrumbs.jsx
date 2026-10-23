@@ -4,6 +4,7 @@ import { Breadcrumb, BreadcrumbButton, BreadcrumbDivider, BreadcrumbItem } from 
 
 import { useCurrentUserQuery, useInvoiceQuery, useLeaseQuery, useMaintenanceRequestQuery, useReceiptQuery } from "../../Services/queries";
 import { getPageMeta } from "../navigation";
+import { appHref } from "../storage";
 
 // Detail pages name the record once its page has loaded it. The queries are
 // disabled, so this only reads what the page already fetched.
@@ -56,7 +57,7 @@ export const AppBreadcrumbs = () => {
           <React.Fragment key={crumb.to}>
             <BreadcrumbItem>
               <BreadcrumbButton
-                href={crumb.to}
+                href={appHref(crumb.to)}
                 current={current}
                 onClick={(event) => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey) return;

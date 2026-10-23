@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button, Menu, MenuTrigger, MenuPopover, MenuList, MenuItem } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 import { usePlatformChoices, usePlatformDetail, usePlatformMutation } from "../../Services/platform";
@@ -10,6 +10,7 @@ import { RecentActivity } from "./AuditLog";
 
 export default function UserDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const query = usePlatformDetail("users", id);
   const current = useCurrentUserQuery();
   const workspaces = usePlatformChoices("workspaces", { active: "true" });
@@ -89,7 +90,7 @@ export default function UserDetail() {
     {dialog?.type === "delete" && <ConfirmAction title="Permanently delete user?" description="This cannot be undone. Financial records remain governed by retention rules."
       confirmation={`DELETE ${nameOf(user)}`} label="Delete user" onClose={() => setDialog(null)} onConfirm={async (confirmation) => {
         await mutation.mutateAsync({ resource: "users", id, method: "delete", body: { confirmation } });
-        window.location.assign("/admin/users");
+        navigate("/admin/users", { replace: true });
       }} />}
   </div></AdminState>;
 }
