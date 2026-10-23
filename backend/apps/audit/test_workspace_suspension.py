@@ -22,7 +22,7 @@ def test_suspended_workspace_blocks_member_and_support_portfolio_access(context)
         "organization": str(org.public_id), "reason": "Reviewing support request",
     }, format="json").status_code == 400
     owner = get_user_model().objects.create_user(username="suspended-owner")
-    OrganizationMembership.objects.create(user=owner, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=owner, organization=org, role="landlord")
     access = get_user_access(owner)
     assert access["workspace_suspended"] and not access["can_manage_organization"]
     assert not access["can_view_portfolio"]

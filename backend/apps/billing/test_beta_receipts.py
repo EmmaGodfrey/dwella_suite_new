@@ -16,7 +16,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def portfolio():
     org = Organization.objects.create(name="Receipt test", email="rent@example.com")
-    client = member_client(org, "owner", "receipt-owner")
+    client = member_client(org, "landlord", "receipt-owner")
     make_lease(org)
     generate_rent_invoices(org, THIS_MONTH)
     invoice = Invoice.objects.get(organization=org)
@@ -85,8 +85,8 @@ def test_reversal_requires_a_useful_bounded_reason(portfolio, payload):
     assert payment.reversed_at is None
 
 
-@pytest.mark.parametrize("role", ["tenant", "viewer", "staff"])
-def test_read_only_members_cannot_reverse(portfolio, role):
+@pytest.mark.parametrize("role", ["tenant"])
+def test_tenant_members_cannot_reverse(portfolio, role):
     org, _, _, payment = portfolio
     client = member_client(org, role, f"receipt-{role}")
     response = client.post(
@@ -104,7 +104,7 @@ def test_receipts_are_private_and_immutable(portfolio):
     tenant = member_client(org, "tenant", "receipt-tenant-other")
     assert tenant.get(url).status_code == 403
     other = Organization.objects.create(name="Other receipt org")
-    outsider = member_client(other, "owner", "receipt-outsider")
+    outsider = member_client(other, "landlord", "receipt-outsider")
     assert outsider.get(url).status_code == 404
     assert (
         outsider.post(
@@ -112,7 +112,7 @@ def test_receipts_are_private_and_immutable(portfolio):
         ).status_code
         == 404
     )
-    owner = member_client(org, "owner", "receipt-owner-other")
+    owner = member_client(org, "landlord", "receipt-owner-other")
     assert owner.patch(url, {"amount": "1.00"}, format="json").status_code == 405
     assert owner.delete(url).status_code == 405
     assert owner.post("/api/v1/billing/payments/", {}, format="json").status_code == 405

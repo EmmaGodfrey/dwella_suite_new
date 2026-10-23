@@ -25,11 +25,7 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
 
 class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
     class Role(models.TextChoices):
-        OWNER = "owner", "Owner"
-        ADMIN = "admin", "Admin"
-        MANAGER = "manager", "Manager"
-        STAFF = "staff", "Staff"
-        VIEWER = "viewer", "Viewer"
+        LANDLORD = "landlord", "Landlord"
         TENANT = "tenant", "Tenant"
 
     organization = models.ForeignKey(
@@ -42,7 +38,7 @@ class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
         on_delete=models.CASCADE,
         related_name="organization_memberships",
     )
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.VIEWER)
+    role = models.CharField(max_length=20, choices=Role.choices)
     invited_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

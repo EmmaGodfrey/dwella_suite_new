@@ -26,7 +26,7 @@ def org():
 
 @pytest.fixture
 def manager(org):
-    return member_client(org, OrganizationMembership.Role.MANAGER, "manager")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "manager")
 
 
 @pytest.fixture
@@ -227,17 +227,17 @@ def test_only_draft_leases_can_be_deleted(manager, tenant, unit):
 
 
 @pytest.mark.django_db
-def test_viewer_cannot_create_or_change_lease_state(org, tenant, unit, manager):
+def test_tenant_member_cannot_read_create_or_change_leases(org, tenant, unit, manager):
     lease_id = manager.post("/api/v1/leases/", lease_payload(tenant, unit), format="json").json()[
         "response_data"
     ]["id"]
-    viewer = member_client(org, OrganizationMembership.Role.VIEWER, "viewer")
-    assert viewer.get(f"/api/v1/leases/{lease_id}/").status_code == 200
+    member = member_client(org, OrganizationMembership.Role.TENANT, "tenant-member")
+    assert member.get(f"/api/v1/leases/{lease_id}/").status_code == 403
     assert (
-        viewer.post("/api/v1/leases/", lease_payload(tenant, unit), format="json").status_code
+        member.post("/api/v1/leases/", lease_payload(tenant, unit), format="json").status_code
         == 403
     )
-    assert viewer.post(f"/api/v1/leases/{lease_id}/activate/").status_code == 403
+    assert member.post(f"/api/v1/leases/{lease_id}/activate/").status_code == 403
     assert Lease.objects.get(public_id=lease_id).status == "draft"
 
 
@@ -247,7 +247,7 @@ def test_other_organization_cannot_see_or_end_lease(tenant, unit, manager):
         "/api/v1/leases/", lease_payload(tenant, unit, activate=True), format="json"
     ).json()["response_data"]["id"]
     other = Organization.objects.create(name="Other Landlord")
-    outsider = member_client(other, OrganizationMembership.Role.OWNER, "outsider")
+    outsider = member_client(other, OrganizationMembership.Role.LANDLORD, "outsider")
     assert outsider.get(f"/api/v1/leases/{lease_id}/").status_code == 404
     assert outsider.post(f"/api/v1/leases/{lease_id}/end/").status_code == 404
     assert Lease.objects.get(public_id=lease_id).status == "active"

@@ -19,16 +19,16 @@ def test_create_user_sends_set_password_and_provisions_requested_account(context
     actor.save()
     response = client.post(URL, {
         "full_name": "New Landlord", "email": "new@example.com", "account_type": kind,
-        "workspace_name": "New Portfolio", "organization": str(org.public_id), "role": "manager",
+        "workspace_name": "New Portfolio", "organization": str(org.public_id), "role": "tenant",
     }, format="json")
     assert response.status_code == 201, response.content
     user = get_user_model().objects.get(email="new@example.com")
     assert not user.has_usable_password()
-    assert user.is_staff is (kind == "platform_admin")
+    assert user.is_staff is user.is_superuser is (kind == "platform_admin")
     assert len(mail.outbox) == 1 and "reset_token=" in mail.outbox[0].body
     if kind != "platform_admin":
         membership = user.organization_memberships.get()
-        assert membership.role == ("owner" if kind == "landlord" else "manager")
+        assert membership.role == ("landlord" if kind == "landlord" else "tenant")
     assert AuditEvent.objects.get(action="user.created").actor == actor
 
 
@@ -45,8 +45,8 @@ def test_staff_cannot_create_admin_and_invalid_creation_is_atomic(context):
 def test_users_search_filters_and_profile_update_are_staff_only(context):
     client, _, org, _ = context
     target = get_user_model().objects.create_user(username="owner", email="owner@example.com")
-    OrganizationMembership.objects.create(organization=org, user=target, role="owner")
-    listed = client.get(URL + f"?search=owner&workspace={org.public_id}&role=owner&active=true")
+    OrganizationMembership.objects.create(organization=org, user=target, role="landlord")
+    listed = client.get(URL + f"?search=owner&workspace={org.public_id}&role=landlord&active=true")
     assert [u["id"] for u in listed.json()["response_data"]] == [target.pk]
     assert client.get(URL + "?workspace=bad").status_code == 400
     assert client.get(URL + "?two_factor=invalid").status_code == 400

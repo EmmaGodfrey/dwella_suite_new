@@ -124,11 +124,10 @@ class WorkspaceActions:
                                      public_id=public_id)
         if not workspace.is_active:
             raise ValidationError("Reactivate the workspace before transferring ownership.")
-        OrganizationMembership.objects.filter(
-            organization=workspace, role="owner", is_active=True,
-        ).exclude(user=owner).update(role="admin", updated_at=timezone.now())
+        # Existing landlords keep their access; the new owner joins as a landlord.
         OrganizationMembership.objects.update_or_create(
-            organization=workspace, user=owner, defaults={"role": "owner", "is_active": True},
+            organization=workspace, user=owner,
+            defaults={"role": OrganizationMembership.Role.LANDLORD, "is_active": True},
         )
         record_event(request, "workspace.owner_transferred", workspace, organization=workspace,
                      owner_id=owner.pk)

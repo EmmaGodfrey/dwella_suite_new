@@ -18,7 +18,7 @@ URL = "/api/v1/notifications/"
 @pytest.fixture
 def dataset():
     org = Organization.objects.create(name="Notification portfolio")
-    client = member_client(org, "owner", "notification-owner")
+    client = member_client(org, "landlord", "notification-owner")
     lease = make_lease(org)
     lease.end_date = timezone.localdate() + timedelta(days=20)
     lease.save()
@@ -47,7 +47,7 @@ def test_live_alerts_read_state_and_personal_isolation(dataset):
     assert client.post(URL, {"ids": ids}, format="json").status_code == 200
     assert NotificationRead.objects.count() == 3
     assert client.get(URL).json()["response_data"]["unread_count"] == 0
-    teammate = member_client(org, "viewer", "notification-viewer")
+    teammate = member_client(org, "landlord", "notification-teammate")
     assert teammate.get(URL).json()["response_data"]["unread_count"] == 3
 
 
@@ -72,7 +72,7 @@ def test_notification_security_and_unknown_ids(dataset):
     org, client, _, _, _ = dataset
     ids = [item["id"] for item in client.get(URL).json()["response_data"]["items"]]
     other = Organization.objects.create(name="Other notifications")
-    outsider = member_client(other, "owner", "notification-outsider")
+    outsider = member_client(other, "landlord", "notification-outsider")
     assert outsider.get(URL).json()["response_data"]["items"] == []
     assert outsider.post(URL, {"ids": ids}, format="json").status_code == 400
     assert not NotificationRead.objects.exists()

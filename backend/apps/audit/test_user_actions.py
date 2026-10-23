@@ -43,9 +43,9 @@ def test_admin_access_and_delete_require_superuser_and_confirmation(context):
 def test_last_owner_membership_and_deactivation_are_protected(context):
     client, _, org, _ = context
     user = get_user_model().objects.create_user(username="owner")
-    OrganizationMembership.objects.create(user=user, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=user, organization=org, role="landlord")
     path = f"{URL}{user.pk}/"
-    data = {"organization": str(org.public_id), "role": "viewer", "remove": True}
+    data = {"organization": str(org.public_id), "role": "tenant", "remove": True}
     assert client.post(path + "membership/", data, format="json").status_code == 400
     assert client.post(path + "status/", {"active": False}).status_code == 400
     assert client.post(path + "membership/", {**data, "role": "invalid"}).status_code == 400

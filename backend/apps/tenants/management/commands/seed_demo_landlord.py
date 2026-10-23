@@ -86,7 +86,7 @@ class Command(BaseCommand):
         OrganizationMembership.objects.update_or_create(
             organization=organization,
             user=user,
-            defaults={"role": OrganizationMembership.Role.OWNER, "is_active": True},
+            defaults={"role": OrganizationMembership.Role.LANDLORD, "is_active": True},
         )
 
         units = {}

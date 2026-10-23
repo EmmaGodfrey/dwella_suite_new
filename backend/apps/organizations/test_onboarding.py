@@ -36,7 +36,7 @@ def test_new_user_creates_own_workspace_property_and_unit_once():
     response = client.post(URL, PAYLOAD, format="json")
     assert response.status_code == 201
     membership = OrganizationMembership.objects.get(user=user)
-    assert membership.role == "owner"
+    assert membership.role == "landlord"
     assert str(membership.organization) == PAYLOAD["business_name"]
     assert Property.objects.get().organization == membership.organization
     assert Unit.objects.get().rent_amount == 3900
@@ -72,8 +72,8 @@ def test_invalid_setup_is_atomic(field, value):
     assert not Unit.objects.exists()
 
 
-@pytest.mark.parametrize("role", ["tenant", "viewer", "staff", "manager"])
-def test_only_owner_or_admin_can_change_workspace_in_setup(role):
+@pytest.mark.parametrize("role", ["tenant"])
+def test_only_landlords_can_change_workspace_in_setup(role):
     org = Organization.objects.create(name="Existing workspace")
     client = member_client(org, role, "setup-member")
     assert client.post(URL, PAYLOAD, format="json").status_code == 403
@@ -100,7 +100,7 @@ def test_setup_does_not_accept_another_workspace_id():
 
 def test_existing_owner_updates_own_empty_workspace():
     org = Organization.objects.create(name="Owner workspace")
-    client = member_client(org, "owner", "setup-owner")
+    client = member_client(org, "landlord", "setup-owner")
     assert client.post(URL, PAYLOAD, format="json").status_code == 201
     assert Organization.objects.count() == 1
     org.refresh_from_db()
@@ -113,8 +113,8 @@ def test_setup_requires_authentication():
     assert client.post(URL, PAYLOAD, format="json").status_code in (401, 403)
 
 
-@pytest.mark.parametrize("role", ["tenant", "viewer", "staff", "manager"])
-def test_receipt_issuer_details_require_workspace_admin(role):
+@pytest.mark.parametrize("role", ["tenant"])
+def test_receipt_issuer_details_require_landlord(role):
     org = Organization.objects.create(name="Protected issuer")
     client = member_client(org, role, "issuer-member")
     response = client.patch(
@@ -125,9 +125,9 @@ def test_receipt_issuer_details_require_workspace_admin(role):
     assert org.display_name == ""
 
 
-def test_owner_can_update_issuer_but_not_another_membership_with_viewer_role():
+def test_landlord_can_update_issuer_but_not_another_membership_as_tenant():
     org = Organization.objects.create(name="Owner issuer")
-    client = member_client(org, "owner", "issuer-owner")
+    client = member_client(org, "landlord", "issuer-owner")
     assert (
         client.patch(
             f"/api/v1/organizations/{org.public_id}/",
@@ -138,7 +138,7 @@ def test_owner_can_update_issuer_but_not_another_membership_with_viewer_role():
     )
     other = Organization.objects.create(name="Viewer issuer")
     OrganizationMembership.objects.create(
-        organization=other, user=client.handler._force_user, role="viewer"
+        organization=other, user=client.handler._force_user, role="tenant"
     )
     assert (
         client.patch(

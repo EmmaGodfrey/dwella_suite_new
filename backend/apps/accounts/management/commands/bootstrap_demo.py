@@ -5,7 +5,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from apps.organizations.models import Organization, OrganizationMembership
-from apps.properties.models import Property, PropertyOwner, Unit
+from apps.properties.models import Property, Unit
 
 
 class Command(BaseCommand):
@@ -51,24 +51,13 @@ class Command(BaseCommand):
         OrganizationMembership.objects.get_or_create(
             organization=organization,
             user=user,
-            defaults={"role": OrganizationMembership.Role.OWNER},
-        )
-
-        owner, _ = PropertyOwner.objects.get_or_create(
-            organization=organization,
-            full_name="Mulenga Holdings",
-            defaults={
-                "email": "owner@dwella.local",
-                "phone_number": "+260 971 111 111",
-                "address": "Great East Road, Lusaka",
-            },
+            defaults={"role": OrganizationMembership.Role.LANDLORD},
         )
 
         property_one, _ = Property.objects.get_or_create(
             organization=organization,
             name="Kabulonga Heights",
             defaults={
-                "owner": owner,
                 "property_type": Property.PropertyType.APARTMENT,
                 "address": "Kabulonga Road",
                 "town": "Lusaka",
@@ -81,7 +70,6 @@ class Command(BaseCommand):
             organization=organization,
             name="Makeni Retail Park",
             defaults={
-                "owner": owner,
                 "property_type": Property.PropertyType.COMMERCIAL,
                 "address": "Makeni",
                 "town": "Lusaka",

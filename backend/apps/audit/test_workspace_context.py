@@ -41,7 +41,7 @@ def test_invalid_context_is_forbidden(context, state):
 def test_non_admin_headers_ignored_and_permissions_unchanged(context):
     client, _, org, other = context
     landlord = get_user_model().objects.create_user(username="landlord")
-    OrganizationMembership.objects.create(user=landlord, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=landlord, organization=org, role="landlord")
     Property.objects.create(organization=org, name="Owned", address="Plot 1")
     Property.objects.create(organization=other, name="Private", address="Plot 2")
     client.force_authenticate(landlord)

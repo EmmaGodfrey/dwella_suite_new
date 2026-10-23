@@ -38,7 +38,7 @@ def org():
 
 @pytest.fixture
 def manager(org):
-    return member_client(org, OrganizationMembership.Role.MANAGER, "manager")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "manager")
 
 
 @pytest.mark.parametrize(
@@ -161,7 +161,7 @@ def test_phone_must_be_unique_within_organization_only(manager, org):
     assert "phone_number" in duplicate.json()["response_data"]
 
     other = Organization.objects.create(name="Other Landlord")
-    other_client = member_client(other, OrganizationMembership.Role.OWNER, "other-owner")
+    other_client = member_client(other, OrganizationMembership.Role.LANDLORD, "other-owner")
     allowed = other_client.post(
         "/api/v1/tenants/", {"full_name": "Second", "phone_number": "0971234567"}, format="json"
     )
@@ -212,19 +212,19 @@ def test_tenants_are_scoped_to_the_organization(manager, org):
 
 
 @pytest.mark.django_db
-def test_viewer_reads_but_cannot_write_tenants(org):
-    viewer = member_client(org, OrganizationMembership.Role.VIEWER, "viewer")
+def test_tenant_member_cannot_write_tenants(org):
+    member = member_client(org, OrganizationMembership.Role.TENANT, "tenant-member")
     tenant = Tenant.objects.create(
         organization=org, full_name="Existing", phone_number="+260971111111"
     )
-    assert viewer.get("/api/v1/tenants/").status_code == 200
+    assert member.get("/api/v1/tenants/").status_code == 403
     assert (
-        viewer.post(
+        member.post(
             "/api/v1/tenants/", {"full_name": "New", "phone_number": "0972222222"}, format="json"
         ).status_code
         == 403
     )
-    assert viewer.delete(f"/api/v1/tenants/{tenant.public_id}/").status_code == 403
+    assert member.delete(f"/api/v1/tenants/{tenant.public_id}/").status_code == 403
     assert Tenant.objects.count() == 1
 
 

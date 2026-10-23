@@ -2,25 +2,7 @@ from rest_framework import serializers
 
 from apps.common.serializers import OrganizationScopedSerializer
 
-from .models import Property, PropertyOwner, Unit
-
-
-class PropertyOwnerSerializer(OrganizationScopedSerializer):
-    class Meta:
-        model = PropertyOwner
-        fields = [
-            "id",
-            "organization_id",
-            "full_name",
-            "email",
-            "phone_number",
-            "address",
-            "notes",
-            "is_active",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "organization_id", "created_at", "updated_at"]
+from .models import Property, Unit
 
 
 class PropertySerializer(OrganizationScopedSerializer):
@@ -29,7 +11,6 @@ class PropertySerializer(OrganizationScopedSerializer):
     vacant_units = serializers.IntegerField(read_only=True)
     maintenance_units = serializers.IntegerField(read_only=True)
     reserved_units = serializers.IntegerField(read_only=True)
-    owner_name = serializers.CharField(source="owner.full_name", read_only=True, default=None)
     monthly_rent = serializers.DecimalField(max_digits=16, decimal_places=2, read_only=True)
     occupied_rent = serializers.DecimalField(max_digits=16, decimal_places=2, read_only=True)
 
@@ -49,8 +30,6 @@ class PropertySerializer(OrganizationScopedSerializer):
         fields = [
             "id",
             "organization_id",
-            "owner",
-            "owner_name",
             "name",
             "property_type",
             "management_status",

@@ -71,8 +71,8 @@ def test_support_session_cannot_create_a_different_workspace(context):
 def test_existing_landlord_can_read_and_update_second_membership_workspace(context):
     client, _, org, other = context
     landlord = get_user_model().objects.create_user(username="multi-workspace-owner")
-    OrganizationMembership.objects.create(user=landlord, organization=org, role="owner")
-    OrganizationMembership.objects.create(user=landlord, organization=other, role="owner")
+    OrganizationMembership.objects.create(user=landlord, organization=org, role="landlord")
+    OrganizationMembership.objects.create(user=landlord, organization=other, role="landlord")
     client.force_authenticate(landlord)
     assert len(client.get("/api/v1/organizations/").json()["response_data"]) == 2
     assert client.get(f"/api/v1/organizations/{other.public_id}/").status_code == 200

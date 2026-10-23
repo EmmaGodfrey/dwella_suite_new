@@ -17,7 +17,7 @@ User = get_user_model()
 
 
 def lock_target(request, user_id):
-    """Call inside atomic. Serialize last-superuser and last-owner decisions."""
+    """Call inside atomic. Serialize last-superuser and last-landlord decisions."""
     list(User.objects.select_for_update().filter(is_superuser=True).order_by("pk"))
     user = get_object_or_404(User.objects.select_for_update(), pk=user_id)
     org_ids = user.organization_memberships.values_list("organization_id", flat=True)
@@ -38,19 +38,20 @@ def protect_account(request, user, *, remove_access=False):
     ).exclude(pk=user.pk).exists():
         raise ValidationError("The last active superuser must be retained.")
     if remove_access:
-        protect_owner(user)
+        protect_landlord(user)
 
 
-def protect_owner(user, organization=None):
-    owners = user.organization_memberships.filter(is_active=True, role="owner")
+def protect_landlord(user, organization=None):
+    landlord = OrganizationMembership.Role.LANDLORD
+    memberships = user.organization_memberships.filter(is_active=True, role=landlord)
     if organization:
-        owners = owners.filter(organization=organization)
-    for membership in owners:
+        memberships = memberships.filter(organization=organization)
+    for membership in memberships:
         if not OrganizationMembership.objects.filter(
-            organization=membership.organization, role="owner", is_active=True,
+            organization=membership.organization, role=landlord, is_active=True,
             user__is_active=True,
         ).exclude(user=user).exists():
-            raise ValidationError("Add another active owner before removing the last owner.")
+            raise ValidationError("Add another active landlord before removing the last landlord.")
 
 
 @transaction.atomic
@@ -60,10 +61,11 @@ def change_membership(request, user, organization, role, remove=False):
     if not organization.is_active:
         raise ValidationError("This workspace is suspended.")
     membership = OrganizationMembership.objects.filter(user=user, organization=organization).first()
-    if membership and membership.is_active and membership.role == "owner" and (
-        remove or role != "owner"
+    landlord = OrganizationMembership.Role.LANDLORD
+    if membership and membership.is_active and membership.role == landlord and (
+        remove or role != landlord
     ):
-        protect_owner(user, organization)
+        protect_landlord(user, organization)
     if remove:
         if not membership or not membership.is_active:
             raise ValidationError("This user is not an active member of the workspace.")

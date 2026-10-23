@@ -18,26 +18,14 @@ class HandyAgentUnavailable(APIException):
 
 
 GROUPS_BY_ROLE = {
-    OrganizationMembership.Role.OWNER: [
+    OrganizationMembership.Role.LANDLORD: [
         "organization_admin",
         "portfolio_manager",
         "portfolio_viewer",
     ],
-    OrganizationMembership.Role.ADMIN: [
-        "organization_admin",
-        "portfolio_manager",
-        "portfolio_viewer",
-    ],
-    OrganizationMembership.Role.MANAGER: ["portfolio_manager", "portfolio_viewer"],
-    OrganizationMembership.Role.STAFF: ["portfolio_viewer"],
-    OrganizationMembership.Role.VIEWER: ["portfolio_viewer"],
 }
 
-ACTOR_ROLES = {
-    OrganizationMembership.Role.OWNER,
-    OrganizationMembership.Role.ADMIN,
-    OrganizationMembership.Role.MANAGER,
-}
+ACTOR_ROLES = {OrganizationMembership.Role.LANDLORD}
 
 
 def token_access(user, request):

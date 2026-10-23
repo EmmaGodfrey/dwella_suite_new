@@ -19,7 +19,7 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def dataset():
     org = Organization.objects.create(name="Reports portfolio")
-    client = member_client(org, "owner", "report-owner")
+    client = member_client(org, "landlord", "report-owner")
     lease = make_lease(org)
     today = timezone.localdate()
     invoices = []
@@ -105,7 +105,7 @@ def test_reports_do_not_leak_portfolios_or_allow_tenants(dataset, report):
     tenant = member_client(org, "tenant", "report-tenant")
     assert tenant.get(url).status_code == 403
     other = Organization.objects.create(name="Other report portfolio")
-    other_client = member_client(other, "owner", "report-outsider")
+    other_client = member_client(other, "landlord", "report-outsider")
     assert other_client.get(url).json()["response_data"]["rows"] == []
     assert other_client.get(url + f"?property={lease.unit.property.public_id}").status_code == 400
     membership = client.handler._force_user.organization_memberships.get()

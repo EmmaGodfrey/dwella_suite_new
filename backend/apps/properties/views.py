@@ -11,8 +11,8 @@ from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.common.workspaces import resolve_workspace
 from apps.organizations.models import Organization, OrganizationMembership
 
-from .models import Property, PropertyOwner, Unit
-from .serializers import PropertyOwnerSerializer, PropertySerializer, UnitSerializer
+from .models import Property, Unit
+from .serializers import PropertySerializer, UnitSerializer
 
 
 def decimal_to_float(value):
@@ -55,7 +55,7 @@ class PropertyDashboardSummaryView(APIView):
             }
             platform_data = {
                 "organizations": Organization.objects.count(),
-                "landlords": OrganizationMembership.objects.filter(is_active=True, role="owner")
+                "landlords": OrganizationMembership.objects.filter(is_active=True, role="landlord")
                 .values("user_id").distinct().count(),
             }
         else:
@@ -210,16 +210,9 @@ class PropertyDashboardSummaryView(APIView):
         )
 
 
-class PropertyOwnerViewSet(OrganizationScopedModelViewSet):
-    serializer_class = PropertyOwnerSerializer
-    queryset = PropertyOwner.objects.all()
-    search_fields = ["full_name", "email", "phone_number"]
-    ordering_fields = ["full_name", "created_at"]
-
-
 class PropertyViewSet(OrganizationScopedModelViewSet):
     serializer_class = PropertySerializer
-    queryset = Property.objects.select_related("owner").annotate(
+    queryset = Property.objects.annotate(
         units_count=Count("units"),
         occupied_units=Count("units", filter=Q(units__occupancy_status="occupied")),
         vacant_units=Count("units", filter=Q(units__occupancy_status="vacant")),

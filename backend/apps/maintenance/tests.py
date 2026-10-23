@@ -38,7 +38,7 @@ def org():
 
 @pytest.fixture
 def manager(org):
-    return member_client(org, OrganizationMembership.Role.MANAGER, "manager")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "manager")
 
 
 @pytest.fixture
@@ -139,7 +139,7 @@ def test_unit_must_belong_to_the_property(manager, org, place):
 def test_other_workspaces_cannot_see_or_use_records(manager, place, vendor):
     job = report(manager, place).json()["response_data"]
     outsider_org = Organization.objects.create(name="Elsewhere Lettings")
-    outsider = member_client(outsider_org, OrganizationMembership.Role.OWNER, "outsider")
+    outsider = member_client(outsider_org, OrganizationMembership.Role.LANDLORD, "outsider")
     assert outsider.get(f"{URL}{job['id']}/").status_code == 404
     assert outsider.get(URL).json()["response_data"] == []
     # Nor reference another workspace's property or vendor.
@@ -153,12 +153,12 @@ def test_other_workspaces_cannot_see_or_use_records(manager, place, vendor):
 
 
 @pytest.mark.django_db
-def test_viewers_can_read_but_not_change(org, manager, place):
+def test_tenant_members_cannot_read_or_change(org, manager, place):
     job = report(manager, place).json()["response_data"]
-    viewer = member_client(org, OrganizationMembership.Role.VIEWER, "viewer")
-    assert viewer.get(f"{URL}{job['id']}/").status_code == 200
-    assert report(viewer, place).status_code == 403
-    assert viewer.post(f"{URL}{job['id']}/start/").status_code == 403
+    member = member_client(org, OrganizationMembership.Role.TENANT, "tenant-member")
+    assert member.get(f"{URL}{job['id']}/").status_code == 403
+    assert report(member, place).status_code == 403
+    assert member.post(f"{URL}{job['id']}/start/").status_code == 403
     assert APIClient().get(URL).status_code in {401, 403}
 
 

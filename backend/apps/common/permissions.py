@@ -4,19 +4,11 @@ from apps.organizations.models import OrganizationMembership
 
 from .workspaces import resolve_workspace
 
-PORTFOLIO_ROLES = {
-    OrganizationMembership.Role.OWNER,
-    OrganizationMembership.Role.ADMIN,
-    OrganizationMembership.Role.MANAGER,
-    OrganizationMembership.Role.STAFF,
-    OrganizationMembership.Role.VIEWER,
-}
+# Dwella has three account types: platform super admins (is_superuser), and
+# landlords and tenants inside a workspace. Only landlords see the portfolio.
+PORTFOLIO_ROLES = {OrganizationMembership.Role.LANDLORD}
 
-PORTFOLIO_MANAGER_ROLES = {
-    OrganizationMembership.Role.OWNER,
-    OrganizationMembership.Role.ADMIN,
-    OrganizationMembership.Role.MANAGER,
-}
+PORTFOLIO_MANAGER_ROLES = {OrganizationMembership.Role.LANDLORD}
 
 
 def get_active_membership(user):
@@ -72,11 +64,7 @@ def get_user_access(user, request=None):
         "can_view_portfolio": available and role in PORTFOLIO_ROLES,
         "can_manage_properties": available and role in PORTFOLIO_MANAGER_ROLES,
         "can_view_reports": available and role in PORTFOLIO_ROLES,
-        "can_manage_organization": available and role
-        in {
-            OrganizationMembership.Role.OWNER,
-            OrganizationMembership.Role.ADMIN,
-        },
+        "can_manage_organization": available and role == OrganizationMembership.Role.LANDLORD,
     }
 
 
@@ -136,13 +124,13 @@ class CanViewPortfolio(WorkspacePermission):
 
 
 class CanManagePortfolio(WorkspacePermission):
-    message = "Only a landlord or portfolio manager can make this change."
+    message = "Only a landlord can make this change."
     access_key = "can_manage_properties"
     roles = PORTFOLIO_MANAGER_ROLES
 
 
 class CanManageOrganization(WorkspacePermission):
-    message = "Only the workspace owner or an admin can change this."
+    message = "Only a landlord of this workspace can change this."
     access_key = "can_manage_organization"
 
     def has_object_permission(self, request, view, obj):
@@ -150,5 +138,5 @@ class CanManageOrganization(WorkspacePermission):
             return super().has_object_permission(request, view, obj)
         organization = getattr(obj, "organization", obj)
         return request.user.organization_memberships.filter(
-            organization=organization, is_active=True, role__in=["owner", "admin"]
+            organization=organization, is_active=True, role=OrganizationMembership.Role.LANDLORD
         ).exists()

@@ -18,7 +18,7 @@ def test_landlord_financial_write_and_audit_fail_together(context):
     client, actor, org, _ = context
     actor.is_staff = False
     actor.save()
-    OrganizationMembership.objects.create(user=actor, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=actor, organization=org, role="landlord")
     lease = make_lease(org)
     invoice = Invoice.objects.create(organization=org, tenant=lease.tenant, lease=lease,
                                      reference="INV-AUDIT", total=100, status="open",

@@ -89,6 +89,7 @@ class PlatformUserViewSet(
                 user = User.objects.create_user(
                     username=data["email"], email=data["email"], first_name=first, last_name=last,
                     password=None, is_staff=data["account_type"] == "platform_admin",
+                    is_superuser=data["account_type"] == "platform_admin",
                 )
         except IntegrityError as exc:
             raise ValidationError({"email": "This email is already in use."}) from exc

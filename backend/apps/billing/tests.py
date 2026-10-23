@@ -35,7 +35,7 @@ def org():
 
 @pytest.fixture
 def manager(org):
-    return member_client(org, OrganizationMembership.Role.MANAGER, "manager")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "manager")
 
 
 def make_lease(
@@ -330,14 +330,14 @@ def test_summary_and_filters(manager, org):
 
 
 @pytest.mark.django_db
-def test_other_organization_and_viewer_and_tenant_access(org, manager):
+def test_other_organization_and_tenant_access(org, manager):
     make_lease(org)
     generate_rent_invoices(org, THIS_MONTH)
     invoice = Invoice.objects.get()
     pay_url = f"/api/v1/billing/invoices/{invoice.public_id}/record-payment/"
 
     outsider = member_client(
-        Organization.objects.create(name="Other"), OrganizationMembership.Role.OWNER, "outsider"
+        Organization.objects.create(name="Other"), OrganizationMembership.Role.LANDLORD, "outsider"
     )
     assert outsider.get(f"/api/v1/billing/invoices/{invoice.public_id}/").status_code == 404
     assert (
@@ -348,20 +348,18 @@ def test_other_organization_and_viewer_and_tenant_access(org, manager):
         == "0.00"
     )
 
-    viewer = member_client(org, OrganizationMembership.Role.VIEWER, "viewer")
-    assert viewer.get("/api/v1/billing/invoices/").status_code == 200
+    tenant_user = member_client(org, OrganizationMembership.Role.TENANT, "tenant-user")
+    assert tenant_user.get("/api/v1/billing/invoices/").status_code == 403
     assert (
-        viewer.post(pay_url, {"amount": "10", "method": "cash"}, format="json").status_code == 403
+        tenant_user.post(pay_url, {"amount": "10", "method": "cash"}, format="json").status_code
+        == 403
     )
     assert (
-        viewer.post(
+        tenant_user.post(
             "/api/v1/billing/invoices/generate/", {"period": THIS_PERIOD}, format="json"
         ).status_code
         == 403
     )
-
-    tenant_user = member_client(org, OrganizationMembership.Role.TENANT, "tenant-user")
-    assert tenant_user.get("/api/v1/billing/invoices/").status_code == 403
     assert APIClient().get("/api/v1/billing/payments/").status_code in {401, 403}
     assert not Payment.objects.exists()
 

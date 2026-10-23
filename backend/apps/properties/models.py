@@ -12,21 +12,6 @@ def property_cover_path(instance, filename):
     return f"properties/covers/{uuid4().hex}.{extension}"
 
 
-class PropertyOwner(OrganizationScopedModel):
-    full_name = models.CharField(max_length=180)
-    email = models.EmailField(blank=True)
-    phone_number = models.CharField(max_length=40, blank=True)
-    address = models.TextField(blank=True)
-    notes = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ["full_name"]
-        indexes = [models.Index(fields=["organization", "full_name"])]
-
-    def __str__(self):
-        return self.full_name
-
-
 class Property(OrganizationScopedModel):
     class PropertyType(models.TextChoices):
         APARTMENT = "apartment", "Apartment"
@@ -40,13 +25,6 @@ class Property(OrganizationScopedModel):
         PROSPECT = "prospect", "Prospect"
         ARCHIVED = "archived", "Archived"
 
-    owner = models.ForeignKey(
-        PropertyOwner,
-        on_delete=models.PROTECT,
-        related_name="properties",
-        blank=True,
-        null=True,
-    )
     name = models.CharField(max_length=180)
     property_type = models.CharField(max_length=30, choices=PropertyType.choices)
     management_status = models.CharField(

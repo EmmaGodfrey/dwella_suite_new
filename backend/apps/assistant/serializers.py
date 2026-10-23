@@ -7,36 +7,11 @@ from apps.maintenance.serializers import (
     MaintenanceUpdateSerializer,
     VendorSerializer,
 )
-from apps.properties.models import PropertyOwner
-from apps.properties.serializers import (
-    PropertyOwnerSerializer,
-    PropertySerializer,
-    UnitSerializer,
-)
+from apps.properties.serializers import PropertySerializer, UnitSerializer
 from apps.tenants.serializers import TenantSerializer
 
 
-class AssistantPropertyOwnerSerializer(PropertyOwnerSerializer):
-    pass
-
-
 class AssistantPropertySerializer(PropertySerializer):
-    owner = serializers.SlugRelatedField(
-        slug_field="public_id",
-        queryset=PropertyOwner.objects.none(),
-        required=False,
-        allow_null=True,
-    )
-
-    def get_fields(self):
-        fields = super().get_fields()
-        view = self.context.get("view")
-        if view is not None:
-            fields["owner"].queryset = PropertyOwner.objects.for_organization(
-                view.get_organization()
-            )
-        return fields
-
     class Meta(PropertySerializer.Meta):
         fields = [name for name in PropertySerializer.Meta.fields if name != "cover_image"]
 

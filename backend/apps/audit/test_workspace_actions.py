@@ -53,18 +53,18 @@ def test_suspend_and_reactivate_end_support_sessions_without_revival(context):
     assert AuditEvent.objects.filter(action="workspace.suspended").exists()
 
 
-def test_transfer_owner_preserves_an_active_owner_and_demotes_previous_owner(context):
+def test_transfer_owner_adds_landlord_and_keeps_existing_landlords(context):
     client, _, org, _ = context
     User = get_user_model()
     old = User.objects.create_user(username="old-owner")
     new = User.objects.create_user(username="new-owner")
-    member = OrganizationMembership.objects.create(user=old, organization=org, role="owner")
+    member = OrganizationMembership.objects.create(user=old, organization=org, role="landlord")
     path = f"{URL}{org.public_id}/transfer-owner/"
     assert client.post(path, {"owner": "bad"}).status_code == 400
     assert client.post(path, {"owner": new.pk}, format="json").status_code == 200
     member.refresh_from_db()
-    assert member.role == "admin"
-    assert org.memberships.get(user=new).role == "owner"
+    assert member.role == "landlord" and member.is_active
+    assert org.memberships.get(user=new).role == "landlord"
     org.is_active = False
     org.save()
     assert client.post(path, {"owner": old.pk}, format="json").status_code == 400
@@ -95,7 +95,7 @@ def test_workspace_deletion_requires_superuser_suspension_and_exact_confirmation
 def test_workspace_mutations_deny_non_platform_actors(context, authenticated, method, suffix):
     client, _, org, _ = context
     owner = get_user_model().objects.create_user(username="normal-owner")
-    OrganizationMembership.objects.create(user=owner, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=owner, organization=org, role="landlord")
     client.force_authenticate(owner if authenticated else None)
     assert getattr(client, method)(URL + suffix.format(id=org.public_id), {},
                                    format="json").status_code == 403

@@ -5,7 +5,6 @@ from .views import (
     CreateInvoiceView,
     CreateMaintenanceCommentView,
     CreateMaintenanceRequestView,
-    CreatePropertyOwnerView,
     CreatePropertyView,
     CreateTenantView,
     CreateUnitView,
@@ -16,7 +15,6 @@ from .views import (
 app_name = "assistant"
 
 urlpatterns = [
-    path("property-owners/", CreatePropertyOwnerView.as_view(), name="create-property-owner"),
     path("properties/", CreatePropertyView.as_view(), name="create-property"),
     path("units/", CreateUnitView.as_view(), name="create-unit"),
     path("tenants/", CreateTenantView.as_view(), name="create-tenant"),

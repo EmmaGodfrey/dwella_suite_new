@@ -27,27 +27,27 @@ def test_last_superuser_protected_even_from_staff(context):
         protect_account(SimpleNamespace(user=actor), target)
 
 
-@pytest.mark.parametrize("role,remove", [("manager", False), ("owner", True)])
-def test_last_owner_cannot_be_removed_or_demoted(context, role, remove):
+@pytest.mark.parametrize("role,remove", [("tenant", False), ("landlord", True)])
+def test_last_landlord_cannot_be_removed_or_demoted(context, role, remove):
     _, actor, org, _ = context
     owner = get_user_model().objects.create_user(username="owner")
-    OrganizationMembership.objects.create(user=owner, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=owner, organization=org, role="landlord")
     with pytest.raises(ValidationError):
         change_membership(SimpleNamespace(user=actor), owner, org, role, remove)
 
 
-def test_membership_changes_keep_an_active_owner(context):
+def test_membership_changes_keep_an_active_landlord(context):
     _, actor, org, _ = context
     owner = get_user_model().objects.create_user(username="owner")
     another = get_user_model().objects.create_user(username="another")
-    OrganizationMembership.objects.create(user=owner, organization=org, role="owner")
+    OrganizationMembership.objects.create(user=owner, organization=org, role="landlord")
     request = SimpleNamespace(user=actor)
-    change_membership(request, another, org, "owner")
-    changed = change_membership(request, owner, org, "manager")
-    assert changed.role == "manager"
-    changed = change_membership(request, owner, org, "manager", remove=True)
+    change_membership(request, another, org, "landlord")
+    changed = change_membership(request, owner, org, "tenant")
+    assert changed.role == "tenant"
+    changed = change_membership(request, owner, org, "tenant", remove=True)
     assert changed.is_active is False
     org.is_active = False
     org.save()
     with pytest.raises(ValidationError):
-        change_membership(request, another, org, "viewer")
+        change_membership(request, another, org, "tenant")

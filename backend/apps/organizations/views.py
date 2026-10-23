@@ -32,10 +32,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 memberships__user=self.request.user,
                 memberships__is_active=True,
-                memberships__role__in=[
-                    OrganizationMembership.Role.OWNER,
-                    OrganizationMembership.Role.ADMIN,
-                ],
+                memberships__role=OrganizationMembership.Role.LANDLORD,
             )
         return queryset
 
@@ -46,7 +43,7 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         OrganizationMembership.objects.create(
             organization=organization,
             user=self.request.user,
-            role=OrganizationMembership.Role.OWNER,
+            role=OrganizationMembership.Role.LANDLORD,
         )
 
     def perform_destroy(self, instance):

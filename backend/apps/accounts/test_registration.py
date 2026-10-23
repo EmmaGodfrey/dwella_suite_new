@@ -31,7 +31,7 @@ def test_signup_cannot_grant_platform_or_workspace_privileges():
             **PAYLOAD,
             "is_staff": True,
             "is_superuser": True,
-            "role": "owner",
+            "role": "landlord",
             "organization": "other",
         },
         format="json",

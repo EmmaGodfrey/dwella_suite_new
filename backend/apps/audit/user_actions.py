@@ -64,9 +64,9 @@ class UserAccountActions:
         enabled = data.validated_data["enabled"]
         if not enabled:
             protect_account(request, user)
-            user.is_superuser = False
             revoke_access(request, user)
-        user.is_staff = enabled
+        # Dwella has one platform tier: a super admin is always staff and superuser.
+        user.is_staff = user.is_superuser = enabled
         user.save(update_fields=["is_staff", "is_superuser"])
         record_event(request, "user.admin_granted" if enabled else "user.admin_revoked", user)
         return Response(self.get_serializer(user).data)

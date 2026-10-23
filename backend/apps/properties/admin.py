@@ -1,13 +1,6 @@
 from django.contrib import admin
 
-from .models import Property, PropertyOwner, Unit
-
-
-@admin.register(PropertyOwner)
-class PropertyOwnerAdmin(admin.ModelAdmin):
-    list_display = ["full_name", "organization", "phone_number", "is_active"]
-    search_fields = ["full_name", "email", "phone_number"]
-    list_filter = ["organization", "is_active"]
+from .models import Property, Unit
 
 
 @admin.register(Property)

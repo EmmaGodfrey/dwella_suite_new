@@ -18,7 +18,7 @@ from apps.billing.services import create_invoice
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest, MaintenanceUpdate, Vendor
 from apps.organizations.models import Organization, OrganizationMembership
-from apps.properties.models import Property, PropertyOwner, Unit
+from apps.properties.models import Property, Unit
 from apps.tenants.models import Tenant
 
 User = get_user_model()
@@ -35,7 +35,7 @@ def clear_throttle_cache():
     cache.clear()
 
 
-def workspace_user(role="owner"):
+def workspace_user(role="landlord"):
     user = User.objects.create_user(
         username=f"{role}-{uuid4()}@example.com",
         email=f"{role}-{uuid4()}@example.com",
@@ -79,21 +79,13 @@ def client_for(user, organization, **token_options):
 
 @pytest.mark.django_db
 @JWT_SETTINGS
-def test_owner_can_create_each_approved_resource_end_to_end():
+def test_landlord_can_create_each_approved_resource_end_to_end():
     user, organization, _ = workspace_user()
     client = client_for(user, organization)
 
     assert client.post(
-        "/api/v1/assistant/property-owners/",
-        {"full_name": "Chanda Banda", "phone_number": "+260971111111"},
-        format="json",
-    ).status_code == 201
-    owner = PropertyOwner.objects.get(organization=organization)
-
-    assert client.post(
         "/api/v1/assistant/properties/",
         {
-            "owner": str(owner.public_id),
             "name": "Kabulonga Heights",
             "property_type": "apartment",
             "management_status": "managed",
@@ -204,10 +196,10 @@ def test_owner_can_create_each_approved_resource_end_to_end():
     assert MaintenanceUpdate.objects.filter(
         request=maintenance_request, kind=MaintenanceUpdate.Kind.COMMENT
     ).count() == 1
-    assert HandyActionExecution.objects.filter(organization=organization).count() == 10
+    assert HandyActionExecution.objects.filter(organization=organization).count() == 9
     assert AuditEvent.objects.filter(
         organization=organization, action__startswith="assistant."
-    ).count() == 10
+    ).count() == 9
 
 
 @pytest.mark.django_db
@@ -241,23 +233,23 @@ def test_retried_payment_returns_original_receipt_without_duplicate():
 def test_rejects_reused_idempotency_key_with_different_payload():
     user, organization, _ = workspace_user()
     client = client_for(user, organization)
-    headers = {"HTTP_IDEMPOTENCY_KEY": "property-owner-test"}
+    headers = {"HTTP_IDEMPOTENCY_KEY": "vendor-test"}
 
     assert client.post(
-        "/api/v1/assistant/property-owners/",
-        {"full_name": "First Owner"},
+        "/api/v1/assistant/vendors/",
+        {"name": "First Vendor", "trade": "Plumbing"},
         format="json",
         **headers,
     ).status_code == 201
     response = client.post(
-        "/api/v1/assistant/property-owners/",
-        {"full_name": "Different Owner"},
+        "/api/v1/assistant/vendors/",
+        {"name": "Different Vendor", "trade": "Plumbing"},
         format="json",
         **headers,
     )
 
     assert response.status_code == 409
-    assert PropertyOwner.objects.filter(organization=organization).count() == 1
+    assert Vendor.objects.filter(organization=organization).count() == 1
 
 
 @pytest.mark.django_db
@@ -285,9 +277,9 @@ def test_rejects_missing_non_actor_expired_and_bad_signature_tokens(client_facto
 @pytest.mark.django_db
 @JWT_SETTINGS
 def test_live_role_demotion_revokes_existing_actor_token():
-    user, organization, membership = workspace_user("manager")
+    user, organization, membership = workspace_user()
     client = client_for(user, organization)
-    membership.role = OrganizationMembership.Role.VIEWER
+    membership.role = OrganizationMembership.Role.TENANT
     membership.save(update_fields=["role"])
 
     response = client.post(
@@ -345,13 +337,13 @@ def test_rate_limits_assistant_actions(monkeypatch):
     client = client_for(user, organization)
 
     assert client.post(
-        "/api/v1/assistant/property-owners/",
-        {"full_name": "First Owner"},
+        "/api/v1/assistant/vendors/",
+        {"name": "First Vendor", "trade": "Plumbing"},
         format="json",
     ).status_code == 201
     assert client.post(
-        "/api/v1/assistant/property-owners/",
-        {"full_name": "Second Owner"},
+        "/api/v1/assistant/vendors/",
+        {"name": "Second Vendor", "trade": "Plumbing"},
         format="json",
     ).status_code == 429
 
@@ -366,7 +358,7 @@ def test_openapi_marks_only_post_operations_in_assistant_namespace():
         if path.startswith("/api/v1/assistant/")
     }
 
-    assert len(assistant_paths) == 10
+    assert len(assistant_paths) == 9
     for operations in assistant_paths.values():
         assert set(operations) == {"post"}
         assert operations["post"]["x-agent"] == {"enabled": True}

@@ -48,11 +48,7 @@ def member(role):
 @pytest.mark.parametrize(
     ("role", "expected_groups", "expected_actor"),
     [
-        ("owner", ["organization_admin", "portfolio_manager", "portfolio_viewer"], True),
-        ("admin", ["organization_admin", "portfolio_manager", "portfolio_viewer"], True),
-        ("manager", ["portfolio_manager", "portfolio_viewer"], True),
-        ("staff", ["portfolio_viewer"], False),
-        ("viewer", ["portfolio_viewer"], False),
+        ("landlord", ["organization_admin", "portfolio_manager", "portfolio_viewer"], True),
     ],
 )
 def test_issues_scoped_short_lived_token_for_supported_roles(
@@ -128,7 +124,7 @@ def test_requires_authentication():
 @pytest.mark.django_db
 @override_settings(HANDY_AGENT_SIGNING_SECRET="")
 def test_returns_service_unavailable_without_a_strong_signing_secret():
-    user, _ = member("owner")
+    user, _ = member("landlord")
 
     response = authenticated_client(user).post(URL)
 
@@ -138,7 +134,7 @@ def test_returns_service_unavailable_without_a_strong_signing_secret():
 @pytest.mark.django_db
 @override_settings(HANDY_AGENT_SIGNING_SECRET=SECRET)
 def test_rate_limits_repeated_token_issuance():
-    user, _ = member("owner")
+    user, _ = member("landlord")
     client = authenticated_client(user)
 
     for _ in range(20):

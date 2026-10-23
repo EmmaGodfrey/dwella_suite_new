@@ -39,12 +39,12 @@ def org():
 
 @pytest.fixture
 def owner(org):
-    return member_client(org, OrganizationMembership.Role.OWNER, "owner")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "owner")
 
 
 @pytest.fixture
 def manager(org):
-    return member_client(org, OrganizationMembership.Role.MANAGER, "manager")
+    return member_client(org, OrganizationMembership.Role.LANDLORD, "manager")
 
 
 @pytest.fixture
@@ -101,12 +101,12 @@ def test_settings_start_unconfigured_and_simulated(manager):
 
 
 @pytest.mark.django_db
-def test_only_owner_or_admin_can_change_settings(org, manager):
-    viewer = member_client(org, OrganizationMembership.Role.VIEWER, "viewer")
+def test_only_landlords_can_change_settings(org):
+    tenant_user = member_client(org, OrganizationMembership.Role.TENANT, "tenant-user")
     payload = {"tpin": "1002003004", "device_serial": "DWL-01"}
-    assert manager.put(SETTINGS_URL, payload, format="json").status_code == 403
-    assert manager.post(INIT_URL).status_code == 403
-    assert viewer.get(SETTINGS_URL).status_code == 403
+    assert tenant_user.put(SETTINGS_URL, payload, format="json").status_code == 403
+    assert tenant_user.post(INIT_URL).status_code == 403
+    assert tenant_user.get(SETTINGS_URL).status_code == 403
     assert APIClient().get(SETTINGS_URL).status_code in {401, 403}
     assert not SmartInvoiceSettings.objects.exists()
 

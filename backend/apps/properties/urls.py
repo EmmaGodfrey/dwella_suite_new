@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     PropertyDashboardSummaryView,
-    PropertyOwnerViewSet,
     PropertyViewSet,
     UnitViewSet,
 )
@@ -11,7 +10,6 @@ from .views import (
 app_name = "properties"
 
 router = DefaultRouter()
-router.register("owners", PropertyOwnerViewSet, basename="property-owner")
 router.register("units", UnitViewSet, basename="unit")
 router.register("", PropertyViewSet, basename="property")
 

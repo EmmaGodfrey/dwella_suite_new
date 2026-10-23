@@ -24,7 +24,6 @@ from .serializers import (
     AssistantInvoiceSerializer,
     AssistantMaintenanceCommentSerializer,
     AssistantMaintenanceRequestSerializer,
-    AssistantPropertyOwnerSerializer,
     AssistantPropertySerializer,
     AssistantRecordPaymentSerializer,
     AssistantTenantSerializer,
@@ -142,21 +141,6 @@ class HandyActionView(APIView):
             return output, instance
 
         return self.execute(operation, create)
-
-
-class CreatePropertyOwnerView(HandyActionView):
-    @extend_schema(
-        operation_id="assistant_create_property_owner",
-        summary="Create a property owner",
-        request=AssistantPropertyOwnerSerializer,
-        responses={201: AssistantPropertyOwnerSerializer},
-        parameters=[IDEMPOTENCY_PARAMETER],
-        tags=["Assistant actions"],
-        extensions=ACTION_EXTENSION,
-        auth=ACTION_AUTH,
-    )
-    def post(self, request):
-        return self.create_resource("property_owner.created", AssistantPropertyOwnerSerializer)
 
 
 class CreatePropertyView(HandyActionView):

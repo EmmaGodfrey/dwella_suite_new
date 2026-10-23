@@ -186,7 +186,7 @@ def test_current_user_exposes_landlord_capabilities(user):
     OrganizationMembership.objects.create(
         organization=organization,
         user=user,
-        role=OrganizationMembership.Role.OWNER,
+        role=OrganizationMembership.Role.LANDLORD,
     )
     client = APIClient()
     client.force_authenticate(user=user)
@@ -196,7 +196,7 @@ def test_current_user_exposes_landlord_capabilities(user):
     assert response.status_code == 200
     access = response.json()["response_data"]["access"]
     assert access["persona"] == "landlord"
-    assert access["role"] == "owner"
+    assert access["role"] == "landlord"
     assert access["can_manage_properties"] is True
     assert access["organization_id"] == str(organization.public_id)
 

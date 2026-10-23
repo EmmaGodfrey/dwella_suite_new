@@ -41,7 +41,7 @@ def setup_status(user, request=None):
     editable = (
         bool(org)
         if user.is_staff or user.is_superuser
-        else (not membership or membership.role in ("owner", "admin"))
+        else (not membership or membership.role == OrganizationMembership.Role.LANDLORD)
     )
     models = [Property, Unit, Tenant, Lease, Invoice]
     counts = [model.objects.for_organization(org).count() if org else 0 for model in models]
@@ -100,7 +100,7 @@ class OnboardingView(APIView):
             and membership.role == "tenant"
             and not (request.user.is_staff or request.user.is_superuser)
         ):
-            raise PermissionDenied("Setup is for property managers.")
+            raise PermissionDenied("Setup is for landlords.")
         return membership
 
     def get(self, request):
@@ -113,7 +113,7 @@ class OnboardingView(APIView):
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
         self.check_access(request)
         if not setup_status(request.user, request)["can_setup"]:
-            raise PermissionDenied("Only a workspace owner or admin can complete setup.")
+            raise PermissionDenied("Only a landlord can complete setup.")
         serializer = SetupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -141,7 +141,7 @@ class OnboardingView(APIView):
                 phone_number=data["phone_number"],
             )
             OrganizationMembership.objects.create(
-                organization=org, user=request.user, role=OrganizationMembership.Role.OWNER
+                organization=org, user=request.user, role=OrganizationMembership.Role.LANDLORD
             )
             request.organization = org
             request._request.organization = org

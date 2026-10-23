@@ -19,7 +19,7 @@ def property_client(settings, tmp_path):
     user = User.objects.create_user(username="photo-manager", password="StrongerPass123")
     organization = Organization.objects.create(name="Photo Portfolio")
     OrganizationMembership.objects.create(
-        organization=organization, user=user, role=OrganizationMembership.Role.MANAGER
+        organization=organization, user=user, role=OrganizationMembership.Role.LANDLORD
     )
     client = APIClient()
     client.force_authenticate(user=user)
@@ -63,7 +63,6 @@ def test_property_cover_create_edit_list_and_dashboard(property_client):
     assert listed["maintenance_units"] == 1
     assert listed["vacant_units"] == 0
     assert listed["reserved_units"] == 0
-    assert listed["owner_name"] is None
     assert listed["monthly_rent"] == "11000.00"
     assert listed["occupied_rent"] == "6000.00"
     unit_list = client.get(f"/api/v1/properties/units/?property={data['id']}")
@@ -244,7 +243,7 @@ def test_property_list_uses_standard_paginated_envelope():
     OrganizationMembership.objects.create(
         organization=organization,
         user=user,
-        role=OrganizationMembership.Role.OWNER,
+        role=OrganizationMembership.Role.LANDLORD,
     )
     Property.objects.create(
         organization=organization,
@@ -280,7 +279,7 @@ def test_dashboard_summary_returns_organization_metrics():
     OrganizationMembership.objects.create(
         organization=organization,
         user=user,
-        role=OrganizationMembership.Role.MANAGER,
+        role=OrganizationMembership.Role.LANDLORD,
     )
     property_one = Property.objects.create(
         organization=organization,
@@ -396,7 +395,7 @@ def test_platform_admin_dashboard_summary_does_not_grant_portfolio_access(staff,
         OrganizationMembership.objects.create(
             organization=organization,
             user=owner,
-            role=OrganizationMembership.Role.OWNER,
+            role=OrganizationMembership.Role.LANDLORD,
         )
         Property.objects.create(
             organization=organization,
@@ -428,17 +427,17 @@ def test_platform_admin_dashboard_summary_does_not_grant_portfolio_access(staff,
 
 
 @pytest.mark.django_db
-def test_viewer_can_read_but_cannot_change_portfolio():
+def test_tenant_member_cannot_read_or_change_portfolio():
     user = User.objects.create_user(
-        username="viewer@example.com",
-        email="viewer@example.com",
+        username="tenant-member@example.com",
+        email="tenant-member@example.com",
         password="StrongerPass123",
     )
     organization = Organization.objects.create(name="Read Only Portfolio")
     OrganizationMembership.objects.create(
         organization=organization,
         user=user,
-        role=OrganizationMembership.Role.VIEWER,
+        role=OrganizationMembership.Role.TENANT,
     )
     Property.objects.create(
         organization=organization,
@@ -456,9 +455,9 @@ def test_viewer_can_read_but_cannot_change_portfolio():
         format="json",
     )
 
-    assert listed.status_code == 200
-    assert listed.json()["response_data"][0]["name"] == "Visible Property"
+    assert listed.status_code == 403
     assert created.status_code == 403
+    assert Property.objects.count() == 1
 
 
 @pytest.mark.django_db
