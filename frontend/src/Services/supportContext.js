@@ -16,6 +16,7 @@ export function setSupportWorkspace(workspace) {
   generation += 1;
   if (workspace) sessionStorage.setItem(KEY, workspace);
   else sessionStorage.removeItem(KEY);
+  queueMicrotask(() => window.dispatchEvent(new Event("dwella:auth-changed")));
 }
 
 export function expireSupportContext() {

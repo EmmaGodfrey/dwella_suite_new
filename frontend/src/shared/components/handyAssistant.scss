@@ -1,0 +1,43 @@
+.dwella-assistant-fab { position: fixed; right: 24px; bottom: 24px; z-index: 30; width: 48px; height: 48px; box-shadow: var(--dwella-shadow-overlay); }
+.dwella-assistant-drawer.fui-OverlayDrawer { width: min(480px, 100vw); background: var(--dwella-paper); color: var(--dwella-ink); }
+.dwella-assistant-drawer .fui-DrawerHeader { padding: 20px; border-bottom: 1px solid var(--dwella-line-soft); }
+.dwella-assistant-title { display: flex; align-items: center; gap: 8px; font-size: var(--fs-lead); white-space: nowrap; }
+.dwella-assistant-header-actions { display: flex; gap: 2px; }
+.dwella-assistant-header-actions .fui-Button { min-width: 28px; padding: 4px; }
+.dwella-assistant-subtitle { margin: 6px 0 0; font-size: var(--fs-small); color: var(--dwella-muted); }
+.dwella-assistant-body { padding: 20px; overflow-y: auto; min-height: 0; }
+.dwella-assistant-empty { padding: 28px 0; }
+.dwella-assistant-empty h2, .dwella-assistant-history h2 { font-size: 18px; margin: 16px 0 8px; }
+.dwella-assistant-empty p { color: var(--dwella-muted); line-height: 1.6; }
+.dwella-assistant-empty > span:not(:first-child) { display: block; margin: 28px 0 8px; color: var(--dwella-muted); }
+.dwella-assistant-empty-icon, .dwella-assistant-avatar { display: inline-flex; color: var(--dwella-primary); }
+.dwella-assistant-empty-icon svg { width: 32px; height: 32px; }
+.dwella-assistant-empty button, .dwella-assistant-history button { display: block; width: 100%; padding: 12px; margin: 6px 0; text-align: left; font: inherit; color: var(--dwella-ink); background: var(--dwella-raised); border: 0; border-radius: 6px; cursor: pointer; }
+.dwella-assistant-empty button:hover, .dwella-assistant-history button:hover { background: var(--dwella-primary-soft); }
+.dwella-assistant-history button span { display: block; margin-top: 4px; color: var(--dwella-muted); }
+.dwella-assistant-message { display: flex; gap: 10px; margin: 20px 0; align-items: flex-start; min-width: 0; }
+.dwella-assistant-message.is-user { justify-content: flex-end; }
+.dwella-assistant-avatar { flex: 0 0 24px; }
+.dwella-assistant-bubble { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.is-user .dwella-assistant-bubble { background: var(--dwella-primary-soft); padding: 10px 14px; border-radius: 8px; white-space: pre-wrap; }
+.dwella-assistant-copy { white-space: pre-wrap; line-height: 1.65; }
+.dwella-assistant-bubble details, .dwella-assistant-tool { margin: 8px 0; color: var(--dwella-muted); font-size: var(--fs-small); }
+.dwella-assistant-tool { display: flex; gap: 6px; align-items: center; }
+.dwella-assistant-action, .dwella-assistant-question { background: var(--dwella-raised); padding: 16px; border-radius: 8px; margin: 12px 0; }
+.dwella-assistant-action strong, .dwella-assistant-question strong { display: block; }
+.dwella-assistant-action-label { display: block; font-size: var(--fs-small); color: var(--dwella-accent-text); margin-bottom: 6px; }
+.dwella-assistant-action-buttons, .dwella-assistant-question > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.dwella-assistant-fields { margin: 12px 0; }
+.dwella-assistant-fields > div { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 5px 0; }
+.dwella-assistant-fields dt { color: var(--dwella-muted); }
+.dwella-assistant-fields dd { margin: 0; }
+.dwella-assistant-fields del { display: block; color: var(--dwella-muted); }
+.dwella-assistant-table-wrap { overflow-x: auto; max-width: 100%; }
+.dwella-assistant-data table { border-collapse: collapse; font-size: var(--fs-small); }
+.dwella-assistant-data th, .dwella-assistant-data td { text-align: left; padding: 8px; border-bottom: 1px solid var(--dwella-line-soft); white-space: nowrap; }
+.dwella-assistant-bubble.is-error { color: var(--dwella-danger); }
+.dwella-assistant-composer { width: 100%; box-sizing: border-box; flex-shrink: 0; padding: 16px 20px; border-top: 1px solid var(--dwella-line-soft); }
+.dwella-assistant-composer > div { display: flex; align-items: flex-end; gap: 8px; }
+.dwella-assistant-composer .fui-Textarea { flex: 1; min-width: 0; }
+.dwella-assistant-composer small, .dwella-assistant-composer p { display: block; margin: 8px 0 0; color: var(--dwella-muted); font-size: var(--fs-small); }
+@media (max-width: 480px) { .dwella-assistant-title { font-size: 13px; } .dwella-assistant-fab { right: 16px; bottom: 16px; } }

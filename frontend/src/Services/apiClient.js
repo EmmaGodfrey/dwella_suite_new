@@ -28,7 +28,7 @@ export function setAuthToken(token) {
     localStorage.removeItem(AUTH_TOKEN_KEY);
   }
 
-  queueMicrotask(() => window.HandyAgent?.refresh?.());
+  queueMicrotask(() => window.dispatchEvent(new Event("dwella:auth-changed")));
 }
 
 export async function apiRequest(path, options = {}) {
