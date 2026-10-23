@@ -1,8 +1,6 @@
-# Properties, owners, and units
+# Properties and units
 
-## `properties_propertyowner`
-
-A property owner is the person or entity on whose behalf a portfolio property is managed. The owner may be empty on a property. Contact fields are private and should be shown only when relevant.
+Properties have no separate owner record. The landlord whose workspace holds the property owns it, so never ask for or record a property owner.
 
 ## `properties_property`
 

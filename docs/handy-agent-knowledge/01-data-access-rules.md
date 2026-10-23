@@ -17,8 +17,6 @@ profiles:
     tables:
       organizations_organization:
         row_filter: "id IN attrs.organization_ids"
-      properties_propertyowner:
-        row_filter: "organization_id IN attrs.organization_ids"
       properties_property:
         row_filter: "organization_id IN attrs.organization_ids"
       properties_unit:
@@ -50,16 +48,16 @@ profiles:
 
 ## Groups
 
-- `organization_admin`: may read the approved business tables for an authorized organization and may use approved actions.
-- `portfolio_manager`: may read the approved business tables for an authorized organization and may use approved actions.
-- `portfolio_viewer`: may read the approved business tables for an authorized organization but may not use actions.
-- `platform_admin`: may read no portfolio rows when `organization_ids` is empty. Future support access must provide an authorized organization and remain audited.
+Landlords receive `organization_admin`, `portfolio_manager`, and `portfolio_viewer` together. Tenants do not receive assistant tokens.
+
+- `organization_admin` and `portfolio_manager`: may read the approved business tables for an authorized organization and may use approved actions.
+- `portfolio_viewer`: may read the approved business tables for an authorized organization but, on its own, may not use actions.
+- `platform_admin` (super admin): may read no portfolio rows when `organization_ids` is empty. Future support access must provide an authorized organization and remain audited.
 
 ## Direct organization filters
 
 For these tables, only return rows where `organization_id` is in `attrs.organization_ids`:
 
-- `properties_propertyowner`
 - `properties_property`
 - `properties_unit`
 - `tenants_tenant`
@@ -87,11 +85,11 @@ Never return a child row merely because its numeric parent ID was mentioned by t
 
 ## Action rules
 
-Every write requires the platform's approval prompt. Only the ten OpenAPI operations marked `x-agent.enabled` may be called.
+Every write requires the platform's approval prompt. Only the nine OpenAPI operations marked `x-agent.enabled` may be called.
 
 Allowed for `organization_admin` and `portfolio_manager`:
 
-- Create a property owner, property, unit, tenant, or draft lease.
+- Create a property, unit, tenant, or draft lease.
 - Create an invoice or record a payment against an existing invoice.
 - Create a vendor, maintenance request, or maintenance comment.
 

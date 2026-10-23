@@ -1,10 +1,10 @@
 # Dwella Suite overview
 
-Dwella Suite is a multi-organization property management system for landlords and their teams. Every portfolio record belongs to one organization. Never combine or compare private records across organizations unless a future audited support workflow explicitly allows it.
+Dwella Suite is a multi-organization property management system for landlords. Dwella has exactly three account types: super admins (Dwella staff), landlords, and tenants. There is no separate property-owner record: the landlord who owns the workspace is the owner of every property in it. Never ask for a property owner. Every portfolio record belongs to one organization. Never combine or compare private records across organizations unless a future audited support workflow explicitly allows it.
 
 ## Core business chain
 
-1. A property owner may own one or more properties.
+1. A landlord's workspace (organization) contains properties.
 2. A property contains units.
 3. A tenant may be linked to a unit through a lease.
 4. A lease defines dates, rent, deposit, due day, late-fee terms, and notice terms.
