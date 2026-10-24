@@ -82,6 +82,8 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 - `docs/EG_LABS_POS_INVENTORY_REQUIREMENTS.md`
 - `docs/FRONTEND_TEMPLATE_REFERENCE.md`
 - `docs/FRONTEND_DATA_FLOW.md`
+- `docs/DOCUMENTS_AND_SIGNING.md`
+- `docs/PRODUCT_STATUS_2026_10_24.md`
 
 ## Production Deployment
 
