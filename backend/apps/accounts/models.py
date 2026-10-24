@@ -2,6 +2,86 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.common.models import TimeStampedModel, UUIDModel
+
+
+class AccountAccessState(TimeStampedModel):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="account_access_state"
+    )
+    requires_verification = models.BooleanField(default=False)
+    verified_email = models.EmailField(blank=True)
+    verified_at = models.DateTimeField(null=True)
+
+    def __str__(self):
+        return f"Account access for {self.user_id}"
+
+
+class EmailVerificationLink(UUIDModel, TimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_verification_links"
+    )
+    email = models.EmailField()
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True)
+    revoked_at = models.DateTimeField(null=True)
+
+    def __str__(self):
+        return f"Email verification {self.public_id}"
+
+
+class TenantInvitation(UUIDModel, TimeStampedModel):
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="portal_invitations"
+    )
+    email = models.EmailField()
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True)
+    accepted_at = models.DateTimeField(null=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="tenant_invitations_created",
+    )
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="tenant_invitations_accepted",
+        null=True,
+    )
+
+    def __str__(self):
+        return f"Tenant invitation {self.public_id}"
+
+
+class GuidedTourState(UUIDModel, TimeStampedModel):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.CASCADE)
+    tour_key = models.CharField(max_length=48)
+    status = models.CharField(
+        max_length=16,
+        default="not_started",
+        choices=[
+            (key, key.replace("_", " ").title())
+            for key in ["not_started", "in_progress", "paused", "skipped", "completed"]
+        ],
+    )
+    completed_steps = models.JSONField(default=list)
+    current_step = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "organization", "tour_key"], name="unique_user_workspace_tour"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.tour_key} for {self.user_id}"
+
 
 class TwoFactorDevice(models.Model):
     user = models.OneToOneField(
