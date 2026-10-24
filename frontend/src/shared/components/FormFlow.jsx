@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef } from "react";
-import { Button, DrawerBody, DrawerFooter, DrawerHeader, DrawerHeaderTitle, OverlayDrawer } from "@fluentui/react-components";
+import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DrawerBody, DrawerFooter, DrawerHeader, DrawerHeaderTitle, OverlayDrawer } from "@fluentui/react-components";
 import { Checkmark20Regular, Dismiss20Regular } from "@fluentui/react-icons";
 import "./formFlow.scss";
 
@@ -31,15 +31,8 @@ export function FormDrawer({ title, description, steps, step = 0, stepTitle,
   const id = useId();
   const formRef = useRef(null);
   const headingRef = useRef(null);
-  const openerRef = useRef(typeof document === "undefined" ? null : document.activeElement);
-  useEffect(() => () => {
-    // Conditional drawer mounts have no DrawerTrigger for Fluent to restore.
-    requestAnimationFrame(() => {
-      if (openerRef.current?.isConnected && !document.querySelector('[role="dialog"]'))
-        openerRef.current.focus({ preventScroll: true });
-    });
-  }, []);
-  useFormFocus(formRef, headingRef, step, errors);
+  useRestoreFocus();
+  useFormFocus(formRef, headingRef, step, errors, busy);
   const last = !steps || step === steps.length - 1;
   return <OverlayDrawer open={open} position="end" size="medium" className={`dwella-drawer dwella-form-drawer${compact ? " is-compact" : ""}`}
     onOpenChange={(_, data) => { if (!data.open && !busy) onClose(); }}>
@@ -70,7 +63,52 @@ export function FormDrawer({ title, description, steps, step = 0, stepTitle,
   </OverlayDrawer>;
 }
 
-function useFormFocus(formRef, headingRef, step, errors) {
+/** A focused submission, with Fluent's focus trap and vertically scrolling body. */
+export function FormModal({ title, description, onSubmit, onClose, children,
+  submitLabel = "Save changes", pendingLabel = "Saving…", busy = false,
+  errors, notice, wide = false }) {
+  const formRef = useRef(null);
+  const headingRef = useRef(null);
+  useRestoreFocus();
+  useFormFocus(formRef, headingRef, 0, errors, busy);
+  return <Dialog open onOpenChange={(_, data) => { if (!data.open && !busy) onClose(); }}>
+    <DialogSurface className={`dwella-form-modal${wide ? " is-wide" : ""}`}>
+      <form ref={formRef} noValidate onSubmit={onSubmit} aria-busy={busy} className="dwella-modal-form">
+        <DialogBody>
+          <div className="dwella-modal-heading">
+            <DialogTitle>{title}</DialogTitle>
+            <Button appearance="subtle" icon={<Dismiss20Regular />}
+              aria-label="Close" disabled={busy} onClick={onClose} />
+          </div>
+          <DialogContent className="dwella-modal-content">
+            {description && <p className="dwella-modal-description">{description}</p>}
+            <fieldset disabled={busy} className="dwella-form-body">{children}</fieldset>
+            {notice}
+          </DialogContent>
+          <DialogActions className="dwella-modal-actions">
+            <Button onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button type="submit" appearance="primary" disabled={busy}>
+              {busy ? pendingLabel : submitLabel}
+            </Button>
+          </DialogActions>
+        </DialogBody>
+      </form>
+    </DialogSurface>
+  </Dialog>;
+}
+
+function useRestoreFocus() {
+  const openerRef = useRef(typeof document === "undefined" ? null : document.activeElement);
+  useEffect(() => () => {
+    // Conditional overlays have no Fluent trigger to restore focus to.
+    requestAnimationFrame(() => {
+      if (openerRef.current?.isConnected && !document.querySelector('[role="dialog"]'))
+        openerRef.current.focus({ preventScroll: true });
+    });
+  }, []);
+}
+
+function useFormFocus(formRef, headingRef, step, errors, busy) {
   const previousErrors = useRef({});
   const focusInvalid = useCallback(() => formRef.current?.querySelector(
     "[aria-invalid='true'], .dwella-field-invalid input, .dwella-field-invalid select, .dwella-field-invalid textarea, .dwella-field-invalid button",
@@ -80,12 +118,14 @@ function useFormFocus(formRef, headingRef, step, errors) {
     return () => cancelAnimationFrame(request);
   }, [step, focusInvalid, headingRef]);
   useEffect(() => {
+    // Mutation callbacks can set field errors before disabled controls re-enable.
+    if (busy) return undefined;
     const added = Object.keys(errors || {}).some((key) => !previousErrors.current[key]);
     previousErrors.current = errors || {};
     if (!added) return undefined;
     const request = requestAnimationFrame(() => focusInvalid()?.focus());
     return () => cancelAnimationFrame(request);
-  }, [errors, focusInvalid]);
+  }, [errors, busy, focusInvalid]);
 }
 
 /** A document-scrolling creation surface inside the existing app shell. */
@@ -108,7 +148,7 @@ export function FormPage({
 }) {
   const formRef = useRef(null);
   const headingRef = useRef(null);
-  useFormFocus(formRef, headingRef, step, errors);
+  useFormFocus(formRef, headingRef, step, errors, busy);
   const last = !steps || step === steps.length - 1;
   return (
     <section className="dwella-form-page">

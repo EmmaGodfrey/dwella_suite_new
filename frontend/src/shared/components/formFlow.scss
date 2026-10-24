@@ -118,8 +118,46 @@
 .dwella-form-drawer .dwella-form-body { gap: 1.25rem; }
 .dwella-form-drawer .dwella-form-body .dwella-form-section { padding-block: 0; border: 0; }
 .dwella-form-drawer .fui-DrawerFooter { justify-content: flex-end; }
+.dwella-form-modal.fui-DialogSurface {
+  width: min(35rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
+}
+.dwella-form-modal.is-wide.fui-DialogSurface { width: min(40rem, calc(100vw - 2rem)); }
+.dwella-modal-form { min-width: 0; container-type: inline-size; }
+.dwella-modal-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.dwella-modal-heading .fui-DialogTitle { min-width: 0; overflow-wrap: anywhere; }
+.dwella-form-modal .dwella-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dwella-modal-form > .fui-DialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-height: calc(100dvh - 5rem);
+  min-height: 0;
+}
+.dwella-modal-content {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.dwella-modal-description { margin: 0 0 1.25rem; color: var(--dwella-muted); }
+.dwella-modal-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+@container (max-width: 32rem) {
+  .dwella-form-grid,
+  .dwella-form-modal .dwella-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
 @media (prefers-reduced-motion: reduce) {
   .dwella-form-drawer, .dwella-form-drawer * { animation: none !important; transition: none !important; }
+  .dwella-form-modal, .dwella-form-modal * { animation: none !important; transition: none !important; }
 }
 .dwella-form-review {
   margin: 0;

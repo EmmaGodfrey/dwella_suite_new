@@ -7,6 +7,9 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  padding: 16px;
+  background: var(--dwella-paper);
+  border-radius: var(--radius-lg);
 }
 
 .dwella-segmented {
@@ -380,6 +383,16 @@
   border: 0;
   min-width: 0;
 }
+
+// Fluent controls must shrink to their grid track inside every overlay.
+.dwella-drawer :is(.fui-Field, .fui-Input, .fui-Dropdown, .fui-Select, .fui-Textarea),
+.dwella-form-modal :is(.fui-Field, .fui-Input, .fui-Dropdown, .fui-Select, .fui-Textarea) {
+  min-width: 0;
+  max-width: 100%;
+}
+.dwella-drawer .fui-Dropdown,
+.dwella-form-modal .fui-Dropdown { width: 100%; }
+.dwella-drawer .fui-DrawerBody { container-type: inline-size; }
 
 .dwella-drawer-footer {
   justify-content: flex-end;
