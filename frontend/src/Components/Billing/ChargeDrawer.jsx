@@ -80,7 +80,7 @@ export default function ChargeDrawer({ tenantId: presetTenant, onClose, onSaved 
   };
 
   return (
-    <OverlayDrawer open position="end" size="medium" className="dwella-drawer" onOpenChange={(_, data) => !data.open && !mutation.isPending && onClose()}>
+    <OverlayDrawer open position="end" size="medium" className="dwella-drawer dwella-charge-drawer" onOpenChange={(_, data) => !data.open && !mutation.isPending && onClose()}>
       <DrawerHeader>
         <DrawerHeaderTitle action={<Button appearance="subtle" aria-label="Close" icon={<Dismiss24Regular />} disabled={mutation.isPending} onClick={onClose} />}>
           New charge

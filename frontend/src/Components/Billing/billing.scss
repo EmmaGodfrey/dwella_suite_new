@@ -137,6 +137,7 @@
 
 // ---- Charge drawer ----------------------------------------------------------
 
+.dwella-charge-drawer.fui-DrawerOverlay { width: min(45rem, 100vw); }
 .dwella-charge-lines {
   display: grid;
   gap: 10px;
@@ -147,6 +148,11 @@
   grid-template-columns: 120px minmax(0, 1fr) 110px 32px;
   align-items: end;
   gap: 8px;
+}
+
+@container (max-width: 32rem) {
+  .dwella-charge-line { grid-template-columns: minmax(0, 1fr) 7rem 2rem; }
+  .dwella-charge-line > .fui-Field:first-child { grid-column: 1 / -1; }
 }
 
 .dwella-charge-total {
