@@ -91,6 +91,18 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
             status=status,
         )
 
+    @action(detail=True, methods=["post"])
+    def document(self, request, public_id=None):
+        from apps.documents.serializers import DocumentSerializer
+        from apps.documents.services import create_invoice_document
+        from apps.documents.throttles import DocumentWriteThrottle
+
+        throttle = DocumentWriteThrottle()
+        if not throttle.allow_request(request, self):
+            self.throttled(request, throttle.wait())
+        document = create_invoice_document(request, self.get_object())
+        return Response(DocumentSerializer(document, context={"request": request}).data)
+
     @action(detail=True, methods=["post"], url_path="record-payment")
     def record_payment(self, request, public_id=None):
         invoice = self.get_object()

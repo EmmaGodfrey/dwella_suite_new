@@ -8,6 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from apps.accounts.private_media import deny_public_identity_document
+from apps.documents.views import PublicSigningView
 
 
 @api_view(["GET"])
@@ -30,6 +31,8 @@ urlpatterns = [
     path("api/v1/tenants/", include("apps.tenants.urls")),
     path("api/v1/leases/", include("apps.leases.urls")),
     path("api/v1/billing/", include("apps.billing.urls")),
+    path("api/v1/documents/", include("apps.documents.urls")),
+    path("api/v1/signing/<str:token>/<str:operation>/", PublicSigningView.as_view()),
     path("api/v1/reports/", include("apps.reports.urls")),
     path("api/v1/notifications/", include("apps.notifications.urls")),
     path("api/v1/maintenance/", include("apps.maintenance.urls")),

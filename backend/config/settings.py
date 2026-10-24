@@ -151,7 +151,12 @@ CONTENT_SECURITY_POLICY = __import__("os").getenv(
     "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
 )
 
-CORS_ALLOW_HEADERS = [*default_headers, "x-dwella-workspace", "x-request-id"]
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "x-dwella-workspace",
+    "x-request-id",
+    "x-dwella-signing-session",
+]
 
 CORS_ALLOWED_ORIGINS = env_list(
     "APP_CORS_ALLOWED_ORIGINS",

@@ -39,6 +39,15 @@ class LeaseViewSet(OrganizationScopedModelViewSet):
         return Response(self.get_serializer(lease).data)
 
     def perform_destroy(self, instance):
+        from apps.documents.models import DocumentVersion
+
+        if (
+            DocumentVersion.objects.filter(lease=instance).exists()
+            or instance.signed_originals.exists()
+        ):
+            raise ValidationError(
+                {"lease": ["This lease has retained documents and cannot be deleted."]}
+            )
         if instance.status != Lease.Status.DRAFT:
             raise ValidationError({"lease": ["Only a draft lease can be deleted. End it instead."]})
         instance.delete()
