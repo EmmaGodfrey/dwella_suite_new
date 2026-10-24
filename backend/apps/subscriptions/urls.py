@@ -1,3 +1,7 @@
-﻿app_name = "subscriptions"
+from django.urls import path
 
-urlpatterns = []
+from .views import WorkspaceEntitlementsView
+
+app_name = "subscriptions"
+
+urlpatterns = [path("entitlements/", WorkspaceEntitlementsView.as_view(), name="entitlements")]

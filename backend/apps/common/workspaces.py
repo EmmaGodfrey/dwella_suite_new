@@ -11,7 +11,7 @@ def is_workspace_scoped(request):
     return request.path_info.startswith(tuple(
         f"/api/v1/{area}/" for area in (
             "properties", "tenants", "leases", "billing", "reports", "notifications",
-            "organizations", "maintenance", "integrations", "documents",
+            "organizations", "maintenance", "integrations", "documents", "subscriptions",
         )
     ))
 
