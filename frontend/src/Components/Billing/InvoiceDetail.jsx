@@ -23,6 +23,8 @@ import { formatDate, formatMoney } from "../../shared/format";
 import RecordPaymentDrawer from "./RecordPaymentDrawer";
 import "../../shared/records.scss";
 import "./billing.scss";
+import { useInvoiceDocument } from "../../Services/documents";
+import DocumentPreview from "../Documents/DocumentPreview";
 
 const kindLabel = (kind) => lineKinds.find((item) => item.value === kind)?.label || kind;
 
@@ -56,6 +58,8 @@ export default function InvoiceDetail() {
   const invoice = invoiceQuery.data;
   const [paying, setPaying] = useState(false);
   const [confirmVoid, setConfirmVoid] = useState(false);
+  const [document, setDocument] = useState(null);
+  const preview = useInvoiceDocument({ onSuccess: setDocument, onError: error => toast.error(error.message || "Could not prepare the invoice PDF.") });
   const voidMutation = useVoidInvoiceMutation({
     onSuccess: (data) => {
       toast.success(`${data.reference} voided.`);
@@ -101,9 +105,10 @@ export default function InvoiceDetail() {
             {invoice.unit_name ? ` · ${invoice.unit_name}, ${invoice.property_name}` : ""} · {periodLabel(invoice.period_start)}
           </p>
         </div>
-        {canManage && !isVoid ? (
+        {canManage ? (
           <div className="dwella-detail-actions">
-            {!invoice.payments.some((payment) => !payment.reversed_at) ? <Button onClick={() => setConfirmVoid(true)}>Void</Button> : null}
+            <Button disabled={preview.isPending} onClick={() => preview.mutate(invoice.id)}>{preview.isPending ? "Preparing PDF…" : "Preview invoice"}</Button>
+            {!isVoid && !invoice.payments.some((payment) => !payment.reversed_at) ? <Button onClick={() => setConfirmVoid(true)}>Void</Button> : null}
             {owing ? (
               <Button appearance="primary" icon={<Money20Regular />} onClick={() => setPaying(true)}>Record payment</Button>
             ) : null}
@@ -111,6 +116,7 @@ export default function InvoiceDetail() {
         ) : null}
       </header>
 
+      {document && <DocumentPreview document={document} onClose={() => setDocument(null)} />}
       <div className="dwella-invoice-grid">
         <section className="dwella-surface">
           <div className="dwella-invoice-meta">

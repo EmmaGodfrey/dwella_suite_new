@@ -1,0 +1,93 @@
+.dwella-document-dialog.fui-DialogSurface {
+  width: min(72rem, calc(100vw - 2rem)); max-width: none; max-height: calc(100dvh - 2rem); padding: 1.5rem; overflow: hidden;
+  > div { min-height: 0; }
+  .fui-DialogBody { display: flex; flex-direction: column; }
+}
+.dwella-document-heading, .dwella-document-section-heading {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+  p { margin: .375rem 0 0; color: var(--colorNeutralForeground2); font-size: .8125rem; }
+  h3 { margin: 0; }
+}
+.dwella-document-heading { margin-bottom: 1rem; }
+.dwella-document-content { overflow-y: auto; min-height: 0; max-height: calc(100dvh - 10rem); padding: 0 .25rem .5rem 0; }
+.dwella-document-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .625rem; }
+.dwella-document-workflow { margin: 0 0 1rem; }
+.dwella-document-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.dwella-document-fineprint { font-size: .75rem; color: var(--colorNeutralForeground2); line-height: 1.5; margin: .75rem 0; }
+.dwella-paper-preview { min-width: 0; }
+.dwella-paper-stage {
+  background: #f3f5f9; padding: 1.5rem; overflow: auto; max-height: 70dvh; border-radius: .25rem; scrollbar-gutter: stable;
+  &.is-fit { overflow-x: hidden; }
+}
+.dwella-document-paper {
+  display: block; max-width: none; height: auto; margin: 0 auto; background: white;
+  box-shadow: 0 2px 6px -2px #111a2b24, 0 8px 24px -4px #111a2b30;
+  .is-fit & { width: 100%; max-width: 49.625rem; }
+}
+.dwella-paper-loading { min-height: 20rem; display: grid; place-content: center; justify-items: center; color: #4b566c; text-align: center; gap: .75rem; }
+.dwella-document-layout.is-signing { display: grid; grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem); gap: 1.5rem; align-items: start; }
+.dwella-signature-panel {
+  min-width: 0; border-top: 1px solid var(--colorNeutralStroke2); padding-top: 1rem;
+  h2 { font-family: Figtree, sans-serif; font-size: 1.0625rem; font-weight: 600; margin: 0 0 .5rem; }
+  p { font-size: .8125rem; line-height: 1.55; color: var(--colorNeutralForeground2); }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 1rem; }
+  > button:last-child { margin-top: .75rem; }
+}
+.dwella-signature-input { display: flex; flex-direction: column; gap: .875rem; margin-top: 1rem; min-width: 0; > p { margin: 0; } }
+.dwella-signature-canvas { background: #f3f5f9; border: 1px solid #d5dce7; width: 100%; height: auto; display: block; touch-action: none; cursor: crosshair; border-radius: .25rem; }
+.dwella-signature-placement {
+  background: white; color: #111a2b; padding: 1rem; border: 1px solid #d5dce7; margin: 1rem 0 0; display: flex; flex-direction: column; gap: .625rem;
+  img { object-fit: contain; object-position: left center; max-width: 100%; height: 5.25rem; }
+  small { font-size: .75rem; color: #4b566c; }
+}
+.dwella-crop-stage {
+  position: relative; touch-action: none; user-select: none; cursor: crosshair; background: white; overflow: hidden;
+  img { display: block; width: 100%; height: auto; pointer-events: none; }
+}
+.dwella-crop-selection { position: absolute; border: 2px solid #1d417e; background: #1d417e12; pointer-events: none; box-shadow: 0 0 0 9999px #111a2b33; }
+.dwella-crop-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .625rem; input { width: 100%; min-width: 0; } }
+.dwella-signing-record {
+  border-top: 1px solid var(--colorNeutralStroke2); margin-top: 1.5rem; padding-top: 1rem; font-size: .8125rem;
+  h3 { font-size: .9375rem; margin: 0 0 .75rem; }
+  ul { list-style: none; padding: 0; display: grid; gap: 1rem; }
+  li { display: flex; flex-direction: column; gap: .25rem; }
+  span { color: var(--colorNeutralForeground2); }
+  summary { cursor: pointer; margin: .375rem 0; }
+}
+.dwella-document-digest { overflow-wrap: anywhere; font-size: .75rem; }
+.dwella-document-error { color: var(--colorPaletteRedForeground1, #a4262c); font-size: .8125rem; line-height: 1.5; }
+.dwella-document-notice { padding: .875rem 1rem; background: var(--colorNeutralBackground3); font-size: .8125rem; line-height: 1.5; border-radius: .375rem; }
+.dwella-signing-link { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin: 1rem 0;
+  label { width: 100%; font-size: .8125rem; font-weight: 600; }
+  input { min-width: 0; flex: 1; padding: .5rem; border: 1px solid var(--colorNeutralStroke1); border-radius: .25rem; color: var(--colorNeutralForeground1); background: var(--colorNeutralBackground1); }
+}
+.dwella-lease-documents { margin-top: 1.5rem; > h4 { margin-top: 1.5rem; } }
+.dwella-document-list { list-style: none; margin: 1rem 0 0; padding: 0;
+  li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--colorNeutralStroke2); &:last-child { border-bottom: 0; } }
+  li > div { display: flex; flex-direction: column; gap: .25rem; min-width: 0; overflow-wrap: anywhere; }
+  strong { font-size: .875rem; } span, small { font-size: .8125rem; color: var(--colorNeutralForeground2); }
+}
+.dwella-public-signing {
+  min-height: 100dvh; padding: 2rem max(1.25rem, calc((100vw - 76rem) / 2)); background: var(--colorNeutralBackground1); color: var(--colorNeutralForeground1);
+  h1 { font: 600 1.5rem/1.4 Montserrat, sans-serif; letter-spacing: -.02em; margin: 0 0 .75rem; }
+  p { line-height: 1.6; }
+  > footer { margin-top: 2rem; }
+}
+.dwella-public-signing-heading { display: flex; align-items: center; gap: 1rem; font-size: .8125rem; color: var(--colorNeutralForeground2); padding-bottom: 1.5rem; margin-bottom: 2rem; border-bottom: 1px solid var(--colorNeutralStroke2); }
+.dwella-public-wordmark { font: 700 1.5rem Montserrat, sans-serif; color: var(--colorBrandForeground1); span { color: #439e5d; } }
+.dwella-signing-entry { max-width: 31rem; margin: 3rem auto; p { font-size: .875rem; color: var(--colorNeutralForeground2); } form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; } }
+.dwella-public-document-title { margin-bottom: 1.5rem; p { font-size: .875rem; color: var(--colorNeutralForeground2); } }
+.dwella-public-document-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(19rem, 23rem); gap: 2rem; align-items: start; &.is-complete { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 56rem) {
+  .dwella-document-layout.is-signing, .dwella-public-document-layout { grid-template-columns: minmax(0, 1fr); }
+  .dwella-public-signing { padding: 1.25rem; h1 { font-size: 1.25rem; } }
+  .dwella-document-section-heading { flex-direction: column; }
+}
+@media (max-width: 36rem) {
+  .dwella-document-dialog.fui-DialogSurface { width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); padding: 1rem; }
+  .dwella-document-content { max-height: calc(100dvh - 9rem); }
+  .dwella-paper-stage { padding: .75rem; }
+  .dwella-document-list li { align-items: flex-start; flex-direction: column; }
+  .dwella-document-toolbar > div { gap: .375rem; }
+  .dwella-document-toolbar button { padding-inline: .5rem; }
+}
