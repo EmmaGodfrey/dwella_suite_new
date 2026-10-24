@@ -16,6 +16,7 @@ import { appHref } from "../storage";
 import { BrandMark } from "./BrandMark";
 import { UserMenu } from "./UserMenu";
 import { useSupportAccess } from "../../Components/Platform/SupportAccess";
+import "./appSideNav.scss";
 
 // Ctrl/cmd/shift/alt-click and non-primary buttons must fall through to the
 // browser so the anchors keep working as real links.
@@ -108,6 +109,18 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
         </Nav>
 
         <div className="dwella-sidebar-footer">
+          {navigationItems.some((item) => item.group === "utility") ? (
+            <Nav role="navigation" aria-label="Utility" className="dwella-sidebar-nav dwella-sidebar-utility-nav"
+              density="small" selectedValue={selectedValue} onNavItemSelect={handleNavItemSelect}>
+              {navigationItems.filter((item) => item.group === "utility").map((item) => (
+                <NavItem key={item.value} value={item.value} href={appHref(item.to)} aria-label={item.label}
+                  icon={{ children: item.icon, className: "dwella-nav-item-icon" }}
+                  title={!showLabels ? item.label : undefined}>
+                  {showLabels ? item.label : null}
+                </NavItem>
+              ))}
+            </Nav>
+          ) : null}
           <UserMenu user={user} onLogout={onLogout} compact={!showLabels} />
         </div>
       </aside>

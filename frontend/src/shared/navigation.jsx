@@ -10,6 +10,7 @@ import {
   People24Regular,
   Mail24Regular,
   Wrench24Regular,
+  Settings24Regular,
 } from "@fluentui/react-icons";
 
 import { getUserAccess } from "./access";
@@ -24,7 +25,7 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
-  { to: "/admin/settings", value: "platform-settings", group: "platform", label: "Settings", icon: <Wrench24Regular />, personas: ["platform_admin"] },
+  { to: "/admin/settings", value: "platform-settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin"] },
   { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "workspace-setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
@@ -48,7 +49,7 @@ export function getNavigationItems(user) {
   const access = getUserAccess(user);
   return operationalItems
     .filter((item) => item.personas.includes(access.persona))
-    .filter((item) => access.persona !== "platform_admin" || item.group === "platform" || Boolean(access.acting_workspace))
+    .filter((item) => access.persona !== "platform_admin" || ["platform", "utility"].includes(item.group) || Boolean(access.acting_workspace))
     .map((item) => ({
       ...item,
       label: access.persona === "tenant" && item.tenantLabel ? item.tenantLabel : item.label,
