@@ -125,6 +125,7 @@ EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 HANDY_AGENT_SIGNING_SECRET = __import__("os").getenv("HANDY_AGENT_SIGNING_SECRET", "")
+HANDY_AGENT_URL = __import__("os").getenv("VITE_HANDY_AGENT_URL", "")
 HANDY_AGENT_ISSUER = __import__("os").getenv(
     "HANDY_AGENT_ISSUER", "https://api.dwella.properties"
 )

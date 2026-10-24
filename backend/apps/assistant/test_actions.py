@@ -35,6 +35,12 @@ def clear_throttle_cache():
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def enable_assistant(db):
+    from apps.audit.models import PlatformSettings
+    PlatformSettings.objects.create(pk=1, handy_agent_enabled=True)
+
+
 def workspace_user(role="landlord"):
     user = User.objects.create_user(
         username=f"{role}-{uuid4()}@example.com",

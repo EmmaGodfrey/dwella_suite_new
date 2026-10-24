@@ -28,6 +28,12 @@ GROUPS_BY_ROLE = {
 ACTOR_ROLES = {OrganizationMembership.Role.LANDLORD}
 
 
+def handy_agent_enabled():
+    from apps.audit.models import PlatformSettings
+
+    return PlatformSettings.objects.filter(pk=1, handy_agent_enabled=True).exists()
+
+
 def token_access(user, request):
     if user.is_staff or user.is_superuser:
         organization = resolve_workspace(request, user=user, required=False)
@@ -43,6 +49,8 @@ def token_access(user, request):
 
 
 def issue_handy_agent_token(user, request):
+    if not handy_agent_enabled():
+        raise PermissionDenied("The assistant is disabled by the administrator.")
     secret = settings.HANDY_AGENT_SIGNING_SECRET
     if len(secret) < 32:
         raise HandyAgentUnavailable()

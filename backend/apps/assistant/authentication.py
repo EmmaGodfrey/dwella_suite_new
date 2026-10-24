@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 
-from apps.accounts.handy_agent import ACTOR_ROLES
+from apps.accounts.handy_agent import ACTOR_ROLES, handy_agent_enabled
 from apps.organizations.models import OrganizationMembership
 
 User = get_user_model()
@@ -33,6 +33,8 @@ class HandyAgentAuthentication(BaseAuthentication):
             return None
         if len(header) != 2 or header[0].lower() != self.keyword:
             raise AuthenticationFailed("Use a Bearer token for assistant actions.")
+        if not handy_agent_enabled():
+            raise AuthenticationFailed("The assistant is disabled by the administrator.")
 
         secret = settings.HANDY_AGENT_SIGNING_SECRET
         if len(secret) < 32:

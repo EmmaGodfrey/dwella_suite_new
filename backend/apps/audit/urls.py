@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .dashboard_views import PlatformDashboardView
 from .event_views import AuditEventViewSet
 from .identity_views import IdentityReviewViewSet
+from .settings_views import PlatformSettingsView
 from .user_views import PlatformUserViewSet
 from .views import SupportSessionViewSet
 from .workspace_views import PlatformWorkspaceViewSet
@@ -17,5 +18,6 @@ router.register("users", PlatformUserViewSet, basename="platform-user")
 router.register("identity-verifications", IdentityReviewViewSet, basename="platform-identity")
 router.register("workspaces", PlatformWorkspaceViewSet, basename="platform-workspace")
 urlpatterns = [
+    path("settings/", PlatformSettingsView.as_view(), name="platform-settings"),
     path("dashboard/", PlatformDashboardView.as_view(), name="platform-dashboard"),
 ] + router.urls

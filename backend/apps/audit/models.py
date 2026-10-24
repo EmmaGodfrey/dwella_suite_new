@@ -4,6 +4,14 @@ from django.db import models
 from apps.common.models import TimeStampedModel, UUIDModel
 
 
+class PlatformSettings(models.Model):
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    handy_agent_enabled = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "Platform settings"
+
+
 class SupportSession(UUIDModel, TimeStampedModel):
     admin = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="support_sessions"

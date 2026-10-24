@@ -19,6 +19,12 @@ def clear_throttle_cache():
     cache.clear()
 
 
+@pytest.fixture(autouse=True)
+def enable_assistant(db):
+    from apps.audit.models import PlatformSettings
+    PlatformSettings.objects.create(pk=1, handy_agent_enabled=True)
+
+
 def authenticated_client(user):
     client = APIClient()
     token = Token.objects.create(user=user)

@@ -4,6 +4,7 @@ from .registration import RegistrationView
 from .views import (
     CurrentUserAvatarView,
     CurrentUserView,
+    HandyAgentConfigView,
     HandyAgentTokenView,
     IdentityVerificationSubmitView,
     LoginView,
@@ -19,6 +20,7 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("handy-agent/config/", HandyAgentConfigView.as_view(), name="handy-agent-config"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("register/", RegistrationView.as_view(), name="register"),
     path("login/", LoginView.as_view(), name="login"),

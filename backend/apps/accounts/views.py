@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 
-from .handy_agent import issue_handy_agent_token
+from .handy_agent import handy_agent_enabled, issue_handy_agent_token
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
@@ -41,6 +41,13 @@ from .serializers import (
 
 User = get_user_model()
 signer = TimestampSigner(salt="accounts.two_factor.challenge")
+
+
+class HandyAgentConfigView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"enabled": handy_agent_enabled()})
 
 
 class HandyAgentTokenView(APIView):
