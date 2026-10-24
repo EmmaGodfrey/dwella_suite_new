@@ -64,6 +64,8 @@ services:
     restart: unless-stopped
     env_file:
       - ../.env.test
+    environment:
+      VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.handyagents.wazabanda.dev/agent}
     depends_on:
       postgres:
         condition: service_healthy
