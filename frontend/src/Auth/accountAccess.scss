@@ -1,0 +1,9 @@
+.dwella-access-form {
+  p { color: var(--dwella-muted); line-height: 1.6; overflow-wrap: anywhere; margin: 0; }
+  [role="alert"] { color: var(--dwella-danger, #b42318); }
+  .dwella-access-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  form { display: grid; gap: 1rem; }
+}
+.dwella-verification-note { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; padding: 1rem; background: var(--dwella-paper); border-radius: .5rem; margin-bottom: 1rem;
+  p { flex: 1; margin: 0; min-width: 12rem; }
+}

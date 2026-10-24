@@ -20,7 +20,7 @@ export default function Signup() {
   const { validate, fieldProps, clearError, showServerErrors } =
     useFormErrors();
   const mutation = useRegisterMutation({
-    onSuccess: () => navigate("/setup", { replace: true }),
+    onSuccess: (data) => navigate("/verify-email", { replace: true, state: { deliveryFailed: data.verification_delivery?.sent === false } }),
     onError: (error) => showServerErrors(error.data, names),
   });
   const submit = (event) => {
