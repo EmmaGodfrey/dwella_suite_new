@@ -1,8 +1,6 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth import logout as session_logout
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
 from django.db import transaction
 from django.utils import timezone
@@ -139,9 +137,15 @@ class TwoFactorLoginVerifyView(APIView):
 
 class TwoFactorSetupView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_scope = "two_factor"
 
     @transaction.atomic
     def post(self, request):
+        request.user = User.objects.select_for_update().get(pk=request.user.pk)
+        if TwoFactorDevice.objects.filter(user=request.user, is_confirmed=True).exists():
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError("Two-factor authentication is already enabled.")
         device, _ = TwoFactorDevice.objects.update_or_create(
             user=request.user,
             defaults={"secret": make_totp_secret(), "is_confirmed": False, "confirmed_at": None},
@@ -161,7 +165,8 @@ class TwoFactorSetupVerifyView(APIView):
 
     @transaction.atomic
     def post(self, request):
-        device = getattr(request.user, "two_factor_device", None)
+        request.user = User.objects.select_for_update().get(pk=request.user.pk)
+        device = TwoFactorDevice.objects.select_for_update().filter(user=request.user).first()
         if not device:
             return Response(
                 {"detail": "Start 2FA setup before verifying a code."},
@@ -177,9 +182,15 @@ class TwoFactorSetupVerifyView(APIView):
 
 class TwoFactorDisableView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_scope = "two_factor"
 
     @transaction.atomic
     def post(self, request):
+        request.user = User.objects.select_for_update().get(pk=request.user.pk)
+        from .access_security import TwoFactorRemovalSerializer
+
+        data = TwoFactorRemovalSerializer(data=request.data, context={"request": request})
+        data.is_valid(raise_exception=True)
         TwoFactorDevice.objects.filter(user=request.user).delete()
         record_event(request, "account.2fa_disabled", request.user)
         return Response({"enabled": False})
@@ -310,12 +321,12 @@ class PasswordResetRequestView(APIView):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             reset_url = frontend_reset_url(uid, token)
-            send_mail(
+            from .account_mail import send_account_mail
+
+            send_account_mail(
                 "Reset your Dwella Suite password",
                 f"Use this link to reset your password: {reset_url}",
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
+                user.email,
             )
 
         return Response(
@@ -328,11 +339,21 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "password_reset"
 
+    @transaction.atomic
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data["user"]
+        user = User.objects.select_for_update().get(pk=serializer.validated_data["user"].pk)
+        if not user.is_active or not default_token_generator.check_token(
+            user, serializer.validated_data["token"]
+        ):
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError("Invalid or expired password reset link.")
         user.set_password(serializer.validated_data["password"])
         user.save(update_fields=["password"])
+        from .access_state import mark_email_verified
+
+        mark_email_verified(user)
         Token.objects.filter(user=user).delete()
         return Response({"detail": "Password reset complete."})

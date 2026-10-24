@@ -61,6 +61,7 @@ class IdentityVerificationSerializer(serializers.ModelSerializer):
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
+    email_verification = serializers.SerializerMethodField()
     has_two_factor = serializers.SerializerMethodField()
     profile = serializers.SerializerMethodField()
     identity_verification = serializers.SerializerMethodField()
@@ -77,6 +78,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
+            "email_verification",
             "first_name",
             "last_name",
             "is_staff",
@@ -100,6 +102,11 @@ class CurrentUserSerializer(serializers.ModelSerializer):
 
     def get_has_two_factor(self, obj):
         return hasattr(obj, "two_factor_device") and obj.two_factor_device.is_confirmed
+
+    def get_email_verification(self, obj):
+        from .access_state import email_status
+
+        return email_status(obj)
 
     def get_profile(self, obj):
         profile, _ = UserProfile.objects.get_or_create(user=obj)

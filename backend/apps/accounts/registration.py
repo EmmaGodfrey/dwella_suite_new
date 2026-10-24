@@ -68,6 +68,13 @@ class RegistrationView(APIView):
         try:
             with transaction.atomic():
                 user = User.objects.create_user(username=data["email"], **data)
+                from .access_state import require_new_account_verification
+
+                require_new_account_verification(user)
         except IntegrityError:
             return Response({"detail": UNAVAILABLE}, status=400)
-        return issue_auth_response(user, request)
+        response = issue_auth_response(user, request)
+        from .email_verification import send_verification
+
+        response.data["verification_delivery"] = send_verification(request, user)
+        return response

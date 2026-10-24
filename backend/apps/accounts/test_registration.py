@@ -1,5 +1,8 @@
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
+from django.core import mail
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
@@ -18,6 +21,7 @@ PAYLOAD = {
 @pytest.fixture(autouse=True)
 def registration_settings(settings):
     settings.BETA_REGISTRATION_OPEN = True
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     cache.clear()
     yield
     cache.clear()
@@ -45,6 +49,15 @@ def test_signup_cannot_grant_platform_or_workspace_privileges():
     assert not OrganizationMembership.objects.filter(user=user).exists()
     assert data["user"]["access"]["persona"] == "unassigned"
     client.credentials(HTTP_AUTHORIZATION="Token " + data["token"])
+    assert data["user"]["email_verification"]["required"]
+    assert client.get("/api/v1/organizations/onboarding/").status_code == 403
+    token = re.search(r"token=([A-Za-z0-9_-]+)", mail.outbox[-1].body)[1]
+    assert (
+        APIClient()
+        .post("/api/v1/accounts/email-verification/confirm/", {"token": token})
+        .status_code
+        == 200
+    )
     assert client.get("/api/v1/organizations/onboarding/").json()["response_data"]["needs_setup"]
 
 
