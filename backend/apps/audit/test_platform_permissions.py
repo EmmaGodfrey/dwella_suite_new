@@ -18,6 +18,8 @@ pytestmark = pytest.mark.django_db
 )
 def test_platform_permission_roles(staff, superuser, allowed_admin, allowed_superuser):
     request = APIRequestFactory().get("/")
-    request.user = get_user_model()(is_staff=staff, is_superuser=superuser)
+    request.user = get_user_model().objects.create_user(
+        username="platform-permission", is_staff=staff, is_superuser=superuser
+    )
     assert IsPlatformAdmin().has_permission(request, None) is allowed_admin
     assert IsPlatformSuperuser().has_permission(request, None) is allowed_superuser

@@ -49,6 +49,9 @@ def token_access(user, request):
 
 
 def issue_handy_agent_token(user, request):
+    from .access_state import require_verified_access
+
+    require_verified_access(user)
     if not handy_agent_enabled():
         raise PermissionDenied("The assistant is disabled by the administrator.")
     secret = settings.HANDY_AGENT_SIGNING_SECRET

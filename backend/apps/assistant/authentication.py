@@ -76,6 +76,11 @@ class HandyAgentAuthentication(BaseAuthentication):
         if membership is None:
             raise AuthenticationFailed("Assistant action permission is no longer available.")
 
+        from apps.accounts.access_state import email_status
+
+        if email_status(user)["required"]:
+            raise AuthenticationFailed("Verify your email address before using assistant actions.")
+
         request.organization = membership.organization
         raw_request = getattr(request, "_request", request)
         raw_request.organization = membership.organization

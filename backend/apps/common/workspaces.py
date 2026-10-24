@@ -33,6 +33,10 @@ def resolve_workspace(request, *, user=None, required=True):
     user = user if user is not None else request.user
     if not user or not user.is_authenticated:
         return None
+    if required:
+        from apps.accounts.access_state import require_verified_access
+
+        require_verified_access(user)
     if not getattr(request, "_workspace_resolved", False):
         organization, session = None, None
         if user.is_staff or user.is_superuser:

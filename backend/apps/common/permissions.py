@@ -23,6 +23,9 @@ def get_active_membership(user):
 
 
 def get_user_access(user, request=None):
+    from apps.accounts.access_state import email_status
+
+    verified_access = not email_status(user)["required"]
     if user.is_superuser or user.is_staff:
         organization = resolve_workspace(request, required=False) if request else None
         session = getattr(request, "support_session", None) if request else None
@@ -39,15 +42,17 @@ def get_user_access(user, request=None):
             }
             if session
             else None,
-            "can_view_portfolio": bool(organization),
-            "can_manage_properties": bool(organization),
-            "can_view_reports": bool(organization),
-            "can_manage_organization": bool(organization),
+            "can_view_portfolio": bool(organization and verified_access),
+            "can_manage_properties": bool(organization and verified_access),
+            "can_view_reports": bool(organization and verified_access),
+            "can_manage_organization": bool(organization and verified_access),
         }
 
     membership = get_active_membership(user)
     role = membership.role if membership else None
-    available = bool(membership and membership.organization.is_active)
+    available = bool(
+        membership and membership.organization.is_active and verified_access
+    )
     persona = (
         "tenant"
         if role == OrganizationMembership.Role.TENANT
@@ -58,7 +63,7 @@ def get_user_access(user, request=None):
     return {
         "persona": persona,
         "acting_workspace": None,
-        "workspace_suspended": bool(membership and not available),
+        "workspace_suspended": bool(membership and not membership.organization.is_active),
         "role": role or "unassigned",
         "organization_id": str(membership.organization.public_id) if membership else None,
         "can_view_portfolio": available and role in PORTFOLIO_ROLES,
@@ -72,6 +77,10 @@ class IsPlatformAdmin(BasePermission):
     message = "Platform administrator access is required."
 
     def has_permission(self, request, view):
+        from apps.accounts.access_state import require_verified_access
+
+        if request.user and request.user.is_authenticated:
+            require_verified_access(request.user)
         return bool(
             request.user
             and request.user.is_authenticated
@@ -83,6 +92,10 @@ class IsPlatformSuperuser(BasePermission):
     message = "Platform superuser access is required."
 
     def has_permission(self, request, view):
+        from apps.accounts.access_state import require_verified_access
+
+        if request.user and request.user.is_authenticated:
+            require_verified_access(request.user)
         return bool(request.user and request.user.is_authenticated and request.user.is_superuser)
 
 
