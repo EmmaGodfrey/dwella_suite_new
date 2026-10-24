@@ -83,6 +83,7 @@ def clean_image(raw, *, signature=False):
                         )
                     )
                 output = io.BytesIO()
+                image.info.clear()
                 image.save(output, "PNG")
                 return output.getvalue()
     except (

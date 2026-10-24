@@ -510,3 +510,21 @@ def test_large_invoice_payment_history_flows_across_pdf_pages(setup):
     raw, pages = invoice_pdf(snapshot)
     assert pages >= 3
     assert inspect_pdf(raw, render=False)["pages"] == pages
+
+
+def test_signature_normalization_removes_source_metadata_and_white_margins():
+    from PIL.PngImagePlugin import PngInfo
+
+    from .files import clean_image
+
+    source = Image.new("RGB", (500, 300), "white")
+    ImageDraw.Draw(source).line([(100, 200), (200, 100), (350, 210)], fill="black", width=4)
+    source.info["icc_profile"] = b"source-profile"
+    metadata = PngInfo()
+    metadata.add_text("Comment", "private source metadata")
+    raw = io.BytesIO()
+    source.save(raw, "PNG", pnginfo=metadata)
+    normalized = clean_image(raw.getvalue(), signature=True)
+    with Image.open(io.BytesIO(normalized)) as result:
+        assert not result.info
+        assert result.width < 300 and result.height < 150
