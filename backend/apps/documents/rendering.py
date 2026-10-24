@@ -2,6 +2,7 @@
 
 import hashlib
 import io
+from datetime import date
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -159,6 +160,13 @@ def money(snapshot, amount):
     return f"{snapshot['issuer']['currency']} {Decimal(str(amount)):,.2f}"
 
 
+def display_date(value, *, period=False):
+    try:
+        return date.fromisoformat(value).strftime("%B %Y" if period else "%d %B %Y")
+    except (ValueError, TypeError):
+        return str(value)
+
+
 def invoice_pdf(s):
     issuer = s["issuer"]
     flow = [
@@ -184,9 +192,12 @@ def invoice_pdf(s):
         table(
             [
                 [
-                    [p("Issue date", "small"), p(s["issue_date"], "strong")],
-                    [p("Due date", "small"), p(s["due_date"], "strong")],
-                    [p("Billing period", "small"), p(s["period"], "strong")],
+                    [p("Issue date", "small"), p(display_date(s["issue_date"]), "strong")],
+                    [p("Due date", "small"), p(display_date(s["due_date"]), "strong")],
+                    [
+                        p("Billing period", "small"),
+                        p(display_date(s["period"], period=True), "strong"),
+                    ],
                 ]
             ],
             [WIDTH / 3] * 3,
@@ -238,6 +249,27 @@ def invoice_pdf(s):
         p("Balance due", "small"),
         p(money(s, s["balance"]), "balance"),
     ]
+    if len(s["payments"]) > 6:
+        payment_rows = [[p(label, "small") for label in ["Receipt", "Date", "Method", "Amount"]]]
+        payment_rows += [
+            [
+                p(pay["receipt"]),
+                p(display_date(pay["date"])),
+                p(pay["method"]),
+                p(money(s, pay["amount"]), "strong"),
+            ]
+            for pay in s["payments"]
+        ]
+        flow += [
+            p("Payments received", "heading"),
+            table(
+                payment_rows,
+                [WIDTH * 0.23, WIDTH * 0.25, WIDTH * 0.24, WIDTH * 0.28],
+                headings=True,
+            ),
+            Spacer(1, 16),
+        ]
+        payments = [p("All recorded payments are listed above.", "muted")]
     flow += [
         table([[payments, totals]], [WIDTH * 0.54, WIDTH * 0.46]),
         rule(),
@@ -285,7 +317,7 @@ def lease_pdf(s, signatures=()):
         p("Terms at a glance", "heading"),
     ]
     terms = [
-        ("Lease period", f"{s['start_date']} – {s['end_date']}"),
+        ("Lease period", f"{display_date(s['start_date'])} – {display_date(s['end_date'])}"),
         ("Monthly rent", money(s, s["monthly_rent"])),
         ("Rent due", f"Day {s['rent_due_day']} of each month"),
         ("Security deposit", money(s, s["deposit_amount"])),
@@ -335,7 +367,9 @@ def lease_pdf(s, signatures=()):
             block += [p(f"Authorised signatory for {s['landlord_name']}", "small")]
         block += [
             p(
-                f"Signed {signature.signed_at.isoformat()}" if signature else "Date: pending",
+                signature.signed_at.strftime("Signed %d %B %Y at %H:%M UTC")
+                if signature
+                else "Date: pending",
                 "small",
             ),
             rule(),
@@ -350,7 +384,7 @@ def lease_pdf(s, signatures=()):
             p(f"{signature.signer_name} · {signature.role}", "strong"),
             p(
                 f"Authentication: {signature.authentication_method} · "
-                f"Signed: {signature.signed_at.isoformat()}",
+                f"Signed: {signature.signed_at.strftime('%d %B %Y at %H:%M UTC')}",
                 "small",
             ),
             p(f"Reviewed document SHA-256: {signature.reviewed_sha256}", "small"),
