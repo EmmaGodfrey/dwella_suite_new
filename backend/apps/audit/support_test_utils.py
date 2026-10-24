@@ -17,6 +17,7 @@ LANDLORD_URLS = [
     "/api/v1/integrations/smart-invoice/",
     "/api/v1/documents/versions/",
     "/api/v1/documents/originals/",
+    "/api/v1/subscriptions/entitlements/",
 ]
 
 
