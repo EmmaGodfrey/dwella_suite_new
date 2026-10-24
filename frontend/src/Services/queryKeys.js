@@ -3,6 +3,7 @@ export const queryKeys = {
   currentUser: ["accounts", "me"],
   registration: ["accounts", "registration"],
   onboarding: ["organizations", "onboarding"],
+  workspaceEntitlements: ["subscriptions", "entitlements"],
   notifications: ["notifications"],
   report: (report, filters = {}) => ["reports", report, filters],
   receipt: (id) => ["billing", "receipt", id],
