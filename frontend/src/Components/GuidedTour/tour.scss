@@ -1,0 +1,21 @@
+.dwella-tour {
+  max-width: min(30rem, calc(100vw - 2rem));
+  color: var(--dwella-ink);
+  p { color: var(--dwella-muted); line-height: 1.6; }
+  .dwella-tour-count { font-size: .75rem; color: var(--dwella-primary); margin-top: 0; }
+  progress { width: 100%; height: .25rem; accent-color: var(--dwella-primary); }
+  .fui-DialogActions { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+  &.is-step { width: 21rem; }
+  &.is-anchored { position: fixed; margin: 0; }
+  @media (max-width: 899px) {
+    &.is-step { position: fixed; inset: auto 1rem 1rem; width: auto; margin: 0; max-width: none; max-height: calc(100dvh - 2rem); overflow-y: auto; }
+  }
+}
+[data-tour-active="true"] { outline: 2px solid var(--dwella-primary); outline-offset: 3px; border-radius: .25rem; }
+.dwella-tour-launcher { white-space: nowrap; }
+.dwella-tour-launcher-short { display: none; }
+@media (max-width: 600px) {
+  .dwella-tour-launcher-full { display: none; }
+  .dwella-tour-launcher-short { display: inline; }
+}
+@media (prefers-reduced-motion: reduce) { .dwella-tour { animation: none !important; transition: none !important; } }

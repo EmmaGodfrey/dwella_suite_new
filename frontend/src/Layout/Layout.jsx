@@ -10,6 +10,7 @@ import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navig
 import { SupportAccessProvider, SupportBanner } from "../Components/Platform/SupportAccess";
 import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
+import GuidedTour from "../Components/GuidedTour";
 
 const getCachedUser = () => {
   try {
@@ -83,10 +84,10 @@ const AppLayout = () => {
       {mobileOpen ? <button className="dwella-nav-scrim" type="button" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /> : null}
 
       <div className="dwella-main-frame">
-        <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
+        <AppTopbar onMobileOpen={() => setMobileOpen(true)} tour={<GuidedTour key={`${user?.id}:${getUserAccess(user).organization_id}`} user={user} enabled={Boolean(user) && !user.email_verification?.required && !getUserAccess(user).workspace_suspended && persona !== "platform_admin" && (persona === "tenant" || setup.data?.needs_setup === false)} />} />
         <SupportBanner />
 
-        <main className="dwella-content">
+        <main className="dwella-content" data-tour="dashboard-overview">
           <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
             {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} /> : null}
             {getUserAccess(user).workspace_suspended ? <div role="status" className="admin-card"><h1>Workspace suspended</h1><p>Contact Dwella support to restore access to your workspace.</p></div> : <Outlet />}

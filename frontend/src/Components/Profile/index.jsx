@@ -115,7 +115,7 @@ const Profile = () => {
   const avatarUrl = resolveMediaUrl(user?.profile?.avatar_url);
 
   return (
-    <div className="dwella-screen dwella-profile-screen">
+    <div className="dwella-screen dwella-profile-screen" data-tour="profile-details">
       {isError ? <div className="dwella-alert danger" role="alert">Unable to load profile: {error.message}</div> : null}
       <section className="dwella-profile-grid">
         <aside className="dwella-profile-summary">
