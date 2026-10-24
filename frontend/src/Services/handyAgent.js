@@ -1,5 +1,6 @@
 import { api, getAuthToken } from "./apiClient";
 import { queryClient } from "./queryClient";
+import { isPublicSigningPath } from "../shared/documentPrivacy";
 
 const SCRIPT_ID = "dwella-handy-agent-widget";
 const SCRIPT_URL = "https://handyai.wazabanda.dev/widget/v1/agent.js";
@@ -46,6 +47,7 @@ function refreshWidget() {
 }
 
 export function installHandyAgent() {
+  if (isPublicSigningPath(window.location.pathname, import.meta.env.VITE_BASE_PATH || "/")) return undefined;
   if (import.meta.env.VITE_HANDY_AGENT_ENABLED !== "true") return undefined;
   if (!AGENT_URL) {
     console.warn("Handy widget is enabled but VITE_HANDY_AGENT_URL is missing.");
