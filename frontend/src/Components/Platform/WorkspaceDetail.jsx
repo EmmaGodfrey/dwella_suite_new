@@ -62,7 +62,7 @@ export default function WorkspaceDetail() {
     <RecentActivity filters={{ workspace: id }} />
     {dialog === "edit" && <AdminDrawer title="Edit workspace profile" initial={workspace} fields={profileFields}
       onClose={() => setDialog(null)} onSubmit={(values) => update(null, Object.fromEntries(profileFields.map((f) => [f.key, values[f.key]])), "patch")} />}
-    {dialog === "transfer" && <AdminDrawer title="Transfer ownership" submitLabel="Transfer ownership" onClose={() => setDialog(null)} fields={[
+    {dialog === "transfer" && <AdminDrawer modal title="Transfer ownership" submitLabel="Transfer ownership" onClose={() => setDialog(null)} fields={[
       { key: "owner", label: "New owner", type: "select", required: true, options: (owners.data?.results || []).map((u) => ({ value: u.id, label: `${nameOf(u)} · ${u.email}` })) },
     ]} onSubmit={(values) => update("transfer-owner", { owner: Number(values.owner) })}><p>The new owner is added as a property manager with full control. Existing property managers keep their access.</p>
       {owners.isError && <p role="alert" className="admin-error">Owners couldn’t be loaded. <Button onClick={() => owners.refetch()}>Retry</Button></p>}

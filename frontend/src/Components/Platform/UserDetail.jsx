@@ -72,13 +72,13 @@ export default function UserDetail() {
         {user?.has_two_factor && <Button onClick={() => setDialog({ type: "reset-2fa" })}>Reset 2FA</Button>}
       </div><p className="admin-note">Only a super admin can change platform access or permanently delete. Your own account and the last super admin are protected.</p></section>
     </aside></div>
-    {dialog?.type === "edit" && <AdminDrawer title="Edit profile" onClose={() => setDialog(null)}
+    {dialog?.type === "edit" && <AdminDrawer modal title="Edit profile" onClose={() => setDialog(null)}
       initial={{ full_name: nameOf(user), email: user.email, phone_number: user.profile?.phone_number || "" }} fields={[
         { key: "full_name", label: "Full name", required: true, maxLength: 150 },
         { key: "email", label: "Email", required: true, type: "email", maxLength: 150 },
         { key: "phone_number", label: "Phone number", pattern: /^\+?[\d\s-]{7,32}$/, maxLength: 32 },
       ]} onSubmit={(values) => run(null, values, "patch")} />}
-    {dialog?.type === "membership" && <AdminDrawer title={dialog.membership ? "Change workspace access" : "Add to workspace"}
+    {dialog?.type === "membership" && <AdminDrawer modal title={dialog.membership ? "Change workspace access" : "Add to workspace"}
       onClose={() => setDialog(null)} initial={{ organization: dialog.membership?.organization?.id || "", role: dialog.membership?.role || "landlord", remove: "false" }}
       fields={(values) => [
         { key: "organization", label: "Workspace", type: "select", required: true, disabled: Boolean(dialog.membership),

@@ -71,7 +71,7 @@ export function SupportAccessProvider({ user, children }) {
           <Button disabled={!query.data?.pagination?.next} onClick={() => setPage((p) => p + 1)}>Next</Button></div>
       </AdminState>
     </AdminDrawer>}
-    {admin && selection && !selection.picker && <AdminDrawer title={`Open ${workspaceName(selection)}`} fields={[
+    {admin && selection && !selection.picker && <AdminDrawer modal title={`Open ${workspaceName(selection)}`} fields={[
       { key: "reason", label: "Reason for support access", type: "textarea", required: true, minLength: 5, maxLength: 300 },
     ]} initial={{ reason: "" }} submitLabel="Open workspace" onClose={() => setSelection(null)} onSubmit={async (values) => {
       await enterSupportWorkspace(cache, selection.id, values.reason);

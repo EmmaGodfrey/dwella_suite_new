@@ -36,7 +36,7 @@ export default function IdentityChecks() {
         { key: "action", label: "Action", render: (r) => <Button appearance="subtle" onClick={() => setSelected(r)}>{r.status === "pending" ? "Review" : "View decision"}</Button> },
       ]} />
     </AdminState>
-    {selected && <AdminDrawer title="Review identity" submitLabel={selected.status === "pending" ? "Record decision" : "Close"}
+    {selected && <AdminDrawer modal title="Review identity" submitLabel={selected.status === "pending" ? "Record decision" : "Close"}
       initial={{ decision: "approved", reason: "" }} onClose={() => setSelected(null)}
       fields={(values) => selected.status !== "pending" ? [] : [
         { key: "decision", label: "Decision", type: "select", required: true, options: [{ value: "approved", label: "Approve" }, { value: "rejected", label: "Reject" }] },

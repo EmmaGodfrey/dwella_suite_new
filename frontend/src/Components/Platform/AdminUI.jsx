@@ -6,7 +6,7 @@ import {
 import { EmptyState } from "../../shared/components/EmptyState";
 import { useFormErrors } from "../../shared/useFormErrors";
 import "./platform.scss";
-import { FormDrawer } from "../../shared/components/FormFlow";
+import { FormDrawer, FormModal } from "../../shared/components/FormFlow";
 import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
 
 export const nameOf = (user) => `${user?.first_name || ""} ${user?.last_name || ""}`.trim()
@@ -79,6 +79,7 @@ export function AdminDrawer({
   steps,
   wideFields = [],
   summary,
+  modal = false,
 }) {
   const [values, setValues] = useState(initial);
   const [step, setStep] = useState(0);
@@ -181,8 +182,9 @@ export function AdminDrawer({
       })}
     </div>
   );
+  const FormContainer = modal ? FormModal : FormDrawer;
   return (
-    <FormDrawer
+    <FormContainer
       compact={!steps && visible.length < 5}
       title={title}
       description={activeFields.some((field) => field.required) ? "Fields marked * are required." : undefined}
@@ -207,7 +209,7 @@ export function AdminDrawer({
       {(!steps || step === 0) && children}
       {renderedFields}
       {summary && (!steps || step === steps.length - 1) && summary(values)}
-    </FormDrawer>
+    </FormContainer>
   );
 }
 

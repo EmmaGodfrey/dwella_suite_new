@@ -354,6 +354,7 @@ export default function Sequences() {
       )}
       {dialog === "sequence" && (
         <AdminDrawer
+          modal
           title="New sequence"
           onClose={() => setDialog(null)}
           fields={[
