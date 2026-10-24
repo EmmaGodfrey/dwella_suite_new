@@ -6,6 +6,8 @@
 
 .dwella-maintenance-page .dwella-page-toolbar {
   margin-bottom: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .dwella-maintenance-page .dwella-segmented button {
@@ -47,14 +49,17 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(15rem, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .dwella-board-column {
   display: grid;
   gap: 10px;
-  padding: 12px 10px 10px;
-  background: var(--dwella-wash);
+  align-content: start;
+  min-width: 0;
+  min-height: 32.5rem;
+  padding: 16px 12px;
+  background: var(--dwella-paper);
   border-radius: var(--radius-lg);
 }
 
@@ -97,7 +102,7 @@
 .dwella-board-empty {
   margin: 0;
   padding: 18px 4px;
-  color: var(--dwella-subtle);
+  color: var(--dwella-muted);
   font-size: var(--fs-small);
   text-align: center;
 }
@@ -110,7 +115,7 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  background: var(--dwella-paper);
+  background: var(--dwella-wash);
   border: 0;
   border-radius: var(--radius-md);
   box-shadow: var(--dwella-shadow-card);
@@ -526,6 +531,8 @@
   .dwella-board {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .dwella-board-column { min-height: 10rem; }
 
   .dwella-maintenance-filter {
     flex: 1 1 100%;

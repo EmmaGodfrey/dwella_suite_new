@@ -4,7 +4,10 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
 .admin-screen .dwella-page-header-copy { min-width: 0; }
 .admin-screen .dwella-page-header-copy p { overflow-wrap: anywhere; }
 .admin-title { min-width: 0; }
-.admin-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+.admin-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;
+  padding: 1rem; background: var(--dwella-paper); border-radius: var(--radius-lg); min-width: 0; }
+.admin-filters > .fui-Field { min-width: 0; }
+.admin-card .admin-filters { padding: 0; background: transparent; }
 .admin-search { flex: 0 1 18.75rem; min-width: 12rem; }
 .admin-table-card { min-width: 0; }
 .admin-table-scroll { overflow-x: auto; }
@@ -13,7 +16,8 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
 .admin-screen .dwella-table-link { color: var(--dwella-ink); font-weight: 600; text-decoration: none; }
 .admin-screen .dwella-table-link:hover { color: var(--dwella-primary); text-decoration: underline; }
 .admin-note { color: var(--dwella-muted); font-size: .75rem; display: block; margin-top: .25rem; }
-.admin-loading { display: grid; gap: .75rem; }
+.admin-loading { display: grid; gap: .75rem; padding: 1rem; background: var(--dwella-paper); border-radius: var(--radius-lg); }
+.admin-card .admin-loading { padding: 0; background: transparent; }
 .admin-loading > div { height: 3.5rem; border-radius: .5rem; }
 .admin-error { color: var(--dwella-danger); }
 .admin-support-banner { display: flex; align-items: center; gap: 1rem; padding: 1rem 2rem;
@@ -49,6 +53,7 @@ button.dwella-workspace { text-align: left; font: inherit; color: inherit; curso
 .admin-title h1 { margin: 0; }
 .admin-badges { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
 .admin-metrics, .admin-card dl.admin-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 2rem; margin: 0; }
+.admin-screen > .admin-metrics { padding: 1rem; background: var(--dwella-paper); border-radius: var(--radius-lg); }
 .admin-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
 .admin-activity-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .admin-dashboard a { text-decoration: none; }
