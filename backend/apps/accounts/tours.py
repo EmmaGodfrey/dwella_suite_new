@@ -212,11 +212,15 @@ class GuidedTourView(NoStoreAccountView):
             else:
                 if current not in completed:
                     completed.append(current)
-                if action == "finish" and any(key not in completed for key in ids):
+                if action == "finish" and (
+                    index != len(ids) - 1 or any(key not in completed for key in ids)
+                ):
                     raise ValidationError("Finish the available steps before completing the tour.")
                 state.current_step = ids[min(len(ids) - 1, index + 1)]
                 state.status = (
-                    "completed" if all(key in completed for key in ids) else "in_progress"
+                    "completed"
+                    if index == len(ids) - 1 and all(key in completed for key in ids)
+                    else "in_progress"
                 )
         state.completed_steps = completed
         state.save()

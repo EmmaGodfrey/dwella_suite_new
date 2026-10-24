@@ -57,8 +57,11 @@ def issue_tenant_invitation(request, tenant):
     email = normalize_email(tenant.email)
     if not tenant.is_active or not tenant.organization.is_active or tenant.user_id:
         raise ValidationError("This tenant is unavailable or already has account access.")
-    if not email or is_disposable_email(email):
-        raise ValidationError({"email": ["Add the tenant's permanent email before inviting them."]})
+    username_limit = get_user_model()._meta.get_field("username").max_length
+    if not email or len(email) > username_limit or is_disposable_email(email):
+        raise ValidationError(
+            {"email": [f"Use a permanent email of {username_limit} characters or fewer."]}
+        )
     users = get_user_model().objects.filter(email__iexact=email)
     if (
         users.count() > 1

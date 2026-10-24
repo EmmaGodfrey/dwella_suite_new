@@ -38,6 +38,7 @@ class TenantViewSet(OrganizationScopedModelViewSet):
 
     serializer_class = TenantSerializer
     queryset = Tenant.objects.prefetch_related(
+        "portal_invitations",
         Prefetch("leases", queryset=Lease.objects.select_related("unit__property"))
     ).annotate(
         # What the tenant still owes across unpaid invoices.

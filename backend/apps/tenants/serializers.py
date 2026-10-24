@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from apps.common.serializers import OrganizationScopedSerializer
@@ -16,6 +17,7 @@ LEASE_PRIORITY = {Lease.Status.ACTIVE: 0, Lease.Status.PENDING_SIGNATURE: 1, Lea
 
 
 class TenantSerializer(OrganizationScopedSerializer):
+    portal_access = serializers.SerializerMethodField()
     current_lease = serializers.SerializerMethodField()
     balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
     lease = TenantLeaseSerializer(write_only=True, required=False)
@@ -38,6 +40,7 @@ class TenantSerializer(OrganizationScopedSerializer):
             "is_active",
             "created_at",
             "updated_at",
+            "portal_access",
         ]
         read_only_fields = ["status", "is_active"]
 
@@ -46,6 +49,25 @@ class TenantSerializer(OrganizationScopedSerializer):
         if len(value) < 2:
             raise serializers.ValidationError("Enter the tenant's full name.")
         return value
+
+    def get_portal_access(self, obj):
+        if obj.user_id:
+            return {"status": "linked", "expires_at": None}
+        pending = next(
+            (
+                item for item in sorted(
+                    obj.portal_invitations.all(), key=lambda item: item.created_at, reverse=True
+                )
+                if not item.accepted_at and not item.revoked_at
+                and item.expires_at > timezone.now()
+                and item.email == obj.email.strip().lower()
+            ),
+            None,
+        )
+        return {
+            "status": "pending" if pending else "not_invited",
+            "expires_at": pending.expires_at if pending else None,
+        }
 
     def validate_phone_number(self, value):
         normalized = normalize_phone_number(value)

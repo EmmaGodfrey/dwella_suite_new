@@ -170,6 +170,9 @@ def test_tenant_acceptance_links_only_the_fixed_tenant_and_issues_no_login(perso
     assert APIClient().get(ACCEPT, {"token": token}).status_code == 405
     preview = APIClient().post(PREVIEW, {"token": token})
     assert preview.status_code == 200 and preview.json()["response_data"]["email"] == tenant.email
+    profile = client_for(person).get(f"/api/v1/tenants/{tenant.public_id}/").json()["response_data"]
+    assert profile["portal_access"]["status"] == "pending"
+    assert "token" not in str(profile["portal_access"])
     result = APIClient().post(
         ACCEPT,
         {
@@ -189,6 +192,8 @@ def test_tenant_acceptance_links_only_the_fixed_tenant_and_issues_no_login(perso
     )
     assert OrganizationMembership.objects.get(user=user).role == "tenant"
     assert email_status(user)["verified"]
+    profile = client_for(person).get(f"/api/v1/tenants/{tenant.public_id}/").json()["response_data"]
+    assert profile["portal_access"]["status"] == "linked"
     assert APIClient().post(ACCEPT, {"token": token, "password": PASSWORD}).status_code == 400
 
 
@@ -275,6 +280,15 @@ def test_invitation_password_delivery_and_replacement_failures_are_safe(person, 
     assert APIClient().post(PREVIEW, {"token": token}).status_code == 400
 
 
+def test_invitation_rejects_email_too_long_for_a_login(person, workspace):
+    tenant = Tenant.objects.create(
+        organization=workspace, full_name="Moses Demo", phone_number="+260971234567",
+        email="a" * 64 + "@" + "b" * 63 + "." + "c" * 30 + ".com",
+    )
+    assert client_for(person).post(f"/api/v1/tenants/{tenant.public_id}/invite/").status_code == 400
+    assert not TenantInvitation.objects.exists()
+
+
 def test_2fa_cannot_be_overwritten_or_removed_without_current_credentials(person):
     client = client_for(person)
     setup = client.post("/api/v1/accounts/2fa/setup/")
@@ -336,6 +350,9 @@ def test_tour_resume_replay_and_added_steps_preserve_progress(person, workspace)
         assert client.get(TOUR).json()["response_data"]["status"] == "completed"
     replay = client.patch(TOUR, {"action": "replay"}, format="json").json()["response_data"]
     assert replay["current_step"] == "overview" and "properties" in replay["completed_steps"]
+    replay_next = client.patch(TOUR, {"action": "next"}, format="json").json()["response_data"]
+    assert replay_next["status"] == "in_progress"
+    assert replay_next["current_step"] == "properties"
 
 
 def test_tours_are_own_workspace_scoped_and_do_not_complete_setup(person, workspace):
