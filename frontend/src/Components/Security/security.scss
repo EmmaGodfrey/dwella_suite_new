@@ -137,6 +137,22 @@
   margin-top: 16px;
 }
 
+.dwella-authenticator-qr {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 16px;
+  background: #fff;
+
+  svg { display: block; max-width: 100%; height: auto; }
+}
+
+.dwella-authenticator-manual {
+  margin-top: 16px;
+  summary { cursor: pointer; color: var(--dwella-primary); font-weight: 600; }
+  summary:focus-visible { outline: 2px solid var(--dwella-primary); outline-offset: 4px; }
+  p { margin-top: 8px; }
+}
+
 .dwella-setup-box .fui-Field .fui-Input__input {
   letter-spacing: 0.3em;
   text-align: center;

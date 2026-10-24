@@ -10,6 +10,7 @@ import { PageSection } from "../../shared/components";
 import { FormModal } from "../../shared/components/FormFlow";
 import { useFormErrors } from "../../shared/useFormErrors";
 import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 
 const Security = () => {
   const [setup, setSetup] = useState(null);
@@ -17,6 +18,7 @@ const Security = () => {
   const [removing, setRemoving] = useState(false);
   const [password, setPassword] = useState("");
   const [removalCode, setRemovalCode] = useState("");
+  const [keyCopied, setKeyCopied] = useState(false);
   const errors = useFormErrors();
   const { data: user } = useCurrentUserQuery();
   const setupMutation = useTwoFactorSetupMutation({
@@ -27,6 +29,8 @@ const Security = () => {
     onSuccess: () => {
       setSetup(null);
       setCode("");
+      setKeyCopied(false);
+      setupMutation.reset();
       toast.success("Two-factor authentication enabled.");
     },
     onError: (error) => toast.error(error.message || "Invalid authentication code"),
@@ -58,7 +62,7 @@ const Security = () => {
           {user?.has_two_factor ? (
             <Button appearance="secondary" onClick={() => { errors.clearAll(); disableMutation.reset(); setRemoving(true); }}>Disable 2FA</Button>
           ) : (
-            <Button appearance="primary" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set up 2FA"}</Button>
+            <Button appearance="primary" disabled={setupMutation.isPending || Boolean(setup)} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set up 2FA"}</Button>
           )}
         </div>
 
@@ -73,13 +77,25 @@ const Security = () => {
             <Key24Regular />
             <div>
               <h3>Connect your authenticator</h3>
-              <p>Enter this secret manually or use the provisioning URI in your authenticator app.</p>
-              <div className="dwella-security-code"><span>Secret</span><code>{setup.secret}</code></div>
-              <div className="dwella-security-code"><span>Authenticator URI</span><code>{setup.provisioning_uri}</code></div>
+              <p>Scan this QR code with your authenticator app, then enter the 6-digit code it shows.</p>
+              <div className="dwella-authenticator-qr">
+                <QRCodeSVG value={setup.provisioning_uri} size={208} marginSize={4} level="M" bgColor="#ffffff" fgColor="#000000" role="img" title="Scan this QR code with your authenticator app" />
+              </div>
+              <details className="dwella-authenticator-manual">
+                <summary>Can’t scan? Enter a setup key</summary>
+                <p>On this phone? Add an account manually in your authenticator. Choose a time-based code.</p>
+                <div className="dwella-security-code"><span>Account</span><code>{user?.email}</code><span>Issuer</span><code>Dwella Suite</code><span>Setup key</span><code>{setup.secret}</code></div>
+                <Button appearance="subtle" onClick={async () => {
+                  try { await navigator.clipboard.writeText(setup.secret); setKeyCopied(true); }
+                  catch { toast.error("Could not copy the key. Select it and copy it manually."); }
+                }}>Copy setup key</Button>
+                {keyCopied ? <p role="status">Setup key copied.</p> : null}
+              </details>
               <Field label="6-digit code" hint="From your authenticator app.">
-                <Input inputMode="numeric" maxLength={6} value={code} onChange={(_, data) => setCode(data.value.replace(/\D/g, ""))} />
+                <Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(_, data) => setCode(data.value.replace(/\D/g, ""))} />
               </Field>
               <Button appearance="primary" disabled={verifyMutation.isPending || code.length !== 6} onClick={() => verifyMutation.mutate({ code })}>{verifyMutation.isPending ? "Verifying..." : "Verify 2FA"}</Button>
+              <Button appearance="subtle" disabled={verifyMutation.isPending} onClick={() => { setSetup(null); setCode(""); setKeyCopied(false); setupMutation.reset(); }}>Cancel</Button>
             </div>
           </div>
         ) : null}

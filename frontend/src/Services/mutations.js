@@ -113,6 +113,7 @@ export function usePasswordResetConfirmMutation(options = {}) {
 
 export function useTwoFactorSetupMutation(options = {}) {
   return useMutation({
+    gcTime: 0,
     mutationFn: startTwoFactorSetup,
     onSuccess: options.onSuccess,
     onError: options.onError,
