@@ -1,6 +1,6 @@
 import { api, getAuthToken } from "./apiClient";
 import { queryClient } from "./queryClient";
-import { isPublicSigningPath } from "../shared/documentPrivacy";
+import { isSensitiveAccessPath } from "../shared/documentPrivacy";
 
 const SCRIPT_ID = "dwella-handy-agent-widget";
 const SCRIPT_URL = "https://handyai.wazabanda.dev/widget/v1/agent.js";
@@ -20,6 +20,7 @@ let controller = new AbortController();
 let allowed = false;
 
 async function getWidgetToken() {
+  if (isSensitiveAccessPath(window.location.pathname, import.meta.env.VITE_BASE_PATH || "/")) return null;
   if (!allowed || !getAuthToken()) return null;
   if (credentials && Date.parse(credentials.expires_at) - Date.now() > 60_000) return credentials;
   if (pending) return pending;
@@ -47,7 +48,6 @@ function refreshWidget() {
 }
 
 export function installHandyAgent() {
-  if (isPublicSigningPath(window.location.pathname, import.meta.env.VITE_BASE_PATH || "/")) return undefined;
   if (import.meta.env.VITE_HANDY_AGENT_ENABLED !== "true") return undefined;
   if (!AGENT_URL) {
     console.warn("Handy widget is enabled but VITE_HANDY_AGENT_URL is missing.");
@@ -76,7 +76,7 @@ export function installHandyAgent() {
   const updateAvailability = async () => {
     const current = generation;
     let next = false;
-    try { next = Boolean(getAuthToken() && (await api.get("/accounts/handy-agent/config/")).enabled); }
+    try { next = Boolean(!isSensitiveAccessPath(window.location.pathname, import.meta.env.VITE_BASE_PATH || "/") && getAuthToken() && (await api.get("/accounts/handy-agent/config/")).enabled); }
     catch { next = false; }
     if (disposed || current !== generation) return;
     const changed = next !== allowed;
@@ -94,6 +94,7 @@ export function installHandyAgent() {
     updateAvailability();
   };
   window.addEventListener("dwella:auth-changed", onAuthChanged);
+  window.addEventListener("dwella:route-changed", onAuthChanged);
   window.addEventListener("dwella:assistant-settings-changed", updateAvailability);
   window.addEventListener("focus", updateAvailability);
   const timer = window.setInterval(updateAvailability, 30_000);
@@ -103,6 +104,7 @@ export function installHandyAgent() {
     disposed = true;
     window.clearInterval(timer);
     window.removeEventListener("dwella:auth-changed", onAuthChanged);
+    window.removeEventListener("dwella:route-changed", onAuthChanged);
     window.removeEventListener("dwella:assistant-settings-changed", updateAvailability);
     window.removeEventListener("focus", updateAvailability);
     window.removeEventListener("agent:data-changed", onDataChanged);
