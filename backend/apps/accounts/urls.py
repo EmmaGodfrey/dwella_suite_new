@@ -1,6 +1,9 @@
 from django.urls import path
 
+from .email_verification import EmailVerificationConfirmView, EmailVerificationView
+from .invitations import InvitationAcceptView, InvitationPreviewView
 from .registration import RegistrationView
+from .tours import GuidedTourView
 from .views import (
     CurrentUserAvatarView,
     CurrentUserView,
@@ -20,6 +23,15 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("guided-tour/", GuidedTourView.as_view(), name="guided-tour"),
+    path("invitations/preview/", InvitationPreviewView.as_view(), name="invitation-preview"),
+    path("invitations/accept/", InvitationAcceptView.as_view(), name="invitation-accept"),
+    path("email-verification/", EmailVerificationView.as_view(), name="email-verification"),
+    path(
+        "email-verification/confirm/",
+        EmailVerificationConfirmView.as_view(),
+        name="email-verification-confirm",
+    ),
     path("handy-agent/config/", HandyAgentConfigView.as_view(), name="handy-agent-config"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("register/", RegistrationView.as_view(), name="register"),
