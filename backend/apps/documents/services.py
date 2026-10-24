@@ -7,6 +7,8 @@ from apps.audit.services import record_event
 from apps.billing.models import Invoice
 from apps.leases.models import Lease
 from apps.organizations.models import OrganizationMembership
+from apps.subscriptions.catalog import Feature
+from apps.subscriptions.services import require_feature
 
 from .models import DocumentVersion, SignedLeaseOriginal
 from .rendering import digest, invoice_pdf, lease_pdf
@@ -97,6 +99,7 @@ def create_invoice_document(request, invoice):
 
 @transaction.atomic
 def create_lease_document(request, lease, data):
+    require_feature(lease.organization, Feature.LEASE_DOCUMENTS)
     lease = (
         Lease.objects.select_for_update(of=("self",))
         .select_related(

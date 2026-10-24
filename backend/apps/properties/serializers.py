@@ -1,11 +1,17 @@
 from rest_framework import serializers
 
 from apps.common.serializers import OrganizationScopedSerializer
+from apps.subscriptions.catalog import Resource
+from apps.subscriptions.services import capacity_guard
 
 from .models import Property, Unit
 
 
 class PropertySerializer(OrganizationScopedSerializer):
+    def create(self, validated_data):
+        with capacity_guard(validated_data["organization"], Resource.PROPERTIES):
+            return super().create(validated_data)
+
     units_count = serializers.IntegerField(read_only=True)
     occupied_units = serializers.IntegerField(read_only=True)
     vacant_units = serializers.IntegerField(read_only=True)
@@ -53,6 +59,10 @@ class PropertySerializer(OrganizationScopedSerializer):
 
 
 class UnitSerializer(OrganizationScopedSerializer):
+    def create(self, validated_data):
+        with capacity_guard(validated_data["organization"], Resource.UNITS):
+            return super().create(validated_data)
+
     property = serializers.SlugRelatedField(
         slug_field="public_id", queryset=Property.objects.none()
     )

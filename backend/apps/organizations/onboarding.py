@@ -14,6 +14,8 @@ from apps.common.permissions import get_active_membership
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.properties.models import Property, Unit
+from apps.subscriptions.catalog import Resource
+from apps.subscriptions.services import capacity_guard
 from apps.tenants.models import Tenant
 
 from .models import Organization, OrganizationMembership
@@ -145,17 +147,18 @@ class OnboardingView(APIView):
             )
             request.organization = org
             request._request.organization = org
-        property_obj = Property.objects.create(
-            organization=org,
-            name=data["property_name"],
-            property_type=data["property_type"],
-            address=data["address"],
-            town=data["town"],
-        )
-        Unit.objects.create(
-            organization=org,
-            property=property_obj,
-            name=data["unit_name"],
-            rent_amount=data["rent_amount"],
-        )
+        with capacity_guard(org, Resource.PROPERTIES), capacity_guard(org, Resource.UNITS):
+            property_obj = Property.objects.create(
+                organization=org,
+                name=data["property_name"],
+                property_type=data["property_type"],
+                address=data["address"],
+                town=data["town"],
+            )
+            Unit.objects.create(
+                organization=org,
+                property=property_obj,
+                name=data["unit_name"],
+                rent_amount=data["rent_amount"],
+            )
         return Response(setup_status(request.user, request), status=201)

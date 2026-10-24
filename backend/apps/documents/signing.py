@@ -11,6 +11,8 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.audit.services import record_event
 from apps.leases.models import Lease
+from apps.subscriptions.catalog import Feature
+from apps.subscriptions.services import require_feature
 
 from .files import MAX_SIGNATURE_BYTES, clean_image, read_upload
 from .models import DocumentSignature, DocumentVersion, SigningInvite
@@ -79,6 +81,7 @@ def issue_invite(request, document, email_link=False):
     # All signing writes take locks in the same order: document, then invitation.
     document = DocumentVersion.objects.select_for_update().get(pk=document.pk)
     require_current(document)
+    require_feature(document.organization, Feature.LEASE_SIGNING)
     if document.signatures.filter(role="tenant").exists():
         raise ValidationError("The tenant has already signed this version.")
     document.invites.filter(revoked_at__isnull=True).update(

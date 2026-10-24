@@ -5,6 +5,8 @@ from apps.common.serializers import OrganizationScopedSerializer
 from apps.leases.models import Lease
 from apps.leases.serializers import LeaseSummarySerializer, TenantLeaseSerializer
 from apps.leases.services import create_lease
+from apps.subscriptions.catalog import Resource
+from apps.subscriptions.services import capacity_guard
 
 from .models import Tenant
 from .phone import normalize_phone_number
@@ -82,8 +84,9 @@ class TenantSerializer(OrganizationScopedSerializer):
     @transaction.atomic
     def create(self, validated_data):
         lease_data = validated_data.pop("lease", None)
-        tenant = super().create(validated_data)
-        if lease_data:
-            create_lease(organization=tenant.organization, tenant=tenant, **lease_data)
-            tenant.refresh_from_db()
+        with capacity_guard(validated_data["organization"], Resource.TENANTS):
+            tenant = super().create(validated_data)
+            if lease_data:
+                create_lease(organization=tenant.organization, tenant=tenant, **lease_data)
+                tenant.refresh_from_db()
         return tenant
