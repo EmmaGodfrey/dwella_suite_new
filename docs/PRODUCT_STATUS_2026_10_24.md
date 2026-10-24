@@ -2,6 +2,8 @@
 
 This is a review of the repository after the approved document/signing work. It records working slices and gaps, not a claim that everything in the original requirements is delivered or deployed. Evidence comes from registered frontend routes, backend models/views/services/commands, tests and operator documents. The current three account types and later approved scope take precedence over the older, broader requirements document.
 
+**MVP scope clarification, 24 October 2026:** The subsequent module-by-module review is complete; [MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md) records the agreed scope. It includes tenant self-service, bulk unit/tenant imports, lease renewal, Lenco mobile-money/card collection and email/SMS/WhatsApp communications. Reports is excluded from this review. The gaps below remain a product inventory rather than a requirement to build everything. Preserve existing page structures; broader accounting, inspections, subscriptions and other deferred additions remain later scope. The implementation findings below describe what was present at the time of the audit, not completion of the newly agreed work.
+
 The readability/modal improvements were previously pushed to `develop`. This document/signing work is committed locally on `develop`; production and staging were not changed. Launch configuration and live delivery still need environment-specific verification.
 
 ## Working product slices
@@ -29,7 +31,7 @@ The readability/modal improvements were previously pushed to `develop`. This doc
 - **Expenses and cash-flow accounting:** maintenance cost fields are not an expense ledger, expense approvals or income-versus-expense accounting.
 - **Inspections:** `backend/apps/inspections/` contains app/URL scaffolding, without inspection models, workflow, forms or checklists.
 - **Owner statements and payouts:** `backend/apps/owners/` is scaffolding; there is no owner reconciliation or statement-generation workflow. This is future scope after the later simplification of account roles.
-- **Subscriptions:** `backend/apps/subscriptions/` is scaffolding; no plan limits, checkout or organization subscription collection is delivered.
+- **Subscription collection:** a billing-independent access-policy foundation now exists in `backend/apps/subscriptions/`, with optional workspace feature grants/expiry, record limits, scoped APIs and backend guards. Tier names, pricing, billable-unit rules, subscription lifecycle and checkout/collection remain undecided and unimplemented. See [SUBSCRIPTION_READINESS.md](SUBSCRIPTION_READINESS.md).
 - **General document management:** invoice/lease records, identity uploads and maintenance photos exist in their own workflows; universal attachments, visibility policies, search and storage abstraction across every entity do not.
 - **Guided first-use tour:** no tour, per-user completion/resume state or replay control exists. The current setup checklist should be reused as its foundation.
 

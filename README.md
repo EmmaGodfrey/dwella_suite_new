@@ -84,6 +84,8 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 - `docs/FRONTEND_DATA_FLOW.md`
 - `docs/DOCUMENTS_AND_SIGNING.md`
 - `docs/PRODUCT_STATUS_2026_10_24.md`
+- `docs/MVP_SCOPE_2026_10_24.md`
+- `docs/SUBSCRIPTION_READINESS.md`
 
 ## Production Deployment
 
