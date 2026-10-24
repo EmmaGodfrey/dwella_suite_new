@@ -16,9 +16,10 @@ let credentials = null;
 let pending = null;
 let generation = 0;
 let controller = new AbortController();
+let allowed = false;
 
 async function getWidgetToken() {
-  if (!getAuthToken()) return null;
+  if (!allowed || !getAuthToken()) return null;
   if (credentials && Date.parse(credentials.expires_at) - Date.now() > 60_000) return credentials;
   if (pending) return pending;
 
@@ -55,10 +56,10 @@ export function installHandyAgent() {
   // Dwella's durable login token is only used by our own API client.
   window.HandyAgent = { ...window.HandyAgent, getToken: getWidgetToken };
   const onDataChanged = () => { if (getAuthToken()) queryClient.invalidateQueries(); };
-  window.addEventListener("dwella:auth-changed", refreshWidget);
   window.addEventListener("agent:data-changed", onDataChanged);
 
-  if (!document.getElementById(SCRIPT_ID)) {
+  const ensureScript = () => {
+    if (document.getElementById(SCRIPT_ID)) return;
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.src = SCRIPT_URL;
@@ -68,12 +69,40 @@ export function installHandyAgent() {
     script.dataset.theme = "auto";
     script.dataset.suggestions = JSON.stringify(SUGGESTIONS);
     document.body.appendChild(script);
-  } else {
+  };
+  let disposed = false;
+  const updateAvailability = async () => {
+    const current = generation;
+    let next = false;
+    try { next = Boolean(getAuthToken() && (await api.get("/accounts/handy-agent/config/")).enabled); }
+    catch { next = false; }
+    if (disposed || current !== generation) return;
+    const changed = next !== allowed;
+    allowed = next;
+    const root = document.getElementById("handy-agent");
+    if (root) root.style.display = allowed ? "" : "none";
+    if (allowed) ensureScript();
+    if (changed) refreshWidget();
+  };
+  const onAuthChanged = () => {
+    allowed = false;
+    const root = document.getElementById("handy-agent");
+    if (root) root.style.display = "none";
     refreshWidget();
-  }
+    updateAvailability();
+  };
+  window.addEventListener("dwella:auth-changed", onAuthChanged);
+  window.addEventListener("dwella:assistant-settings-changed", updateAvailability);
+  window.addEventListener("focus", updateAvailability);
+  const timer = window.setInterval(updateAvailability, 30_000);
+  updateAvailability();
 
   return () => {
-    window.removeEventListener("dwella:auth-changed", refreshWidget);
+    disposed = true;
+    window.clearInterval(timer);
+    window.removeEventListener("dwella:auth-changed", onAuthChanged);
+    window.removeEventListener("dwella:assistant-settings-changed", updateAvailability);
+    window.removeEventListener("focus", updateAvailability);
     window.removeEventListener("agent:data-changed", onDataChanged);
   };
 }

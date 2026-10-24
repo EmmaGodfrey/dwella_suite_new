@@ -187,7 +187,7 @@ export default function Billing() {
               ? "Try another search or filter."
               : canManage
                 ? "Generate this month's rent invoices from your active leases, or issue a one-off charge."
-                : "Invoices will appear once the landlord bills rent."
+                : "Invoices will appear once the property manager bills rent."
           }
           actionLabel={filtered ? "Clear filters" : canManage ? "Generate rent invoices" : undefined}
           onAction={filtered ? clearFilters : canManage ? () => setDialog("generate") : undefined}

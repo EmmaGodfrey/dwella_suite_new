@@ -182,7 +182,7 @@ function SetupForm({ status, user }) {
         <div className="dwella-form-grid">
           {step === 0 ? (
             <>
-              {input("business_name", "Business or landlord name", {
+              {input("business_name", "Business or property manager name", {
                 maxLength: 180,
               })}
               {input("email", "Email for receipts (optional)", {
@@ -248,7 +248,7 @@ function SetupForm({ status, user }) {
           <p>
             {
               [
-                "Use the business name your tenants recognise. Independent landlords can use their own name.",
+                "Use the business name your tenants recognise. Independent property managers can use their own name.",
                 "Use a recognisable name. Property and unit details can be updated later.",
                 "Add a tenant, activate their lease, then generate your first rent invoice.",
               ][step]

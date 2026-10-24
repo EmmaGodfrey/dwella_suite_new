@@ -19,7 +19,7 @@ export const when = (value) => value ? new Date(value).toLocaleString("en-GB", {
 }) : "—";
 export const workspaceName = (workspace) => workspace?.display_name || workspace?.name || "Platform";
 export const roles = ["landlord", "tenant"];
-export const choice = (value) => ({ value, label: value.replaceAll("_", " ") });
+export const choice = (value) => ({ value, label: value === "landlord" ? "Property manager" : value.replaceAll("_", " ") });
 
 export function AdminHeader({ title, description, children, badge, initials }) {
   return <header className="dwella-page-header">

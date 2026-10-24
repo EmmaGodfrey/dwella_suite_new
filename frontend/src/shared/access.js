@@ -39,6 +39,6 @@ export function accessLabel(user) {
   const { persona, role } = getUserAccess(user);
   if (persona === "platform_admin") return "Super admin";
   if (persona === "tenant") return "Tenant";
-  if (role === "landlord") return "Landlord";
+  if (role === "landlord") return "Property manager";
   return "Access pending";
 }

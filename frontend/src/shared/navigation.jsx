@@ -24,6 +24,7 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
+  { to: "/admin/settings", value: "platform-settings", group: "platform", label: "Settings", icon: <Wrench24Regular />, personas: ["platform_admin"] },
   { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "workspace-setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
@@ -55,10 +56,11 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/admin/settings": ["Platform settings", "Manage platform-wide features."],
   "/admin/outreach": ["Outreach", "Personal partnerships and early tester invitations."],
   "/admin/audit-log": ["Audit log", "Account and workspace actions with support context."],
   "/workspace/dashboard": ["Dashboard", "Workspace overview."],
-  "/admin/workspaces": ["Workspaces", "Manage landlord workspaces and audited support access."],
+  "/admin/workspaces": ["Workspaces", "Manage property manager workspaces and audited support access."],
   "/admin/identity-checks": ["Identity checks", "Review submitted identity documents."],
   "/admin/users": ["Users", "Manage accounts, workspace access and identity checks."],
   "/setup": ["Get started", "Set up your workspace, add a tenant and start tracking rent."],
@@ -82,7 +84,7 @@ export function getPageMeta(pathname, user) {
     if (pathname === "/billing") return ["Payments", "Rent charges, receipts, and payment history."];
   }
   if (access.persona === "platform_admin" && pathname === "/dashboard") {
-    return ["Administration", "Landlord activity and platform portfolio oversight."];
+    return ["Administration", "Property manager activity and platform portfolio oversight."];
   }
   // Detail pages (`/leases/<id>`) take their section's title.
   const section = Object.keys(pageMeta).find((path) => pathname.startsWith(`${path}/`));

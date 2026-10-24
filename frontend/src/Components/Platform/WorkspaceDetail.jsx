@@ -44,7 +44,7 @@ export default function WorkspaceDetail() {
     </dl></section>
     <section className="admin-card"><h2>Members</h2><AdminTable rows={workspace?.members || []} columns={[
       { key: "member", label: "Member", render: (m) => <><Link className="dwella-table-link" to={`/admin/users/${m.user_id}`}>{m.name}</Link><span className="admin-note">{m.email}</span></> },
-      { key: "role", label: "Role" },
+      { key: "role", label: "Role", render: (m) => m.role === "landlord" ? "Property manager" : m.role },
       { key: "security", label: "Security", render: (m) => `2FA ${m.has_two_factor ? "enabled" : "not set"}` },
       { key: "status", label: "Status", render: (m) => <StatusBadge value={m.is_active ? "active" : "inactive"} /> },
       { key: "action", label: "Action", render: (m) => <Link to={`/admin/users/${m.user_id}`}>Manage membership</Link> },
@@ -64,7 +64,7 @@ export default function WorkspaceDetail() {
       onClose={() => setDialog(null)} onSubmit={(values) => update(null, Object.fromEntries(profileFields.map((f) => [f.key, values[f.key]])), "patch")} />}
     {dialog === "transfer" && <AdminDrawer title="Transfer ownership" submitLabel="Transfer ownership" onClose={() => setDialog(null)} fields={[
       { key: "owner", label: "New owner", type: "select", required: true, options: (owners.data?.results || []).map((u) => ({ value: u.id, label: `${nameOf(u)} · ${u.email}` })) },
-    ]} onSubmit={(values) => update("transfer-owner", { owner: Number(values.owner) })}><p>The new owner is added as a landlord with full control. Existing landlords keep their access.</p>
+    ]} onSubmit={(values) => update("transfer-owner", { owner: Number(values.owner) })}><p>The new owner is added as a property manager with full control. Existing property managers keep their access.</p>
       {owners.isError && <p role="alert" className="admin-error">Owners couldn’t be loaded. <Button onClick={() => owners.refetch()}>Retry</Button></p>}
     </AdminDrawer>}
     {dialog === "status" && <ConfirmAction title={workspace.is_active ? "Suspend workspace?" : "Reactivate workspace?"}

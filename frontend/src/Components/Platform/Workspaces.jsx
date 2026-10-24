@@ -30,7 +30,7 @@ export default function Workspaces() {
   const navigate = useNavigate();
   const change = (key, value) => setFilters((f) => ({ ...f, [key]: value, page: 1 }));
   return <div className="admin-screen">
-    <AdminHeader title="Workspaces" description="Manage landlord workspaces and open an audited support session.">
+    <AdminHeader title="Workspaces" description="Manage property manager workspaces and open an audited support session.">
       <Button appearance="primary" icon={<Add20Regular />} onClick={() => setCreating(true)}>Create workspace</Button>
     </AdminHeader>
     <AdminState query={totals}><section className="admin-card" aria-label="Platform workspace totals"><dl className="admin-metrics">
@@ -44,7 +44,7 @@ export default function Workspaces() {
     </div>
     <AdminState query={query} empty={!query.data?.results?.length} title="No workspaces match your filters">
       <AdminTable rows={query.data?.results || []} pagination={query.data?.pagination} setPage={(page) => setFilters((f) => ({ ...f, page }))} columns={[
-        { key: "workspace", label: "Workspace / owner", render: (w) => <><Link className="dwella-table-link" to={`/admin/workspaces/${w.id}`}>{workspaceName(w)}</Link><span className="admin-note">{w.members?.filter((m) => m.role === "landlord" && m.is_active).map((m) => m.name).join(", ") || "No active landlord"}{w.town ? ` · ${w.town}` : ""}</span></> },
+        { key: "workspace", label: "Workspace / owner", render: (w) => <><Link className="dwella-table-link" to={`/admin/workspaces/${w.id}`}>{workspaceName(w)}</Link><span className="admin-note">{w.members?.filter((m) => m.role === "landlord" && m.is_active).map((m) => m.name).join(", ") || "No active property manager"}{w.town ? ` · ${w.town}` : ""}</span></> },
         { key: "units", label: "Properties / units", render: (w) => `${w.properties_count} properties · ${w.units_count} units` },
         { key: "occupancy", label: "Occupancy", render: occupancy },
         { key: "balance", label: "Balance", render: (w) => money(w.outstanding_balance) },
@@ -61,7 +61,7 @@ export default function Workspaces() {
       ]} onSubmit={async (values) => {
         const workspace = await mutation.mutateAsync({ resource: "workspaces", body: { ...values, owner: Number(values.owner) } });
         navigate(`/admin/workspaces/${workspace.id}`);
-      }}><p className="admin-note">Choose an existing account, or <Link to="/admin/users">create a landlord account</Link> and its workspace together.</p>
+      }}><p className="admin-note">Choose an existing account, or <Link to="/admin/users">create a property manager account</Link> and its workspace together.</p>
       {owners.isError && <p className="admin-error" role="alert">Owners couldn’t be loaded. <Button onClick={() => owners.refetch()}>Retry</Button></p>}
     </AdminDrawer>}
   </div>;

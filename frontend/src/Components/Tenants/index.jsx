@@ -198,7 +198,7 @@ export default function Tenants() {
           icon={<People24Regular />}
           title={filtered ? "No matching tenants" : "No tenants yet"}
           description={
-            filtered ? "Try another search or status." : canManage ? "Add a tenant, and their unit and lease if you have them." : "Tenants will appear once a landlord adds them."
+            filtered ? "Try another search or status." : canManage ? "Add a tenant, and their unit and lease if you have them." : "Tenants will appear once a property manager adds them."
           }
           actionLabel={filtered ? "Clear filters" : canManage ? "Add tenant" : undefined}
           onAction={filtered ? clearFilters : canManage ? () => setDrawer("add") : undefined}

@@ -75,7 +75,7 @@ function TenantDashboard({ navigate }) {
         <Home24Regular />
         <div>
           <strong>No active tenancy linked</strong>
-          <p>Your lease and balance will appear after a landlord links your account to a unit.</p>
+          <p>Your lease and balance will appear after a property manager links your account to a unit.</p>
         </div>
       </section>
       <div className="dwella-tenant-actions">
@@ -217,7 +217,7 @@ function MonthAtAGlance({ data, billing, loading, isPlatformAdmin }) {
         {isPlatformAdmin ? (
           <>
             <PulseStat label="Organizations" loading={loading} value={formatNumber(data.platform?.organizations)} />
-            <PulseStat label="Landlords" loading={loading} value={formatNumber(data.platform?.landlords)} />
+            <PulseStat label="Property managers" loading={loading} value={formatNumber(data.platform?.landlords)} />
           </>
         ) : (
           <>
@@ -539,7 +539,7 @@ const Dashboard = () => {
       <header className="dwella-dashboard-intro">
         <div>
           {isPlatformAdmin ? <span className="dwella-dashboard-kicker">Platform oversight</span> : null}
-          <h1>{isPlatformAdmin ? "Landlord portfolios" : organizationName}</h1>
+          <h1>{isPlatformAdmin ? "Property manager portfolios" : organizationName}</h1>
           <p>{isLoading ? " " : subtitle}</p>
         </div>
       </header>

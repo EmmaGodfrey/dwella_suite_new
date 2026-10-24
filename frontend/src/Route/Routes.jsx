@@ -27,8 +27,10 @@ import OutreachSequences from "../Components/Outreach/Sequences";
 import OutreachReview from "../Components/Outreach/ReviewQueue";
 import OutreachOutbox from "../Components/Outreach/Outbox";
 import OutreachSettings from "../Components/Outreach/Settings";
+import PlatformSettings from "../Components/Platform/Settings";
 
 export const routes = [
+  { path: "/admin/settings", Component: <PlatformSettings /> },
   { path: "/admin/outreach/contacts/:id", Component: <OutreachContact /> },
   { path: "/admin/outreach/sequences", Component: <OutreachSequences /> },
   { path: "/admin/outreach/review", Component: <OutreachReview /> },

@@ -23,7 +23,7 @@ export const roles = ["Landlord", "Agent", "Property manager"];
 export const unitRanges = ["1–5", "6–20", "21–50", "51–200", "More than 200"];
 const PHONE_PATTERN = /^\+?[\d\s-]{9,16}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const empty = { name: "", phone: "", email: "", role: "Landlord", units: "", town: "" };
+const empty = { name: "", phone: "", email: "", role: "Property manager", units: "", town: "" };
 
 // Sign someone up on their behalf, e.g. after a call or a DM. They then get the
 // same emails as a website signup, including sign-in details on beta day.

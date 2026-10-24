@@ -1,7 +1,7 @@
 import React from "react";
 
 export const labelize = (value) =>
-  String(value || "Not set")
+  String(value === "landlord" ? "Property manager" : value || "Not set")
     .replace(/_/g, " ")
     .replace(/^./, (letter) => letter.toUpperCase());
 

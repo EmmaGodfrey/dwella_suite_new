@@ -597,11 +597,11 @@ export default function Properties() {
           ) : (
             <EmptyState
               icon={<Building24Regular />}
-              title={matches ? "No matching properties" : canManage ? "Start your portfolio" : "No landlord properties"}
+              title={matches ? "No matching properties" : canManage ? "Start your portfolio" : "No property manager properties"}
               description={
                 matches
                   ? "Try another search or clear the filters."
-                  : canManage ? "Add your first property to begin." : "Properties will appear after a landlord adds them."
+                  : canManage ? "Add your first property to begin." : "Properties will appear after a property manager adds them."
               }
               actionLabel={matches ? "Clear filters" : canManage ? "Add property" : undefined}
               onAction={matches ? clearFilters : canManage ? () => setMode("add") : undefined}

@@ -49,7 +49,7 @@ export default function UserDetail() {
       <section className="admin-card"><h2>Workspace memberships</h2>
         <AdminTable rows={user?.memberships || []} columns={[
           { key: "workspace", label: "Workspace", render: (m) => workspaceName(m.organization) },
-          { key: "role", label: "Role" },
+          { key: "role", label: "Role", render: (m) => choice(m.role).label },
           { key: "status", label: "Status", render: (m) => <StatusBadge value={m.is_active ? "active" : "inactive"} /> },
           { key: "action", label: "Action", render: (m) => <Button appearance="subtle" onClick={() => setDialog({ type: "membership", membership: m })}>Change role / remove</Button> },
         ]} />

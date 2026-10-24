@@ -94,7 +94,7 @@ export default function Leases() {
         <EmptyState
           icon={<DocumentText24Regular />}
           title={filtered ? "No matching leases" : "No leases yet"}
-          description={filtered ? "Try another search or status." : canManage ? "Create a lease to link a tenant to a unit and start collecting rent." : "Leases will appear once a landlord creates them."}
+          description={filtered ? "Try another search or status." : canManage ? "Create a lease to link a tenant to a unit and start collecting rent." : "Leases will appear once a property manager creates them."}
           actionLabel={filtered ? "Clear filters" : canManage ? "New lease" : undefined}
           onAction={filtered ? clearFilters : canManage ? () => setDrawerOpen(true) : undefined}
         />

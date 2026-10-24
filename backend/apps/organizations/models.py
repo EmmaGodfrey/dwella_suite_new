@@ -25,7 +25,7 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
 
 class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
     class Role(models.TextChoices):
-        LANDLORD = "landlord", "Landlord"
+        LANDLORD = "landlord", "Property manager"
         TENANT = "tenant", "Tenant"
 
     organization = models.ForeignKey(
