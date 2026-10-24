@@ -7,10 +7,17 @@ import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useTwoFactorDisableMutation, useTwoFactorSetupMutation, useTwoFactorSetupVerifyMutation } from "../../Services/mutations";
 import { PageSection } from "../../shared/components";
+import { FormModal } from "../../shared/components/FormFlow";
+import { useFormErrors } from "../../shared/useFormErrors";
+import { Link } from "react-router-dom";
 
 const Security = () => {
   const [setup, setSetup] = useState(null);
   const [code, setCode] = useState("");
+  const [removing, setRemoving] = useState(false);
+  const [password, setPassword] = useState("");
+  const [removalCode, setRemovalCode] = useState("");
+  const errors = useFormErrors();
   const { data: user } = useCurrentUserQuery();
   const setupMutation = useTwoFactorSetupMutation({
     onSuccess: setSetup,
@@ -25,16 +32,17 @@ const Security = () => {
     onError: (error) => toast.error(error.message || "Invalid authentication code"),
   });
   const disableMutation = useTwoFactorDisableMutation({
-    onSuccess: () => toast.success("Two-factor authentication disabled."),
-    onError: (error) => toast.error(error.message || "Could not disable 2FA"),
+    onSuccess: () => { setRemoving(false); setPassword(""); setRemovalCode(""); toast.success("Two-factor authentication disabled."); },
+    onError: (error) => errors.showServerErrors(error.data, ["password", "code"]),
   });
 
   return (
-    <div className="dwella-screen dwella-security-screen">
+    <div className="dwella-screen dwella-security-screen" data-tour="security-settings">
+      {user && !user.email_verification?.verified ? <div className="dwella-verification-note"><p>Verify {user.email} to confirm access to your mailbox.</p><Button as={Link} to="/verify-email">Verify email</Button></div> : null}
       <PageSection
         className="dwella-security-overview"
         title="Account protection"
-        note="Manage sign-in protections for your admin account."
+        note="Manage sign-in protections for your account."
         actions={
           <span className={`dwella-security-emblem ${user?.has_two_factor ? "enabled" : ""}`}>{user?.has_two_factor ? <Shield24Regular /> : <ShieldDismiss24Regular />}</span>
         }
@@ -48,7 +56,7 @@ const Security = () => {
             <p>{user?.has_two_factor ? "Authenticator verification is required when this account signs in." : "Require an authenticator code after the password step."}</p>
           </div>
           {user?.has_two_factor ? (
-            <Button appearance="secondary" disabled={disableMutation.isPending} onClick={() => disableMutation.mutate()}>Disable 2FA</Button>
+            <Button appearance="secondary" onClick={() => { errors.clearAll(); disableMutation.reset(); setRemoving(true); }}>Disable 2FA</Button>
           ) : (
             <Button appearance="primary" disabled={setupMutation.isPending} onClick={() => setupMutation.mutate()}>{setupMutation.isPending ? "Starting..." : "Set up 2FA"}</Button>
           )}
@@ -76,6 +84,15 @@ const Security = () => {
           </div>
         ) : null}
       </PageSection>
+      {removing ? <FormModal title="Turn off two-factor authentication?" description="Confirm your current password and authenticator code to remove this protection." busy={disableMutation.isPending} errors={errors.errors} submitLabel="Turn off 2FA" onClose={() => { setRemoving(false); setPassword(""); setRemovalCode(""); }} onSubmit={(event) => {
+        event.preventDefault();
+        if (!errors.validate({ password: () => password ? "" : "Enter your current password.", code: () => /^\d{6}$/.test(removalCode) ? "" : "Enter your current 6-digit code." }, event.currentTarget)) return;
+        disableMutation.mutate({ password, code: removalCode });
+      }}>
+        <Field label="Current password" {...errors.fieldProps("password")}><Input type="password" autoComplete="current-password" maxLength={128} value={password} onChange={(_, d) => { setPassword(d.value); errors.clearError("password"); }} /></Field>
+        <Field label="Authenticator code" {...errors.fieldProps("code")}><Input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={removalCode} onChange={(_, d) => { setRemovalCode(d.value.replace(/\D/g, "")); errors.clearError("code"); }} /></Field>
+        {disableMutation.isError ? <p role="alert">{disableMutation.error.message}</p> : null}
+      </FormModal> : null}
     </div>
   );
 };

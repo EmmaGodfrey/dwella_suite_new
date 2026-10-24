@@ -28,6 +28,8 @@ const validatePassword = (value) => {
 const modeCopy = {
   login: ["Sign in", "Use your Dwella email and password."],
   forgot: ["Reset password", "We will email you a link to reset your password."],
+  "forgot-sent": ["Check your email", "If that email exists, a reset link has been sent. Check your inbox and spam folder."],
+  "reset-expired": ["Reset link unavailable", "This password reset link has expired or has already been used. Request a new one."],
   "reset-confirm": ["Set a new password", "At least 10 characters, and not all digits."],
   "2fa": ["Enter your code", "Open your authenticator app and enter the current 6-digit code."],
 };
@@ -50,6 +52,7 @@ const Signin = () => {
   const resetUid = searchParams.get("reset_uid");
   const resetToken = searchParams.get("reset_token");
   const welcome = searchParams.get("welcome") === "1";
+  const destination = (data) => searchParams.get("invitation") === "1" ? "/accept-invitation" : data?.user?.email_verification?.required ? "/verify-email" : "/dashboard";
   const { validate, clearError, clearAll, fieldProps } = useFormErrors();
 
   // Each mode is a different form; stale messages should not carry across.
@@ -68,16 +71,16 @@ const Signin = () => {
         setMode("2fa");
         return;
       }
-      navigate("/dashboard", { replace: true });
+      navigate(destination(data), { replace: true });
     },
     onError: (error) => toast.error(error.message || "Login failed"),
   });
   const twoFactorMutation = useTwoFactorLoginMutation({
-    onSuccess: () => navigate("/dashboard", { replace: true }),
+    onSuccess: (data) => navigate(destination(data), { replace: true }),
     onError: (error) => toast.error(error.message || "Invalid authentication code"),
   });
   const resetRequestMutation = usePasswordResetRequestMutation({
-    onSuccess: () => toast.success("If that email exists, a reset link has been sent."),
+    onSuccess: () => setMode("forgot-sent"),
     onError: (error) => toast.error(error.message || "Password reset failed"),
   });
   const resetConfirmMutation = usePasswordResetConfirmMutation({
@@ -86,7 +89,11 @@ const Signin = () => {
       setMode("login");
       navigate("/login", { replace: true });
     },
-    onError: (error) => toast.error(error.message || "Password reset failed"),
+    onError: (error) => {
+      if (error.data?.password) { toast.error(error.data.password.join?.(" ") || error.message); return; }
+      if (error.status === 400) setMode("reset-expired");
+      else toast.error(error.message || "Password reset failed");
+    },
   });
 
   const submitLogin = (event) => {
@@ -167,6 +174,7 @@ const Signin = () => {
           </div>
 
           <div className="dwella-auth-fields">
+            {["forgot-sent", "reset-expired"].includes(mode) ? <Button onClick={() => switchMode("forgot")}>Request another reset link</Button> : <>
             {mode === "2fa" ? (
               <Field label="Authentication code" {...fieldProps("twoFactorCode")} className={`dwella-otp-field ${fieldProps("twoFactorCode").className || ""}`}>
                 <Input
@@ -234,11 +242,12 @@ const Signin = () => {
                 ) : null}
               </>
             )}
+            </>}
           </div>
 
-          <Button className="dwella-auth-submit" appearance="primary" type="submit" disabled={pending}>
+          {!["forgot-sent", "reset-expired"].includes(mode) ? <Button className="dwella-auth-submit" appearance="primary" type="submit" disabled={pending}>
             {submitLabel}
-          </Button>
+          </Button> : null}
 
           {mode !== "login" ? (
             <button type="button" className="dwella-text-link dwella-auth-alt" onClick={() => switchMode("login")}>
