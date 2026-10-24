@@ -19,6 +19,8 @@ import { leaseBadgeProps, tenantBadgeProps, tenantStatuses } from "../../shared/
 import TenantDrawer from "./TenantDrawer";
 import "../../shared/records.scss";
 import "./tenants.scss";
+import { useTenantInvitation } from "../../Services/accountSetup";
+import { useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE = 20;
 // Avatar tints rotate by name so the same tenant keeps the same colour.
@@ -46,6 +48,8 @@ function TableSkeleton() {
 }
 
 function TenantProfile({ tenant, canManage, onEdit }) {
+  const client = useQueryClient();
+  const invitation = useTenantInvitation(tenant.id, { onSuccess: () => client.invalidateQueries({ queryKey: ["tenants"] }) });
   const lease = tenant.current_lease;
   const endsIn = lease ? daysUntil(lease.end_date) : null;
   const phone = tenant.phone_number;
@@ -75,6 +79,17 @@ function TenantProfile({ tenant, canManage, onEdit }) {
         <div><dt>NRC / passport</dt><dd>{tenant.national_id || "—"}</dd></div>
         <div><dt>On file since</dt><dd>{formatDate(tenant.created_at)}</dd></div>
       </dl>
+
+      {canManage ? <section>
+        <h3>Tenant account</h3>
+        <p className="dwella-muted-copy">{tenant.portal_access?.status === "linked" ? "This tenant has linked their account." : tenant.portal_access?.status === "pending" ? "An invitation is waiting for acceptance." : "Invite this tenant to create or link their Dwella account."}</p>
+        {tenant.portal_access?.status !== "linked" ? <div className="dwella-contact-actions">
+          <Button disabled={invitation.isPending || !tenant.email || !tenant.is_active} onClick={() => invitation.mutate(false)}>{invitation.isPending ? "Saving…" : tenant.portal_access?.status === "pending" ? "Resend invitation" : "Send invitation"}</Button>
+          {tenant.portal_access?.status === "pending" ? <Button disabled={invitation.isPending} onClick={() => invitation.mutate(true)}>Revoke</Button> : null}
+        </div> : null}
+        {!tenant.email ? <p>Add their email address before sending an invitation.</p> : null}
+        {invitation.isError ? <p role="alert">{invitation.error.message}</p> : invitation.isSuccess ? <p role="status">{invitation.data.revoked ? "Invitation revoked." : "Invitation sent."}</p> : null}
+      </section> : null}
 
       <section>
         <h3>Current lease</h3>
