@@ -46,8 +46,8 @@ export async function verifyTwoFactorSetup({ code }) {
   return api.post("/accounts/2fa/verify/", { code });
 }
 
-export async function disableTwoFactor() {
-  return api.post("/accounts/2fa/disable/", {});
+export async function disableTwoFactor(payload) {
+  return api.post("/accounts/2fa/disable/", payload);
 }
 
 export async function updateProfile(payload) {
