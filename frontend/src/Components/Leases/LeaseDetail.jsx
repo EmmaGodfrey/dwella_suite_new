@@ -20,6 +20,7 @@ import { daysUntil, formatDate, formatMoney } from "../../shared/format";
 import { leaseBadgeProps } from "../../shared/tenancy";
 import "../../shared/records.scss";
 import "./leases.scss";
+import LeaseDocuments from "../Documents/LeaseDocuments";
 
 function History({ lease }) {
   const events = [
@@ -128,6 +129,8 @@ export default function LeaseDetail() {
           <History lease={lease} />
         </section>
       </div>
+
+      <LeaseDocuments lease={lease} canManage={canManage} />
 
       <Dialog open={confirmEnd} onOpenChange={(_, data) => !action.isPending && setConfirmEnd(data.open)}>
         <DialogSurface>

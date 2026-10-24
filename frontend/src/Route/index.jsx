@@ -6,6 +6,7 @@ import Signup from "../Auth/Signup";
 import LayoutRoutes from "../Route/LayoutRoutes";
 import PrivateRoute from "./PrivateRoute";
 import { AUTHENTICATED_STORAGE_KEY } from "../shared/storage";
+const PublicSigning = React.lazy(() => import("../Components/Documents/PublicSigning"));
 
 const routerBasePath = (import.meta.env.VITE_BASE_PATH || "/").replace(/\/$/, "") || "/";
 
@@ -41,6 +42,7 @@ const Routers = () => {
             </Route>
             <Route exact path={`/login`} element={<Signin />} />
             <Route path="/register" element={<Signup />} />
+            <Route path="/sign/:token" element={<PublicSigning />} />
           </Routes>
         </Suspense>
       </>
