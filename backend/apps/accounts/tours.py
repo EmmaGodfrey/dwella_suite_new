@@ -93,7 +93,7 @@ TOURS = {
 
 
 def tour_definition(user, organization):
-    if user.is_staff or user.is_superuser or not organization:
+    if not user.is_active or user.is_staff or user.is_superuser or not organization:
         return None
     membership = OrganizationMembership.objects.filter(
         user=user, organization=organization, organization__is_active=True, is_active=True
@@ -178,8 +178,9 @@ class GuidedTourView(NoStoreAccountView):
             raise PermissionDenied("This tour is not available for this account.")
         data = TourActionSerializer(data=request.data)
         data.is_valid(raise_exception=True)
-        get_user_model().objects.select_for_update().get(pk=request.user.pk)
-        if tour_definition(request.user, org) is None:
+        request.user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
+        definition = tour_definition(request.user, org)
+        if definition is None:
             raise PermissionDenied("Workspace access changed. Refresh before continuing.")
         state, _ = GuidedTourState.objects.select_for_update().get_or_create(
             user=request.user, organization=org, tour_key=definition["key"]

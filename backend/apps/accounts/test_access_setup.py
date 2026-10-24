@@ -375,6 +375,25 @@ def test_tours_are_own_workspace_scoped_and_do_not_complete_setup(person, worksp
     )
 
 
+def test_tour_update_uses_role_after_lock_recheck(person, workspace):
+    from .tours import tour_definition
+
+    calls = 0
+
+    def changed_role(user, organization):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            OrganizationMembership.objects.filter(user=person).update(role="tenant")
+        return tour_definition(user, organization)
+
+    with patch("apps.accounts.tours.tour_definition", side_effect=changed_role):
+        response = client_for(person).patch(TOUR, {"action": "start"}, format="json")
+    assert response.status_code == 200
+    assert response.json()["response_data"]["tour_key"] == "tenant_intro"
+    assert GuidedTourState.objects.get().tour_key == "tenant_intro"
+
+
 def test_2fa_removal_rechecks_password_from_locked_account(person):
     from .models import TwoFactorDevice
 
