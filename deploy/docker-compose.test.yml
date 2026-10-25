@@ -88,6 +88,8 @@ services:
       start_period: 30s
 
   frontend:
+    environment:
+      MEDIA_CSP_ORIGIN: ${MEDIA_CSP_ORIGIN:-}
     build:
       context: ..
       dockerfile: frontend/Dockerfile

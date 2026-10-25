@@ -74,6 +74,8 @@ services:
       - "while true; do python manage.py send_beta_emails || true; sleep 900; done"
 
   frontend:
+    environment:
+      MEDIA_CSP_ORIGIN: ${MEDIA_CSP_ORIGIN:-}
     build:
       context: ..
       dockerfile: frontend/Dockerfile
