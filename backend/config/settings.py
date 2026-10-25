@@ -4,6 +4,7 @@ import dj_database_url
 from corsheaders.defaults import default_headers
 
 from .env import env_bool, env_list, load_root_env
+from .storage import storage_settings
 
 load_root_env()
 
@@ -110,6 +111,7 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = __import__("os").getenv("MEDIA_URL", "/media/")
 MEDIA_ROOT = BASE_DIR / "media"
+STORAGES = storage_settings()
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_BACKEND = __import__("os").getenv(
     "EMAIL_BACKEND",
