@@ -67,6 +67,8 @@ services:
     environment:
       # Shared by every gunicorn worker: rate limits and rendered document pages.
       APP_CACHE_URL: redis://redis:6379/1
+      # Staging email only reaches these test inboxes; add testers comma-separated.
+      APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
       VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.handyagents.wazabanda.dev/agent}
     depends_on:
       postgres:
@@ -98,6 +100,8 @@ services:
       - ../.env.test
     environment:
       APP_CACHE_URL: redis://redis:6379/1
+      # Staging email only reaches these test inboxes; add testers comma-separated.
+      APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
       APP_SCHEDULER_JOBS: ${APP_SCHEDULER_JOBS:-}
     depends_on:
       backend:
