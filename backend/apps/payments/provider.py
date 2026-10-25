@@ -77,9 +77,11 @@ class Provider:
             content_type = exc.headers.get_content_type()
             try:
                 body = exc.read(MAX_BODY + 1)
+            except (urllib.error.URLError, OSError, TimeoutError, HTTPException):
+                error = "incomplete_response"
             finally:
                 exc.close()
-            error = "http_error"
+            error = error or "http_error"
         except (urllib.error.URLError, OSError, TimeoutError, HTTPException):
             error = "network_error"
         if len(body) > MAX_BODY:

@@ -3,7 +3,13 @@ import json
 
 import pytest
 
-from .evidence import read_exchange, record_exchange
+from .evidence import read_exchange, record_exchange, strict_json
+
+
+@pytest.mark.parametrize("body", [b'{"amount":NaN}', b'{"amount":1e999}'])
+def test_nonfinite_json_numbers_are_rejected_before_encryption(body):
+    with pytest.raises(ValueError):
+        strict_json(body)
 
 
 @pytest.mark.django_db

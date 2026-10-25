@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -36,3 +36,25 @@ def test_unsupported_environment_does_not_send_keys(settings):
         with pytest.raises(ValueError):
             Provider("live")
         build.assert_not_called()
+
+
+def test_failed_http_response_body_timeout_still_creates_evidence(settings):
+    import urllib.error
+    from email.message import Message
+
+    settings.LENCO_ENVIRONMENT = "sandbox"
+    settings.LENCO_SECRET_KEY = "fake-provider-token-only-for-tests"
+    headers = Message()
+    headers["Content-Type"] = "application/json"
+    body = Mock()
+    body.read.side_effect = TimeoutError("not a safe diagnostic")
+    error = urllib.error.HTTPError("https://sandbox.lenco.co", 503, "error", headers, body)
+    with (
+        patch("apps.payments.provider.urllib.request.build_opener") as build,
+        patch("apps.payments.provider.record_exchange") as evidence,
+    ):
+        build.return_value.open.side_effect = error
+        result = Provider("sandbox").request("accounts")
+    assert result.http_status == 503 and result.error == "incomplete_response"
+    assert evidence.call_args.kwargs["http_status"] == 503
+    assert evidence.call_args.kwargs["error"] == "incomplete_response"

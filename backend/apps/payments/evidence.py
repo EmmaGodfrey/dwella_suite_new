@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import json
+import math
 import re
 
 from cryptography.fernet import Fernet, MultiFernet
@@ -33,7 +34,13 @@ def strict_json(body):
     def reject_constant(value):
         raise ValueError("Non-finite JSON number")
 
-    return json.loads(body, parse_constant=reject_constant)
+    def finite_float(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("Non-finite JSON number")
+        return number
+
+    return json.loads(body, parse_constant=reject_constant, parse_float=finite_float)
 
 
 def cipher():
