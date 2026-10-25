@@ -3,6 +3,10 @@ import { setSupportWorkspace } from "./supportContext";
 import { USER_STORAGE_KEY } from "../shared/storage";
 
 export async function login({ email, password }) {
+  // Start a fresh credential flow even after a database reset or revoked session.
+  setSupportWorkspace(null);
+  setAuthToken(null);
+  localStorage.removeItem(USER_STORAGE_KEY);
   const response = await api.post("/accounts/login/", { email, password });
   if (response.two_factor_required) {
     return response;

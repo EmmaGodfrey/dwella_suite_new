@@ -83,6 +83,9 @@ def issue_auth_response(user, request):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    # Credentials authenticate this public endpoint; a revoked browser token
+    # must not prevent a new login. Password validation and throttling still apply.
+    authentication_classes = []
     throttle_scope = "login"
 
     def post(self, request):
@@ -108,6 +111,7 @@ class LoginView(APIView):
 
 class TwoFactorLoginVerifyView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     throttle_scope = "two_factor"
 
     def post(self, request):
