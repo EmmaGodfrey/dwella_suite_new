@@ -381,6 +381,31 @@ def test_run_billing_command_is_idempotent(org):
 
 
 @pytest.mark.django_db
+def test_one_failing_workspace_does_not_stop_the_billing_run(org):
+    from unittest import mock
+
+    from django.core.management.base import CommandError
+
+    from apps.billing import services
+
+    make_lease(org)
+    broken = Organization.objects.create(name="Broken books")
+    real = services.generate_rent_invoices
+
+    def generate(organization, period):
+        if organization == broken:
+            raise RuntimeError("bad data")
+        return real(organization, period)
+
+    with mock.patch(
+        "apps.billing.management.commands.run_billing.generate_rent_invoices", side_effect=generate
+    ):
+        with pytest.raises(CommandError, match="Broken books"):
+            call_command("run_billing")
+    assert Invoice.objects.filter(organization=org).count() == 1
+
+
+@pytest.mark.django_db
 def test_month_billed_late_is_not_due_before_it_is_issued(org):
     make_lease(org, late_fee="5")
     late_start = THIS_MONTH + timedelta(days=17)
