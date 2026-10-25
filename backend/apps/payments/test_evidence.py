@@ -57,3 +57,28 @@ def test_dedicated_evidence_key_rotation_preserves_retained_history(settings):
     settings.LENCO_EVIDENCE_KEY = Fernet.generate_key().decode()
     settings.LENCO_EVIDENCE_KEY_FALLBACKS = [old_key]
     assert read_exchange(row)["response"]["status"] is False
+
+
+@pytest.mark.django_db
+def test_repeated_identical_reads_reuse_one_record_but_changes_are_kept():
+    from .models import Exchange
+
+    def read(body, **kwargs):
+        return record_exchange(
+            environment="sandbox", operation="poll", body=body, repeatable=True, **kwargs
+        )
+
+    pending = b'{"status":true,"data":{"status":"pending"}}'
+    first = read(pending, http_status=200)
+    assert read(pending, http_status=200).pk == first.pk
+    assert Exchange.objects.count() == 1
+    # A changed answer, an error and the return to the old answer are all kept.
+    read(b'{"status":true,"data":{"status":"successful"}}', http_status=200)
+    read(b"", error="network_error")
+    assert read(b"", error="network_error").pk == Exchange.objects.order_by("-id").first().pk
+    read(pending, http_status=200)
+    assert Exchange.objects.count() == 4
+    # Writes and other operations never reuse a read.
+    record_exchange(environment="sandbox", operation="poll", body=pending, http_status=200)
+    record_exchange(environment="sandbox", operation="other", body=pending, repeatable=True)
+    assert Exchange.objects.count() == 6

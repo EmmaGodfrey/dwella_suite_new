@@ -141,6 +141,8 @@ class Exchange(UUIDModel):
 
     class Meta:
         ordering = ["-created_at"]
+        # Finds the latest read of the same thing, to skip storing repeats.
+        indexes = [models.Index(fields=["operation", "-id"], name="payments_exchange_latest")]
 
     def save(self, *args, **kwargs):
         if self.pk:

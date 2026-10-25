@@ -106,5 +106,6 @@ class Provider:
             http_status=status,
             error=error,
             request_payload=payload,
+            repeatable=operation != "payout_submit",
         )
         return ProviderResult(parsed, status, error, exchange.pk)

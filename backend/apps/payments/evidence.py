@@ -96,7 +96,31 @@ def record_exchange(
     payout=None,
     error="",
     request_payload=None,
+    repeatable=False,
 ):
+    """Store one provider exchange, or reuse the latest identical one.
+
+    A repeatable read (a status poll, a ledger page) that returns exactly what
+    the previous read of the same thing returned adds nothing to the evidence,
+    so polling does not grow the table. Every change, error transition and
+    every payout submission is still stored.
+    """
+    digest = hashlib.sha256(body).hexdigest()
+    if repeatable and request_payload is None:
+        latest = (
+            Exchange.objects.filter(
+                environment=environment, operation=operation, collection=collection, payout=payout
+            )
+            .order_by("-id")
+            .only("id", "body_sha256", "http_status", "error")
+            .first()
+        )
+        if latest and (latest.body_sha256, latest.http_status, latest.error) == (
+            digest,
+            http_status,
+            error,
+        ):
+            return latest
     try:
         payload = strict_json(body)
     except (ValueError, UnicodeError, RecursionError):
@@ -109,7 +133,7 @@ def record_exchange(
         collection=collection,
         payout=payout,
         http_status=http_status,
-        body_sha256=hashlib.sha256(body).hexdigest(),
+        body_sha256=digest,
         error=error,
         encrypted_payload=cipher().encrypt(
             json.dumps(
