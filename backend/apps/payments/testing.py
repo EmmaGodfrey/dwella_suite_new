@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.billing.models import Invoice
@@ -70,7 +71,7 @@ def home():
         account_id=ACCOUNT,
         currency="ZMW",
         opening_balance=100000,
-        app_opening_balance=100000,
+        checked_at=timezone.now(),
     )
     BalanceSnapshot.objects.create(
         account=account,
@@ -78,8 +79,8 @@ def home():
         ledger_balance=100000,
         expected_balance=100000,
         difference=0,
-        app_expected_balance=100000,
-        app_difference=0,
+        held_for_landlords=0,
+        surplus=100000,
         status="matched",
     )
     return {

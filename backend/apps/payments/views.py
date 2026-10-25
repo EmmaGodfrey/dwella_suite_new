@@ -261,7 +261,9 @@ class PlatformBalanceView(PrivateView):
             BalanceSnapshot.objects.filter(
                 account__environment=settings.LENCO_ENVIRONMENT,
                 account__account_id=settings.LENCO_DEBIT_ACCOUNT_ID,
-            ).first()
+            )
+            .select_related("account")
+            .first()
             if settings.LENCO_DEBIT_ACCOUNT_ID
             else None
         )
@@ -275,8 +277,8 @@ class PlatformBalanceView(PrivateView):
             "ledger_balance",
             "expected_balance",
             "difference",
-            "app_expected_balance",
-            "app_difference",
+            "held_for_landlords",
+            "surplus",
             "credits_total",
             "debits_total",
             "transaction_count",
@@ -286,6 +288,7 @@ class PlatformBalanceView(PrivateView):
             "payout_fees_total",
         ]
         values = {key: getattr(snapshot, key) for key in fields}
+        values["checked_at"] = snapshot.account.checked_at
         return Response(
             {
                 key: f"{value:.2f}" if isinstance(value, Decimal) else value

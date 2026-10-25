@@ -34,7 +34,15 @@ class Provider:
         self.base = LencoClient.ACCOUNTS_URLS[environment].removesuffix("/accounts")
 
     def request(
-        self, operation, *, collection=None, payout=None, payload=None, account_id=None, page=1
+        self,
+        operation,
+        *,
+        collection=None,
+        payout=None,
+        payload=None,
+        account_id=None,
+        page=1,
+        since=None,
     ):
         reference = payout.reference if payout else collection.reference if collection else ""
         if operation in {
@@ -45,14 +53,17 @@ class Provider:
             raise ValueError("Invalid provider reference.")
         if not isinstance(page, int) or not 1 <= page <= 100:
             raise ValueError("Invalid provider page.")
+        window = ""
         if operation == "transactions":
             account_id = str(UUID(account_id))
+            if since is not None:
+                window = f"&from={since:%Y-%m-%d}"
         paths = {
             "collection_status": f"/collections/status/{reference}",
             "payout_status": f"/transfers/status/{reference}",
             "payout_submit": "/transfers/mobile-money",
             "accounts": f"/accounts?page={page}",
-            "transactions": f"/transactions?accountId={account_id}&page={page}",
+            "transactions": f"/transactions?accountId={account_id}&page={page}{window}",
             "banks": "/banks?country=zm",
         }
         request = urllib.request.Request(

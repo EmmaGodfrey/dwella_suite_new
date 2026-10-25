@@ -178,7 +178,10 @@ class ProviderAccount(UUIDModel, TimeStampedModel):
     account_id = models.UUIDField()
     currency = models.CharField(max_length=3)
     opening_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
-    app_opening_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    # Start of the latest sync; the latest snapshot describes its outcome.
+    checked_at = models.DateTimeField(null=True)
+    # Set when an incremental import disagrees; the next sync reads everything.
+    full_scan_needed = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
@@ -218,8 +221,9 @@ class BalanceSnapshot(UUIDModel):
     ledger_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
     expected_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
     difference = models.DecimalField(max_digits=18, decimal_places=2, null=True)
-    app_expected_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
-    app_difference = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    # Settled rent not yet paid out or in flight, and the ledger above it.
+    held_for_landlords = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    surplus = models.DecimalField(max_digits=18, decimal_places=2, null=True)
     rent_collections_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     rent_settled_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     payouts_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
@@ -227,7 +231,7 @@ class BalanceSnapshot(UUIDModel):
     credits_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     debits_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     transaction_count = models.PositiveIntegerField(default=0)
-    status = models.CharField(max_length=16)  # baseline, matched, mismatch, incomplete
+    status = models.CharField(max_length=16)  # baseline, matched, mismatch, shortfall, incomplete
     issue = models.CharField(max_length=60, blank=True)
 
     class Meta:
