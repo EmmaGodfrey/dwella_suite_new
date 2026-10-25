@@ -22,7 +22,12 @@ class OrganizationScopedModelViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        return super().get_queryset().for_organization(self.get_organization())
+        return (
+            super()
+            .get_queryset()
+            .for_organization(self.get_organization())
+            .select_related("organization")
+        )
 
     def perform_create(self, serializer):
         serializer.save(organization=self.get_organization())
