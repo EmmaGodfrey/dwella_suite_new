@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Select } from "@fluentui/react-components";
+import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Select } from "@fluentui/react-components";
 import { ArrowDownload20Regular, Dismiss20Regular } from "@fluentui/react-icons";
 import { useMutation } from "@tanstack/react-query";
 import { documentError, managementDocuments, useDocumentAction, useDocumentDownload, useDocumentPage } from "../../Services/documents";
@@ -64,6 +64,7 @@ export default function DocumentPreview({ document: initial, onClose, onChange, 
   }, [returnFocusRef]);
   const [doc, setDoc] = useState(initial);
   const [signing, setSigning] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -73,7 +74,7 @@ export default function DocumentPreview({ document: initial, onClose, onChange, 
   const invite = useDocumentAction(client, doc.id, "invite", { onSuccess: (data) => {
     setInviteLink(data); setMessage("Signing link created. It expires in 7 days and requires tenant email verification."); refresh.mutate();
   }, onError: e => setError(documentError(e)) });
-  const revoke = useDocumentAction(client, doc.id, "revoke", { onSuccess: data => { changed(data); setInviteLink(null); setMessage("Signing revoked. Existing links can no longer open this version."); }, onError: e => setError(documentError(e)) });
+  const revoke = useDocumentAction(client, doc.id, "revoke", { onSuccess: data => { changed(data); setConfirmRevoke(false); setInviteLink(null); setMessage("Signing revoked. Existing links can no longer open this version."); }, onError: e => { setConfirmRevoke(false); setError(documentError(e)); } });
   const email = useDocumentAction(client, doc.id, "email-copies", { onSuccess: data => { setMessage(data.delivered ? "Completed copies have been emailed." : "Delivery failed. The signed PDF is saved; you can retry sending."); refresh.mutate(); }, onError: e => setError(documentError(e)) });
   const busy = invite.isPending || revoke.isPending || email.isPending;
   const open = doc.kind === "lease" && ["ready", "signing"].includes(doc.status) && doc.current_terms;
@@ -89,7 +90,7 @@ export default function DocumentPreview({ document: initial, onClose, onChange, 
           {open && <><Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: false }); }}>Create tenant signing link</Button>
             <Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: true }); }}>Email invitation to tenant</Button></>}
           {doc.can_sign && <Button appearance="primary" disabled={busy || signing} onClick={() => setSigning(true)}>Sign for landlord</Button>}
-          {["ready", "signing"].includes(doc.status) && <Button disabled={busy || signing} onClick={() => { if (window.confirm("Revoke signing for this version? Existing links will stop working. Saved documents and signatures are retained.")) revoke.mutate({}); }}>Revoke signing</Button>}
+          {["ready", "signing"].includes(doc.status) && <Button disabled={busy || signing} onClick={() => { setError(""); setConfirmRevoke(true); }}>Revoke signing</Button>}
           {doc.status === "signed" && doc.delivery_failed && <Button disabled={busy} onClick={() => email.mutate({})}>Retry emailing completed copies</Button>}
           <Button disabled={busy || signing || refresh.isPending} onClick={() => { setError(""); refresh.mutate(); }}>Refresh status</Button>
         </div>
@@ -105,5 +106,17 @@ export default function DocumentPreview({ document: initial, onClose, onChange, 
       </div>}
       <PaperPreview doc={doc} />
     </div>
+    <Dialog open={confirmRevoke} onOpenChange={(_, data) => !revoke.isPending && setConfirmRevoke(data.open)}>
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle>Revoke signing for version {doc.version}?</DialogTitle>
+          <DialogContent>Existing signing links will stop working. Saved documents and signatures are kept.</DialogContent>
+          <DialogActions>
+            <Button disabled={revoke.isPending} onClick={() => setConfirmRevoke(false)}>Keep signing open</Button>
+            <Button appearance="primary" disabled={revoke.isPending} onClick={() => revoke.mutate({})}>{revoke.isPending ? "Revoking…" : "Revoke signing"}</Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
   </section>;
 }
