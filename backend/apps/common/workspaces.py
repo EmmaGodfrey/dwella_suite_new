@@ -36,7 +36,7 @@ def resolve_workspace(request, *, user=None, required=True):
     if required:
         from apps.accounts.access_state import require_verified_access
 
-        require_verified_access(user)
+        require_verified_access(user, request)
     if not getattr(request, "_workspace_resolved", False):
         organization, session = None, None
         if user.is_staff or user.is_superuser:
@@ -62,6 +62,7 @@ def resolve_workspace(request, *, user=None, required=True):
 
             membership = get_active_membership(user)
             organization = membership.organization if membership else None
+            request._workspace_membership = (user.pk, membership)
         request.organization, request.support_session = organization, session
         request._workspace_resolved = True
 
