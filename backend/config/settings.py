@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.outreach",
     "apps.subscriptions",
     "apps.integrations",
+    "apps.payments",
     "apps.marketing",
     "apps.scheduler",
     "apps.portal",
@@ -275,3 +276,11 @@ if __import__("os").getenv("APP_CACHE_URL"):
 ZRA_VSDC_CLIENT = __import__("os").getenv(
     "ZRA_VSDC_CLIENT", "apps.integrations.zra.client.FakeVsdcClient"
 )
+
+# Live credentials never enable collection or debits by themselves.
+LENCO_ENVIRONMENT = __import__("os").getenv("LENCO_ENVIRONMENT", "sandbox")
+LENCO_PAYMENTS_ENABLED = env_bool("LENCO_PAYMENTS_ENABLED", False)
+LENCO_PAYOUTS_ENABLED = env_bool("LENCO_PAYOUTS_ENABLED", False)
+LENCO_DEBIT_ACCOUNT_ID = __import__("os").getenv("LENCO_DEBIT_ACCOUNT_ID", "")
+LENCO_PUBLIC_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_PUBLIC_KEY", "")
+LENCO_SECRET_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_SECRET_KEY", "")
