@@ -239,6 +239,15 @@ SPECTACULAR_SETTINGS = {
 CELERY_BROKER_URL = __import__("os").getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
+# Share throttles across gunicorn workers; Redis is private to this environment.
+if __import__("os").getenv("APP_CACHE_URL"):
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": __import__("os").getenv("APP_CACHE_URL"),
+        }
+    }
+
 # ZRA Smart Invoice. Dwella has no VSDC yet, so a fake one answers in its
 # place; point this at a real client class once ZRA issues the device.
 ZRA_VSDC_CLIENT = __import__("os").getenv(
