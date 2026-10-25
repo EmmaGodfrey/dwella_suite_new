@@ -40,10 +40,13 @@ export const useManagerCollections = (invoiceId) => useQuery({
 });
 
 export const useStartRentCheckout = () => useMutation({
-  mutationFn: ({ invoiceId, amount, idempotencyKey }) => api.post(
-    `/payments/tenant/invoices/${invoiceId}/checkout/`, { amount, idempotency_key: idempotencyKey }),
+  mutationFn: ({ invoiceId, amount, idempotencyKey, channel, phone, operator }) => api.post(
+    `/payments/tenant/invoices/${invoiceId}/checkout/`, {
+      amount, idempotency_key: idempotencyKey, channel,
+      ...(channel === "mobile-money" ? { phone, operator } : {}),
+    }),
   retry: false,
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: keys("tenant") }),
+  onSettled: () => queryClient.invalidateQueries({ queryKey: keys("tenant") }),
 });
 
 export const useRequestPaymentCheck = () => useMutation({

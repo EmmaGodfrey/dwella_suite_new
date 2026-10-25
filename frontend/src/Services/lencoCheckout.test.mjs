@@ -20,6 +20,10 @@ test("checkout refuses another script origin, invalid references and invalid mon
   }
 });
 
+test("new card checkout cannot offer a mobile-money option", () => {
+  assert.deepEqual(validateCheckout({ ...config, channels: ["card"] }).channels, ["card"]);
+});
+
 test("callbacks only trigger verification once and never trust callback payloads", async () => {
   let options;
   globalThis.window = { LencoPay: { getPaid: (value) => { options = value; } } };

@@ -2,6 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { paymentFeedback } from "./paymentFeedback.mjs";
 
+test("native phone authorization remains pending until verified receipt", () => {
+  const collection = { channel: "mobile-money", status: "pending", provider_status: "pay-offline" };
+  for (const delayed of [false, true]) {
+    const feedback = paymentFeedback({ stage: "idle", collection, delayed });
+    assert.equal(feedback.title, "Approve payment on your phone");
+    assert.equal(feedback.kind, "waiting");
+  }
+  assert.equal(paymentFeedback({ stage: "error", collection }).kind, "waiting");
+});
+
 test("provider return and elapsed time cannot create a success state", () => {
   for (const returnedKind of ["success", "pending", "close"]) {
     for (const delayed of [false, true]) {

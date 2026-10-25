@@ -1,7 +1,8 @@
 // UI feedback only. A provider callback is never evidence of a paid invoice.
-export function paymentFeedback({ stage, collection, delayed = false, returnedKind }) {
+export function paymentFeedback({ stage, collection, delayed = false, returnedKind, channel }) {
   if (stage === "opening") return { kind: "opening", working: true,
-    title: "Opening secure checkout", message: "Getting your payment ready in Lenco…" };
+    title: channel === "mobile-money" ? "Requesting mobile-money payment" : "Opening secure checkout",
+    message: channel === "mobile-money" ? "Sending your payment request. Please don’t submit it again." : "Getting your payment ready in Lenco…" };
   if (collection?.status === "successful" && collection.payment_id) return { kind: "confirmed",
     title: "Payment confirmed", message: "Your payment has been recorded. Your balance and receipt are up to date." };
   if (collection?.status === "review") return { kind: "review",
@@ -12,6 +13,11 @@ export function paymentFeedback({ stage, collection, delayed = false, returnedKi
     title: "Checkout was not completed", message: "No payment was confirmed for this checkout. You can start a new payment." };
   if (stage === "provider") return { kind: "provider", working: true,
     title: "Complete payment in Lenco", message: "Return here after checkout to see your confirmation and receipt." };
+  if (collection?.status === "pending" && collection.channel === "mobile-money") return { kind: "waiting", working: true,
+    title: collection.provider_status === "pay-offline" ? "Approve payment on your phone" : "Confirming mobile-money payment",
+    message: delayed
+      ? "Still awaiting confirmation. If your phone shows a payment prompt, approve it there. Please don’t start another payment."
+      : "Authorize the payment on your mobile-money phone. Your balance and receipt update after confirmation. Never share your PIN here." };
   if (stage === "error") return null;
   if (stage === "checking" || collection?.status === "pending") return { kind: "waiting", working: true,
     title: delayed ? "Still waiting for Lenco" : "Confirming payment with Lenco",

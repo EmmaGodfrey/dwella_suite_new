@@ -12,7 +12,8 @@ export function validateCheckout(config) {
   if (config.currency !== "ZMW" || !config.email || !config.key) throw new Error("Payment details are incomplete.");
   return { key: config.key, reference: config.reference, email: config.email,
     amount: Number(config.amount), currency: config.currency, bearer: "merchant",
-    channels: ["mobile-money", "card"] };
+    channels: config.channels?.length === 1 && config.channels[0] === "card"
+      ? ["card"] : ["mobile-money", "card"] };
 }
 
 function loadScript(url) {
