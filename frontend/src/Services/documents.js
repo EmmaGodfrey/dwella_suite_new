@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getApiBaseUrl } from "./apiClient";
 
@@ -73,9 +74,19 @@ export function useSigningDocument(client, session, token) {
   return useQuery({ queryKey: ["signing-document", token, session], enabled: Boolean(session),
     queryFn: () => client.get(null, "document"), retry: false, gcTime: 0, staleTime: 0 });
 }
+// A page image is fixed by the version digest, so keep it in memory while the preview is open
+// and fetch the next page ahead of the reader.
+const pageQuery = (client, doc, page, accessKey) => ({
+  queryKey: ["document-page", doc.id, doc.sha256, page, accessKey], staleTime: Infinity, gcTime: 5 * 60_000,
+  queryFn: () => client.get(doc.id, "page", `?page=${page}&sha256=${doc.sha256}`), retry: false,
+});
 export function useDocumentPage(client, doc, page, accessKey) {
-  return useQuery({ queryKey: ["document-page", doc.id, doc.sha256, page, accessKey], gcTime: 0,
-    queryFn: () => client.get(doc.id, "page", `?page=${page}&sha256=${doc.sha256}`), retry: false });
+  const cache = useQueryClient();
+  const result = useQuery(pageQuery(client, doc, page, accessKey));
+  useEffect(() => {
+    if (result.isSuccess && page < doc.page_count) cache.prefetchQuery(pageQuery(client, doc, page + 1, accessKey));
+  }, [result.isSuccess, page, doc, client, accessKey, cache]);
+  return result;
 }
 export function useDocumentDownload(client, doc, options = {}) {
   return useMutation({ mutationFn: async () => {

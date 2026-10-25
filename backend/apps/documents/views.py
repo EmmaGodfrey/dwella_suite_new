@@ -2,6 +2,7 @@ import base64
 import io
 from uuid import UUID
 
+from django.core.cache import cache
 from django.core.files.uploadhandler import FileUploadHandler, StopUpload
 from django.db.models import Prefetch
 from django.http import FileResponse, HttpResponse
@@ -40,10 +41,12 @@ from .signing import (
     verify_code,
 )
 from .throttles import (
+    PAGE_CACHE_SECONDS,
     DocumentRenderThrottle,
     DocumentWriteThrottle,
     SigningIPThrottle,
     SigningLinkThrottle,
+    page_cache_key,
 )
 
 
@@ -74,8 +77,13 @@ def page_response(request, raw, sha256):
         raise ValidationError({"page": ["Choose a valid page."]}) from error
     if not 1 <= page <= 50:
         raise ValidationError({"page": ["Choose a page from 1 to 50."]})
-    info = inspect_pdf(bytes(raw), page=page)
-    return private_headers(HttpResponse(base64.b64decode(info["image"]), content_type="image/png"))
+    # A saved version never changes, so its rendered pages are reusable by digest.
+    key = page_cache_key(sha256, page)
+    image = cache.get(key)
+    if image is None:
+        image = base64.b64decode(inspect_pdf(bytes(raw), page=page)["image"])
+        cache.set(key, image, PAGE_CACHE_SECONDS)
+    return private_headers(HttpResponse(image, content_type="image/png"))
 
 
 class BoundedUploadHandler(FileUploadHandler):
