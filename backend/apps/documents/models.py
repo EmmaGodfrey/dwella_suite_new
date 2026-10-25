@@ -24,6 +24,7 @@ class DocumentVersion(OrganizationScopedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.READY)
     snapshot = models.JSONField()
     source_fingerprint = models.CharField(max_length=64)
+    # The original, kept only once signing replaces `pdf`; empty until then.
     unsigned_pdf = models.BinaryField(editable=False)
     pdf = models.BinaryField(editable=False)
     sha256 = models.CharField(max_length=64)

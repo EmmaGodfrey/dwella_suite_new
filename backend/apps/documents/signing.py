@@ -251,9 +251,13 @@ def add_signature(request, document, data, *, invite=None):
         signature.signed_pdf = signed_pdf
         signature.sha256 = digest(signed_pdf)
         signature.save(update_fields=["signed_pdf", "sha256"])
+        if not document.unsigned_pdf:
+            document.unsigned_pdf = document.pdf  # keep the original once, as it is replaced
         document.pdf, document.sha256, document.page_count = signed_pdf, signature.sha256, pages
         document.status = "signed" if len(signatures) == 2 else "signing"
-        document.save(update_fields=["pdf", "sha256", "page_count", "status", "updated_at"])
+        document.save(
+            update_fields=["unsigned_pdf", "pdf", "sha256", "page_count", "status", "updated_at"]
+        )
         if invite:
             invite.consumed_at = timezone.now()
             invite.otp_hash = ""
