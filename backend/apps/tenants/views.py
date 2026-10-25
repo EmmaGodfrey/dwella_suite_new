@@ -11,6 +11,7 @@ from apps.imports.importers import TenantImporter
 from apps.imports.views import ImportActionsMixin
 from apps.leases.models import Lease
 
+from .archive import archive_tenant, restore_tenant
 from .models import Tenant
 from .serializers import TenantSerializer
 
@@ -27,6 +28,23 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
             if self.action in {"invite", "revoke_invite", "remove_portal_access"}
             else result
         )
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Archived tenants leave the everyday list; ?is_active=false shows them.
+        if self.action == "list" and "is_active" not in self.request.query_params:
+            queryset = queryset.filter(is_active=True)
+        return queryset
+
+    @action(detail=True, methods=["post"])
+    def archive(self, request, public_id=None):
+        tenant = archive_tenant(request, self.get_object())
+        return Response(self.get_serializer(self.get_queryset().get(pk=tenant.pk)).data)
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, public_id=None):
+        tenant = restore_tenant(request, self.get_object())
+        return Response(self.get_serializer(self.get_queryset().get(pk=tenant.pk)).data)
 
     @action(detail=True, methods=["post"])
     def invite(self, request, public_id=None):

@@ -115,6 +115,13 @@ class LeaseSerializer(OrganizationScopedSerializer):
 
     def validate(self, attrs):
         instance = self.instance
+        tenant = attrs.get("tenant")
+        if tenant is not None and not tenant.is_active and (
+            instance is None or tenant != instance.tenant
+        ):
+            raise serializers.ValidationError(
+                {"tenant": ["This tenant is archived. Restore them first."]}
+            )
         if instance and instance.renewal_of_id:
             # A renewal follows its lease: same tenant and unit, from the next day.
             fixed = {"tenant", "unit", "start_date"} & set(attrs)

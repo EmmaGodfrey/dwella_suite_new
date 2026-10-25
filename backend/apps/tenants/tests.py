@@ -277,3 +277,45 @@ def test_tenant_with_lease_cannot_be_deleted(manager, org):
         organization=org, full_name="Removable", phone_number="+260972222222"
     )
     assert manager.delete(f"/api/v1/tenants/{loose.public_id}/").status_code == 204
+
+
+@pytest.mark.django_db
+def test_archive_keeps_history_and_leaves_the_everyday_list():
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.audit.models import AuditEvent
+    from apps.billing.services import generate_rent_invoices
+    from apps.billing.tests import THIS_MONTH, make_lease
+    from apps.leases.services import end_lease
+    from apps.organizations.models import Organization
+
+    org = Organization.objects.create(name="Archive portfolio")
+    client = member_client(org, "landlord", "archive-owner")
+    lease = make_lease(org)
+    generate_rent_invoices(org, THIS_MONTH)
+    tenant = lease.tenant
+    url = f"/api/v1/tenants/{tenant.public_id}"
+    refused = client.post(f"{url}/archive/")
+    assert refused.status_code == 400
+    assert "open lease" in refused.content.decode()
+    end_lease(lease)
+    assert client.post(f"{url}/archive/").status_code == 200
+    tenant.refresh_from_db()
+    assert not tenant.is_active and tenant.invoices.count() == 1
+    listing = client.get("/api/v1/tenants/").json()["response_data"]
+    assert str(tenant.public_id) not in str(listing)
+    archived = client.get("/api/v1/tenants/?is_active=false").json()["response_data"]
+    assert str(tenant.public_id) in str(archived)
+    assert client.get(f"{url}/").status_code == 200
+    # No new lease for an archived tenant until they are restored.
+    new_lease = {
+        "tenant": str(tenant.public_id), "unit": str(lease.unit.public_id),
+        "start_date": str(timezone.localdate()),
+        "end_date": str(timezone.localdate() + timedelta(days=200)),
+    }
+    assert client.post("/api/v1/leases/", new_lease, format="json").status_code == 400
+    assert client.post(f"{url}/restore/").status_code == 200
+    assert client.post("/api/v1/leases/", new_lease, format="json").status_code == 201
+    assert AuditEvent.objects.filter(action__in=["tenant.archived", "tenant.restored"]).count() == 2
