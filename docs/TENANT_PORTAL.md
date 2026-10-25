@@ -1,6 +1,8 @@
 # Tenant portal API
 
-Backend for the agreed MVP "Tenants and self-service" row ([MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md)). The tenant screens are drafted for review in Figma (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP"); frontend work waits for approval. Until then the existing tenant navigation entries point at manager APIs that correctly refuse tenants.
+Backend for the agreed MVP "Tenants and self-service" row ([MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md)). The tenant screens follow the approved Figma frames (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP") and live in `frontend/src/Components/Portal/`. Tenants reach them through the usual `/dashboard`, `/leases`, `/billing` and `/maintenance` routes, which render the portal for the tenant persona (`Route/ForTenant.jsx`); API calls sit in `Services/portal.js`.
+
+Known gap: removing portal access deletes the tenant membership, so that account becomes "unassigned" and is sent to workspace Setup like a new property manager sign-up.
 
 ## Who gets in
 

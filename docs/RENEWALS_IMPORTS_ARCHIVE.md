@@ -1,6 +1,6 @@
 # Lease renewal, bulk imports and tenant archive
 
-Backend for the remaining "Properties and units", "Tenants" and "Leases" rows of [MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md). The screens for these flows are drafted for review in Figma (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP"); frontend work waits for approval.
+Backend for the remaining "Properties and units", "Tenants" and "Leases" rows of [MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md). The screens follow the approved Figma frames (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP"): Renew lease on the lease page (`Leases/RenewLeaseDrawer.jsx`), Import CSV on Tenants and Import units on Properties (`Imports/ImportDrawer.jsx`), and archive, restore and remove portal access on the tenant profile (`Tenants/TenantConfirm.jsx`).
 
 ## Renew lease
 
