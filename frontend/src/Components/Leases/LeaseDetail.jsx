@@ -28,7 +28,17 @@ function History({ lease }) {
     { label: "Lease created", when: lease.created_at, done: true },
     lease.activated_at ? { label: "Started — unit marked occupied", when: lease.activated_at, done: true } : null,
     lease.ended_at ? { label: "Ended — unit marked vacant", when: lease.ended_at, done: true } : null,
-    !lease.activated_at && lease.status !== "ended" ? { label: "Waiting to start", when: null, done: false } : null,
+    !lease.activated_at && lease.status !== "ended"
+      ? {
+          label: "Waiting to start",
+          when: null,
+          done: false,
+          // A renewal starts by itself on its start date once signed.
+          note: lease.renewal_of_id
+            ? `Starts on ${formatDate(lease.start_date)} once signed.`
+            : "Start the lease when the tenant moves in.",
+        }
+      : null,
   ].filter(Boolean);
 
   return (
@@ -36,7 +46,7 @@ function History({ lease }) {
       {events.map((event) => (
         <li key={event.label} className={event.done ? "is-done" : "is-pending"}>
           <strong>{event.label}</strong>
-          <small>{event.when ? formatDate(event.when) : "Start the lease when the tenant moves in."}</small>
+          <small>{event.when ? formatDate(event.when) : event.note}</small>
         </li>
       ))}
     </ol>
@@ -83,7 +93,9 @@ export default function LeaseDetail() {
   }
 
   const endsIn = daysUntil(lease.end_date);
-  const canActivate = canManage && ["draft", "pending_signature"].includes(lease.status);
+  // The API refuses to start a renewal before its start date.
+  const canActivate =
+    canManage && ["draft", "pending_signature"].includes(lease.status) && !(lease.renewal_of_id && daysUntil(lease.start_date) > 0);
   const canEnd = canManage && lease.status === "active";
   const canRenew = canEnd && !lease.renewal;
   const renewal = lease.renewal;
