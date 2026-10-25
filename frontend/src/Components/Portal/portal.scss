@@ -142,21 +142,3 @@
 .dwella-portal-thread li.is-yours > div {
   background: var(--dwella-primary-soft);
 }
-
-.dwella-portal-receipt {
-  max-width: 40rem;
-}
-
-.dwella-portal-receipt .dwella-portal-amount {
-  margin: 0;
-  color: var(--dwella-accent-strong, var(--dwella-success));
-  font-size: var(--fs-h1);
-  line-height: var(--lh-h1);
-  font-weight: 600;
-}
-
-@media print {
-  .dwella-portal-receipt .dwella-portal-print {
-    display: none;
-  }
-}
