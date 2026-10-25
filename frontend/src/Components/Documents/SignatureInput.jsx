@@ -18,8 +18,9 @@ function Drawing({ onPreview }) {
       if (stroke.length === 1) { ctx.arc(...stroke[0], 1.5, 0, Math.PI * 2); ctx.fill(); }
       else ctx.stroke();
     }
-    setCount(strokes.current.length);
   }
+  // Only the stroke count drives the buttons, so pointer moves never re-render React.
+  function changed() { redraw(); setCount(strokes.current.length); }
   function point(event) {
     const rect = canvas.current.getBoundingClientRect();
     return [(event.clientX - rect.left) * 1000 / rect.width, (event.clientY - rect.top) * 360 / rect.height];
@@ -31,14 +32,14 @@ function Drawing({ onPreview }) {
       onPointerDown={event => {
         if (active.current !== null) return;
         event.currentTarget.setPointerCapture(event.pointerId); active.current = event.pointerId;
-        strokes.current.push([point(event)]); redraw();
+        strokes.current.push([point(event)]); changed();
       }} onPointerMove={event => {
         if (active.current !== event.pointerId) return;
         strokes.current.at(-1).push(point(event)); redraw();
       }} onPointerUp={() => { active.current = null; }} onPointerCancel={() => { active.current = null; }} />
     <div className="dwella-document-actions">
-      <Button appearance="subtle" disabled={!count} onClick={() => { strokes.current.pop(); redraw(); }}>Undo</Button>
-      <Button appearance="subtle" disabled={!count} onClick={() => { strokes.current = []; redraw(); }}>Clear</Button>
+      <Button appearance="subtle" disabled={!count} onClick={() => { strokes.current.pop(); changed(); }}>Undo</Button>
+      <Button appearance="subtle" disabled={!count} onClick={() => { strokes.current = []; changed(); }}>Clear</Button>
     </div>
     <Button appearance="primary" disabled={!count} onClick={() => canvas.current.toBlob(blob => onPreview(blob, "drawn"), "image/png")}>Preview signature</Button>
   </div>;
