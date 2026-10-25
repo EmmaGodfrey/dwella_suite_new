@@ -116,6 +116,8 @@ class Payout(UUIDModel, TimeStampedModel):
     fee = models.DecimalField(max_digits=12, decimal_places=2, null=True)
     issue = models.CharField(max_length=60, blank=True)
     last_checked_at = models.DateTimeField(null=True)
+    submitted_at = models.DateTimeField(null=True)
+    confirmed_at = models.DateTimeField(null=True)
 
     class Meta:
         constraints = [
@@ -164,3 +166,64 @@ class WebhookReceipt(TimeStampedModel):
                 fields=["environment", "digest"], name="unique_lenco_webhook_body"
             )
         ]
+
+
+class ProviderAccount(UUIDModel, TimeStampedModel):
+    environment = models.CharField(max_length=7)
+    account_id = models.UUIDField()
+    currency = models.CharField(max_length=3)
+    opening_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    app_opening_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["environment", "account_id"], name="unique_lenco_account_ledger"
+            )
+        ]
+
+
+class ProviderTransaction(models.Model):
+    """Immutable imported credit/debit, linked to the encrypted original response."""
+
+    account = models.ForeignKey(ProviderAccount, on_delete=models.PROTECT)
+    provider_id = models.CharField(max_length=100)
+    kind = models.CharField(max_length=6)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    posted_at = models.DateTimeField()
+    content_digest = models.CharField(max_length=64)
+    exchange = models.ForeignKey(Exchange, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["account", "provider_id"], name="unique_imported_lenco_transaction"
+            )
+        ]
+
+    def __str__(self):
+        return self.provider_id
+
+
+class BalanceSnapshot(UUIDModel):
+    account = models.ForeignKey(ProviderAccount, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    available_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    ledger_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    expected_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    difference = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    app_expected_balance = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    app_difference = models.DecimalField(max_digits=18, decimal_places=2, null=True)
+    rent_collections_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    rent_settled_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    payouts_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    payout_fees_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    credits_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    debits_total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    transaction_count = models.PositiveIntegerField(default=0)
+    status = models.CharField(max_length=16)  # baseline, matched, mismatch, incomplete
+    issue = models.CharField(max_length=60, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
