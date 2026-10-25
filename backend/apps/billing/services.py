@@ -212,6 +212,9 @@ def apply_late_fees(organization, today=None):
         )
         .exclude(lines__kind=InvoiceLine.Kind.LATE_FEE)
         .exclude(pk__in=late_fee_follow_ups().values("charged_for"))
+        # An online payment still being confirmed may have been made on time;
+        # the next run decides once Lenco answers (receipts use its date).
+        .exclude(collection__status="pending")
         .select_related("lease", "tenant", "unit")
     )
     added = 0

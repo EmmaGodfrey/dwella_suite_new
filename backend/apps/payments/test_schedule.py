@@ -207,3 +207,15 @@ def test_one_broken_row_is_deferred_without_blocking_the_rest(home):
     assert set(calls) == {broken.pk, healthy.pk}
     broken.refresh_from_db()
     assert broken.next_check_at - timezone.now() > timedelta(minutes=14)
+
+
+def test_no_late_fee_while_an_online_payment_is_being_confirmed(home):
+    from apps.billing.services import apply_late_fees
+
+    invoice = home["invoice"]
+    invoice.lease.__class__.objects.filter(pk=invoice.lease_id).update(late_fee_percent=5)
+    late = invoice.due_date + timedelta(days=60)
+    row = checkout(home)
+    assert apply_late_fees(home["org"], today=late) == 0
+    Collection.objects.filter(pk=row.pk).update(status="expired")
+    assert apply_late_fees(home["org"], today=late) == 1
