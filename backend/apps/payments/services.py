@@ -15,8 +15,10 @@ from apps.subscriptions.services import require_feature
 from .models import Collection, Destination, Payout
 from .provider import Provider
 from .schedule import (
+    CHECKOUT_WINDOW,
     PAYOUT_CONFIRMATION_LIMIT,
     SETTLEMENT_OVERDUE,
+    checkout_started,
     checkout_window_over,
     collection_next_check,
     parse_stamp,
@@ -46,6 +48,13 @@ def approve_destination(*, organization, user, phone, operator, account_name, re
     from apps.organizations.models import Organization
 
     Organization.objects.select_for_update().get(pk=organization.pk)
+    current = Destination.objects.filter(organization=organization, enabled=True).first()
+    if current and (current.phone, current.operator, current.account_name) == (
+        phone,
+        operator,
+        account_name,
+    ):
+        return current  # A repeated approval is not a new version.
     Destination.objects.filter(organization=organization, enabled=True).update(enabled=False)
     return Destination.objects.create(
         organization=organization,
@@ -83,6 +92,20 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
         return existing
     if not invoice.is_active or invoice.status not in Invoice.UNPAID_STATUSES:
         raise ValidationError("This invoice cannot accept online payments.")
+    pending = Collection.objects.filter(invoice=invoice, status="pending").first()
+    if pending:
+        if (
+            pending.initiated_by_id == user.pk
+            and pending.amount == amount
+            and pending.environment == settings.LENCO_ENVIRONMENT
+            and amount <= invoice.balance
+        ):
+            return pending
+        until = timezone.localtime(checkout_started(pending) + CHECKOUT_WINDOW)
+        raise ValidationError(
+            f"A payment for this invoice is still open until {until:%H:%M}. "
+            "Finish it in Lenco, or start a new one after that."
+        )
     if amount > invoice.balance or invoice.organization.currency != "ZMW":
         raise ValidationError("Check the outstanding amount and invoice currency.")
     if not user.email:
@@ -92,18 +115,6 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
     ).first()
     if destination is None:
         raise ValidationError("The manager's receiving number has not been approved yet.")
-    pending = Collection.objects.filter(invoice=invoice, status="pending").first()
-    if (
-        pending
-        and pending.initiated_by_id == user.pk
-        and pending.amount == amount
-        and pending.environment == settings.LENCO_ENVIRONMENT
-    ):
-        return pending
-    if pending:
-        raise ValidationError(
-            "A payment is already pending for this invoice. Check its status first."
-        )
     try:
         with transaction.atomic():
             return Collection.objects.create(

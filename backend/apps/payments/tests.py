@@ -410,3 +410,26 @@ def test_success_webhook_waits_for_authoritative_status_to_catch_up(home, settin
         provider.return_value.request.return_value = collection_result(row)
         run_cycle()
     assert Payment.objects.count() == 1
+
+
+def test_repeating_the_same_destination_approval_keeps_one_version(home):
+    from .services import approve_destination
+
+    again = approve_destination(
+        organization=home["org"],
+        user=home["admin"],
+        phone="+260971111111",
+        operator="airtel",
+        account_name="Manager Wallet",
+        reason="Same request sent twice by a double click",
+    )
+    assert again.pk == home["destination"].pk
+    assert Destination.objects.filter(organization=home["org"]).count() == 1
+
+
+def test_an_open_payment_blocks_a_second_one_and_says_until_when(home):
+    checkout(home)
+    from rest_framework.exceptions import ValidationError
+
+    with pytest.raises(ValidationError, match="still open until"):
+        checkout(home, amount="60.00")
