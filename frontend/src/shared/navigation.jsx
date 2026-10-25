@@ -22,6 +22,7 @@ export const navigationGroups = [
   { value: "overview", label: "Overview" },
   { value: "portfolio", label: "Portfolio" },
   { value: "operations", label: "Operations" },
+  { value: "tenancy", label: "Your tenancy" },
 ];
 
 const operationalItems = [
@@ -33,7 +34,7 @@ const operationalItems = [
   { to: "/admin/identity-checks", value: "identity-checks", group: "platform", label: "Identity checks", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
   { to: "/admin/users", value: "admin-users", group: "platform", label: "Users", icon: <People24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "unassigned"] },
-  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["landlord", "tenant"] },
+  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", tenantLabel: "Home", icon: <Home24Regular />, personas: ["landlord", "tenant"] },
   { to: "/reports", value: "reports", group: "overview", label: "Reports", icon: <DataTrending24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/properties", value: "properties", group: "portfolio", label: "Properties", icon: <Building24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/tenants", value: "tenants", group: "portfolio", label: "Tenants", icon: <People24Regular />, personas: ["platform_admin", "landlord"] },
@@ -53,6 +54,8 @@ export function getNavigationItems(user) {
     .map((item) => ({
       ...item,
       label: access.persona === "tenant" && item.tenantLabel ? item.tenantLabel : item.label,
+      // A tenant sees one short list about their own home.
+      group: access.persona === "tenant" ? "tenancy" : item.group,
     }));
 }
 
