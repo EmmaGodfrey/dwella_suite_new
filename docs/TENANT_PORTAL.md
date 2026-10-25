@@ -1,6 +1,6 @@
 # Tenant portal API
 
-Backend for the agreed MVP "Tenants and self-service" row ([MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md)). The tenant screens still need Figma review before frontend work; until then the existing tenant navigation entries point at manager APIs that correctly refuse tenants.
+Backend for the agreed MVP "Tenants and self-service" row ([MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md)). The tenant screens are drafted for review in Figma (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP"); frontend work waits for approval. Until then the existing tenant navigation entries point at manager APIs that correctly refuse tenants.
 
 ## Who gets in
 

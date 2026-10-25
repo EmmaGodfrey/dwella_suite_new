@@ -1,6 +1,6 @@
 # Lease renewal, bulk imports and tenant archive
 
-Backend for the remaining "Properties and units", "Tenants" and "Leases" rows of [MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md). The screens for these flows still need Figma review before frontend work.
+Backend for the remaining "Properties and units", "Tenants" and "Leases" rows of [MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md). The screens for these flows are drafted for review in Figma (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP"); frontend work waits for approval.
 
 ## Renew lease
 
