@@ -2,6 +2,8 @@ from pathlib import Path
 
 import dj_database_url
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.validators import validate_email
 
 from .env import env_bool, env_list, load_root_env
 from .storage import storage_settings
@@ -13,6 +15,7 @@ ROOT_DIR = BASE_DIR.parent
 
 SECRET_KEY = __import__("os").getenv("APP_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("APP_DEBUG", False)
+APP_ENVIRONMENT = __import__("os").getenv("APP_ENVIRONMENT", "production")
 ALLOWED_HOSTS = env_list("APP_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("APP_CSRF_TRUSTED_ORIGINS", "")
 
@@ -131,7 +134,17 @@ EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
 # Staging/demo guard: when set, email only reaches these addresses or @domains.
 OUTBOUND_EMAIL_ALLOWLIST = env_list("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
-if OUTBOUND_EMAIL_ALLOWLIST:
+TEST_EMAIL_REDIRECT_TO = __import__("os").getenv("TEST_EMAIL_REDIRECT_TO", "").strip()
+if TEST_EMAIL_REDIRECT_TO:
+    if APP_ENVIRONMENT != "test":
+        raise ImproperlyConfigured("TEST_EMAIL_REDIRECT_TO may only be enabled in test.")
+    try:
+        validate_email(TEST_EMAIL_REDIRECT_TO)
+    except ValidationError as error:
+        raise ImproperlyConfigured(
+            "TEST_EMAIL_REDIRECT_TO must be one valid email address."
+        ) from error
+if OUTBOUND_EMAIL_ALLOWLIST or TEST_EMAIL_REDIRECT_TO:
     OUTBOUND_INNER_EMAIL_BACKEND = EMAIL_BACKEND
     EMAIL_BACKEND = "apps.common.mail.AllowlistEmailBackend"
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
@@ -281,7 +294,6 @@ ZRA_VSDC_CLIENT = __import__("os").getenv(
 LENCO_ENVIRONMENT = __import__("os").getenv("LENCO_ENVIRONMENT", "sandbox")
 LENCO_PAYMENTS_ENABLED = env_bool("LENCO_PAYMENTS_ENABLED", False)
 LENCO_PAYOUTS_ENABLED = env_bool("LENCO_PAYOUTS_ENABLED", False)
-APP_ENVIRONMENT = __import__("os").getenv("APP_ENVIRONMENT", "production")
 LENCO_ALLOW_UNVERIFIED_DESTINATIONS = env_bool("LENCO_ALLOW_UNVERIFIED_DESTINATIONS", False)
 LENCO_DEBIT_ACCOUNT_ID = __import__("os").getenv("LENCO_DEBIT_ACCOUNT_ID", "")
 LENCO_PUBLIC_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_PUBLIC_KEY", "")
