@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.audit.services import record_event
+from apps.common.mail import delivery_configured
 from apps.leases.models import Lease
 from apps.subscriptions.catalog import Feature
 from apps.subscriptions.services import require_feature
@@ -54,10 +55,7 @@ def invite_for_token(token, *, lock=False, read=False):
 
 
 def require_email_delivery():
-    if settings.EMAIL_BACKEND in {
-        "django.core.mail.backends.console.EmailBackend",
-        "django.core.mail.backends.dummy.EmailBackend",
-    }:
+    if not delivery_configured():
         raise ValidationError("Email delivery is not configured. Contact Dwella support.")
 
 

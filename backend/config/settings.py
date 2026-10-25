@@ -126,6 +126,11 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
+# Staging/demo guard: when set, email only reaches these addresses or @domains.
+OUTBOUND_EMAIL_ALLOWLIST = env_list("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
+if OUTBOUND_EMAIL_ALLOWLIST:
+    OUTBOUND_INNER_EMAIL_BACKEND = EMAIL_BACKEND
+    EMAIL_BACKEND = "apps.common.mail.AllowlistEmailBackend"
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 HANDY_AGENT_SIGNING_SECRET = __import__("os").getenv("HANDY_AGENT_SIGNING_SECRET", "")
 HANDY_AGENT_URL = __import__("os").getenv("VITE_HANDY_AGENT_URL", "")

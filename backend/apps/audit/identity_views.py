@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import IdentityVerification
 from apps.accounts.serializers import IdentityVerificationSerializer
+from apps.common.mail import delivery_backend
 from apps.common.permissions import IsPlatformAdmin
 
 from .services import record_event
@@ -90,7 +91,7 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
         verification.save(update_fields=["status", "rejection_reason", "reviewed_at", "updated_at"])
         record_event(request, f"identity.{decision}", verification, reason=reason,
                      user_id=verification.user_id)
-        if settings.EMAIL_HOST and "smtp" in settings.EMAIL_BACKEND:
+        if settings.EMAIL_HOST and "smtp" in delivery_backend():
             transaction.on_commit(lambda: send_mail(
                 "Your Dwella identity review", f"Your identity check was {decision}. {reason}",
                 settings.DEFAULT_FROM_EMAIL, [verification.user.email], fail_silently=False,
