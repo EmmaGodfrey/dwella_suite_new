@@ -115,6 +115,13 @@ The screen does not claim the phone is verified. Production must not enable
 this bypass. No bank/card destinations or scheduled/manual payouts are exposed.
 Existing collections retain the destination captured when checkout began.
 
+The frontend CSP permits the exact `https://pay.lenco.co` and
+`https://pay.sandbox.lenco.co` origins for `script-src` and `frame-src`: Lenco's
+documented `inline.js` loader embeds its hosted checkout. Keep arbitrary script
+origins, inline script execution and eval blocked, along with the existing
+frame-ancestor/base/form restrictions. The loader uses postMessage with its
+frame; no additional parent-page API origin is needed in `connect-src`.
+
 The `payments-worker` service (`python manage.py run_payments_worker`) does the
 checking, separately from the scheduler. It asks Lenco only about rows that are
 due: a checkout every 30 seconds at first, slowing with age and expiring after
