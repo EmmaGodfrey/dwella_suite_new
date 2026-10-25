@@ -83,6 +83,20 @@ PostgreSQL privileges and RLS protections against unrelated external DB roles.
 
 ## Before live rent collection
 
+User clarification, 2026-10-25: the desired destination is the landlord's
+mobile-money phone number. Target flow is tenant collection through Dwella,
+followed automatically by a payout to that landlord's verified number. This
+extends the earlier collection-only scope to include mobile-money payouts.
+Lenco documents a separate
+[mobile-money transfer API](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money)
+for Zambia (Airtel, MTN, Zamtel), debiting a specified Lenco account. This is a
+collection followed by a transfer, not a verified native checkout split.
+Only schedule payout after authoritative collection verification and available
+settled funds; track collection and payout independently, prevent duplicate
+transfers, and reconcile uncertain transfer outcomes before retrying. Immediate
+delivery is not guaranteed. Confirm this platform use, account permissions,
+fees and available-funds timing with Lenco before activating automatic payouts.
+
 Confirm with Lenco how Dwella's separate property managers are onboarded and how
 their settlement destinations are assigned. The reviewed checkout parameters do
 not establish a split-payment/submerchant arrangement. Do not infer that one
@@ -96,7 +110,8 @@ and polling; scoped status/receipt APIs; approved tenant checkout UI. Exercise
 [sandbox fixtures](https://lenco-api.readme.io/v2.0/reference/test-cards-and-accounts),
 duplicates, tampering, amount/currency mismatch, permission failures, timeout,
 out-of-order events and manual-payment races before deployment. Autopay,
-automatic bank matching, refunds and payouts remain outside this initial scope.
+automatic bank matching and refunds remain outside this initial scope. Automatic
+landlord mobile-money payouts are now requested as described above.
 
 Validation for this slice: Django system check and repository Ruff checks pass;
 57 integration tests pass, including 28 Lenco tests for environment selection,
