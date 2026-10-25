@@ -40,6 +40,11 @@ payloads or recipients. Container logs must not contain SDK credentials or
 message bodies. A missing scheduler/worker heartbeat or failed backup needs
 operator attention.
 
+The read-only `/api/health/` endpoint is exempt from request throttles. Docker's
+20-second probes otherwise consume more than the default anonymous hourly
+budget and report a healthy backend as unhealthy. Other API/authentication
+limits remain enabled; regression checks cover an already-exhausted client.
+
 ## Restore drills
 
 Use an isolated PostgreSQL container/project with no exposed host ports. Restore
