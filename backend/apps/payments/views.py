@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
@@ -122,8 +124,11 @@ class TenantCollectionDetail(PrivateView):
 
     def post(self, request, public_id):
         row = self.row(request, public_id)
-        # Queue verification; the callback is never evidence of payment.
-        Collection.objects.filter(pk=row.pk).update(last_checked_at=None)
+        # Bring the next check forward; the callback is never evidence of
+        # payment. Finished rows have nothing left to check.
+        Collection.objects.filter(pk=row.pk).filter(
+            Q(status__in=["pending", "expired"]) | Q(status="successful", settled=False)
+        ).update(next_check_at=timezone.now())
         return Response(TenantCollectionSerializer(row).data, status=202)
 
 

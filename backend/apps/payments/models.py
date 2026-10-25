@@ -57,6 +57,8 @@ class Collection(UUIDModel, TimeStampedModel):
         SUCCESSFUL = "successful", "Paid"
         FAILED = "failed", "Failed"
         REVIEW = "review", "Needs reconciliation"
+        # Never completed in its checkout window; a late webhook can still revive it.
+        EXPIRED = "expired", "Expired"
 
     organization = models.ForeignKey("organizations.Organization", on_delete=models.PROTECT)
     invoice = models.ForeignKey("billing.Invoice", on_delete=models.PROTECT)
@@ -76,6 +78,11 @@ class Collection(UUIDModel, TimeStampedModel):
     payment = models.OneToOneField("billing.Payment", on_delete=models.PROTECT, null=True)
     issue = models.CharField(max_length=60, blank=True)
     last_checked_at = models.DateTimeField(null=True)
+    # When the worker should ask Lenco again; empty once nothing can change.
+    next_check_at = models.DateTimeField(null=True)
+    # Latest provider facts kept on the row instead of in extra tables:
+    # {"status": ..., "completed_at": ..., "webhook_at": ...}.
+    provider_state = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -96,7 +103,13 @@ class Collection(UUIDModel, TimeStampedModel):
             ),
             models.CheckConstraint(condition=Q(amount__gt=0), name="rent_collection_positive"),
         ]
-        indexes = [models.Index(fields=["status", "last_checked_at"])]
+        indexes = [
+            models.Index(
+                fields=["next_check_at"],
+                condition=Q(next_check_at__isnull=False),
+                name="payments_collection_due",
+            )
+        ]
 
 
 class Payout(UUIDModel, TimeStampedModel):
@@ -118,12 +131,19 @@ class Payout(UUIDModel, TimeStampedModel):
     last_checked_at = models.DateTimeField(null=True)
     submitted_at = models.DateTimeField(null=True)
     confirmed_at = models.DateTimeField(null=True)
+    next_check_at = models.DateTimeField(null=True)
 
     class Meta:
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="rent_payout_positive")
         ]
-        indexes = [models.Index(fields=["status", "last_checked_at"])]
+        indexes = [
+            models.Index(
+                fields=["next_check_at"],
+                condition=Q(next_check_at__isnull=False),
+                name="payments_payout_due",
+            )
+        ]
 
 
 class Exchange(UUIDModel):
@@ -151,23 +171,6 @@ class Exchange(UUIDModel):
 
     def delete(self, *args, **kwargs):
         raise ValueError("Provider evidence is append-only.")
-
-
-class WebhookReceipt(TimeStampedModel):
-    environment = models.CharField(max_length=7)
-    digest = models.CharField(max_length=64)
-    reference = models.CharField(max_length=50)
-    event = models.CharField(max_length=40)
-    exchange = models.OneToOneField(Exchange, on_delete=models.PROTECT)
-    processed_at = models.DateTimeField(null=True)
-    last_attempt_at = models.DateTimeField(null=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["environment", "digest"], name="unique_lenco_webhook_body"
-            )
-        ]
 
 
 class ProviderAccount(UUIDModel, TimeStampedModel):

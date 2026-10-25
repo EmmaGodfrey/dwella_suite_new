@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
@@ -13,6 +14,15 @@ from apps.subscriptions.services import require_feature
 
 from .models import Collection, Destination, Payout
 from .provider import Provider
+from .schedule import (
+    PAYOUT_CONFIRMATION_LIMIT,
+    SETTLEMENT_OVERDUE,
+    checkout_window_over,
+    collection_next_check,
+    parse_stamp,
+    payout_next_check,
+    stamp,
+)
 
 
 def money(value, *, positive=False):
@@ -106,6 +116,7 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
                 amount=amount,
                 currency="ZMW",
                 debit_account_id=settings.LENCO_DEBIT_ACCOUNT_ID,
+                next_check_at=timezone.now() + timedelta(seconds=30),
             )
     except IntegrityError:
         raise ValidationError(
@@ -144,93 +155,130 @@ def _issue(collection, code):
 
 
 def reconcile_collection(collection):
+    """Ask Lenco about one checkout and apply the answer. Safe to repeat."""
     result = Provider(collection.environment).request("collection_status", collection=collection)
     # Invoice before collection is the common lock order for ledger updates.
     with transaction.atomic():
         invoice = Invoice.objects.select_for_update().get(pk=collection.invoice_id)
         row = Collection.objects.select_for_update().get(pk=collection.pk)
-        row.last_checked_at = timezone.now()
-        if not _valid_data(result):
-            row.issue = result.error or "provider_not_ready"
-            row.save()
-            return False
-        data = result.payload["data"]
-        try:
-            valid = (
-                data.get("reference") == row.reference
-                and money(data.get("amount"), positive=True) == row.amount
-                and data.get("currency") == row.currency
-                and isinstance(data.get("id"), str)
-                and 0 < len(data["id"]) <= 100
-            )
-        except ValidationError:
-            valid = False
-        if not valid:
-            _issue(row, "collection_details_mismatch")
-            row.save()
-            return True
-        if row.provider_id and row.provider_id != data["id"]:
-            _issue(row, "collection_identity_changed")
-            row.save()
-            return True
-        try:
-            with transaction.atomic():
-                row.provider_id = data["id"]
-                row.save(update_fields=["provider_id"])
-        except IntegrityError:
-            row.refresh_from_db()
-            row.last_checked_at = timezone.now()
-            _issue(row, "duplicate_provider_collection")
-            row.save()
-            return True
-        state = data.get("status")
-        if state == "successful":
-            row.issue = ""
-            if row.payment_id is None:
-                if invoice.status == Invoice.Status.VOID or row.amount > invoice.balance:
-                    _issue(row, "received_money_needs_allocation")
-                    row.save()
-                    return True
-                method = {"mobile-money": Payment.Method.MOBILE_MONEY, "card": Payment.Method.CARD}
-                if not isinstance(data.get("type"), str) or data["type"] not in method:
-                    _issue(row, "unexpected_payment_channel")
-                    row.save()
-                    return True
-                row.payment = record_payment(
-                    invoice=invoice,
-                    amount=row.amount,
-                    method=method[data["type"]],
-                    paid_on=timezone.localdate(),
-                    reference=row.reference,
-                    notes="Verified Lenco online rent payment.",
-                )
-            row.status = Collection.Status.SUCCESSFUL
-            try:
-                if data.get("fee") is not None:
-                    row.fee = money(data["fee"])
-                settlement = data.get("settlement")
-                if data.get("settlementStatus") == "settled":
-                    if (
-                        not isinstance(settlement, dict)
-                        or settlement.get("status") != "settled"
-                        or settlement.get("currency") != row.currency
-                        or settlement.get("accountId") != row.debit_account_id
-                    ):
-                        raise ValidationError("Settlement mismatch")
-                    net = money(settlement.get("amountSettled"), positive=True)
-                    if net > row.amount or (
-                        row.settled_amount is not None and row.settled_amount != net
-                    ):
-                        raise ValidationError("Settlement amount mismatch")
-                    row.settled, row.settled_amount = True, net
-                    Payout.objects.get_or_create(collection=row, defaults={"amount": net})
-            except ValidationError:
-                row.issue = "settlement_details_mismatch"
-        elif state == "failed" and row.status != Collection.Status.SUCCESSFUL:
-            row.status, row.issue = Collection.Status.FAILED, "collection_failed"
-        # Pending/out-of-order responses cannot undo a receipt or settlement.
+        now = timezone.now()
+        row.last_checked_at = now
+        _apply_collection_result(row, invoice, result, now)
+        if (
+            row.status == Collection.Status.SUCCESSFUL
+            and not row.settled
+            and not row.issue
+            and now - row.created_at > SETTLEMENT_OVERDUE
+        ):
+            row.issue = "settlement_overdue"
+        row.next_check_at = collection_next_check(row, now)
         row.save()
-        return True
+
+
+def _expire_if_unpaid(row, now):
+    if row.status == Collection.Status.PENDING and checkout_window_over(row, now):
+        row.status, row.issue = Collection.Status.EXPIRED, "checkout_not_completed"
+
+
+def _paid_on(data, now):
+    """The day Lenco completed the payment, so a late check never makes rent late."""
+    completed = parse_stamp(data.get("completedAt"))
+    if completed is None or completed > now + timedelta(minutes=5):
+        return timezone.localdate(now)
+    return timezone.localdate(completed)
+
+
+def _apply_collection_result(row, invoice, result, now):
+    if not _valid_data(result):
+        if result.http_status == 404 and result.error == "http_error":
+            # Lenco has no payment under this reference: not paid, at least yet.
+            row.issue = ""
+            _expire_if_unpaid(row, now)
+        else:
+            row.issue = result.error or "provider_not_ready"
+        return
+    data = result.payload["data"]
+    try:
+        valid = (
+            data.get("reference") == row.reference
+            and money(data.get("amount"), positive=True) == row.amount
+            and data.get("currency") == row.currency
+            and isinstance(data.get("id"), str)
+            and 0 < len(data["id"]) <= 100
+        )
+    except ValidationError:
+        valid = False
+    if not valid:
+        _issue(row, "collection_details_mismatch")
+        return
+    if row.provider_id and row.provider_id != data["id"]:
+        _issue(row, "collection_identity_changed")
+        return
+    try:
+        with transaction.atomic():
+            row.provider_id = data["id"]
+            row.save(update_fields=["provider_id"])
+    except IntegrityError:
+        row.refresh_from_db()
+        row.last_checked_at = now
+        _issue(row, "duplicate_provider_collection")
+        return
+    state = data.get("status")
+    row.provider_state = {
+        **row.provider_state,
+        "status": state if isinstance(state, str) else None,
+        "completed_at": stamp(parse_stamp(data.get("completedAt"))),
+    }
+    if state == "successful":
+        _record_success(row, invoice, data, now)
+    elif state == "failed" and row.status != Collection.Status.SUCCESSFUL:
+        row.status, row.issue = Collection.Status.FAILED, "collection_failed"
+    else:
+        # Pending/out-of-order responses cannot undo a receipt or settlement.
+        _expire_if_unpaid(row, now)
+
+
+def _record_success(row, invoice, data, now):
+    row.issue = ""
+    if row.payment_id is None:
+        if invoice.status == Invoice.Status.VOID or row.amount > invoice.balance:
+            _issue(row, "received_money_needs_allocation")
+            return
+        method = {"mobile-money": Payment.Method.MOBILE_MONEY, "card": Payment.Method.CARD}
+        if not isinstance(data.get("type"), str) or data["type"] not in method:
+            _issue(row, "unexpected_payment_channel")
+            return
+        # One receipt per collection: payment_id is checked under the row lock.
+        row.payment = record_payment(
+            invoice=invoice,
+            amount=row.amount,
+            method=method[data["type"]],
+            paid_on=_paid_on(data, now),
+            reference=row.reference,
+            notes="Verified Lenco online rent payment.",
+        )
+    row.status = Collection.Status.SUCCESSFUL
+    try:
+        if data.get("fee") is not None:
+            row.fee = money(data["fee"])
+        settlement = data.get("settlement")
+        if data.get("settlementStatus") == "settled":
+            if (
+                not isinstance(settlement, dict)
+                or settlement.get("status") != "settled"
+                or settlement.get("currency") != row.currency
+                or settlement.get("accountId") != row.debit_account_id
+            ):
+                raise ValidationError("Settlement mismatch")
+            net = money(settlement.get("amountSettled"), positive=True)
+            if net > row.amount or (row.settled_amount is not None and row.settled_amount != net):
+                raise ValidationError("Settlement amount mismatch")
+            row.settled, row.settled_amount = True, net
+            Payout.objects.get_or_create(
+                collection=row, defaults={"amount": net, "next_check_at": now}
+            )
+    except ValidationError:
+        row.issue = "settlement_details_mismatch"
 
 
 def _apply_payout_result(payout, result):
@@ -240,49 +288,53 @@ def _apply_payout_result(payout, result):
             .select_related("collection__destination")
             .get(pk=payout.pk)
         )
-        row.last_checked_at = timezone.now()
-        if row.status == Payout.Status.SUCCESSFUL:
-            row.save()
-            return True
-        if not _valid_data(result):
-            row.issue = result.error or "payout_not_confirmed"
-            row.save()
-            return False
-        data, collection = result.payload["data"], row.collection
-        recipient = data.get("creditAccount") or {}
-        try:
-            valid = (
-                data.get("reference") == row.reference
-                and money(data.get("amount"), positive=True) == row.amount
-                and data.get("currency") == collection.currency
-                and data.get("accountId") == collection.debit_account_id
-                and recipient.get("type") == "mobile-money"
-                and normalize_phone(recipient.get("phone", "")) == collection.destination.phone
-                and recipient.get("operator") == collection.destination.operator
-                and isinstance(data.get("id"), str)
-                and 0 < len(data["id"]) <= 100
-            )
-        except (ValidationError, AttributeError):
-            valid = False
-        if not valid or (row.provider_id and row.provider_id != data.get("id")):
-            row.status, row.issue = Payout.Status.REVIEW, "payout_details_mismatch"
-        else:
-            row.provider_id = data["id"]
-            if isinstance(data.get("status"), str) and data["status"] in {
-                "pending",
-                "successful",
-                "failed",
-            }:
-                row.status = data["status"]
-                if row.status == "successful" and row.confirmed_at is None:
-                    row.confirmed_at = timezone.now()
-                row.issue = "payout_failed" if row.status == "failed" else ""
-                try:
-                    row.fee = money(data["fee"]) if data.get("fee") is not None else None
-                except ValidationError:
-                    row.issue = "invalid_payout_fee"
+        now = timezone.now()
+        row.last_checked_at = now
+        _apply_payout_data(row, result, now)
+        row.next_check_at = payout_next_check(row, now)
         row.save()
-        return True
+
+
+def _apply_payout_data(row, result, now):
+    if row.status == Payout.Status.SUCCESSFUL:
+        return
+    if not _valid_data(result):
+        row.issue = result.error or "payout_not_confirmed"
+        return
+    data, collection = result.payload["data"], row.collection
+    recipient = data.get("creditAccount") or {}
+    try:
+        valid = (
+            data.get("reference") == row.reference
+            and money(data.get("amount"), positive=True) == row.amount
+            and data.get("currency") == collection.currency
+            and data.get("accountId") == collection.debit_account_id
+            and recipient.get("type") == "mobile-money"
+            and normalize_phone(recipient.get("phone", "")) == collection.destination.phone
+            and recipient.get("operator") == collection.destination.operator
+            and isinstance(data.get("id"), str)
+            and 0 < len(data["id"]) <= 100
+        )
+    except (ValidationError, AttributeError):
+        valid = False
+    if not valid or (row.provider_id and row.provider_id != data.get("id")):
+        row.status, row.issue = Payout.Status.REVIEW, "payout_details_mismatch"
+        return
+    row.provider_id = data["id"]
+    if not isinstance(data.get("status"), str) or data["status"] not in {
+        "pending",
+        "successful",
+        "failed",
+    }:
+        return
+    row.status = data["status"]
+    if row.status == Payout.Status.SUCCESSFUL and row.confirmed_at is None:
+        row.confirmed_at = now
+    row.issue = "payout_failed" if row.status == Payout.Status.FAILED else ""
+    try:
+        row.fee = money(data["fee"]) if data.get("fee") is not None else None
+    except ValidationError:
+        row.issue = "invalid_payout_fee"
 
 
 def normalize_phone(phone):
@@ -299,6 +351,7 @@ def normalize_phone(phone):
 
 
 def process_payout(payout):
+    """Submit a queued payout once, or ask Lenco about a submitted one."""
     # Commit the claim BEFORE sending. Crash/timeout => query the same reference;
     # never make a second debit merely because we didn't receive an answer.
     with transaction.atomic():
@@ -308,11 +361,17 @@ def process_payout(payout):
             .get(pk=payout.pk)
         )
         collection = row.collection
-        submit = row.status == Payout.Status.QUEUED
-        if row.status in {Payout.Status.SUCCESSFUL, Payout.Status.FAILED, Payout.Status.REVIEW}:
+        now = timezone.now()
+        if row.status in {Payout.Status.SUCCESSFUL, Payout.Status.REVIEW}:
+            if row.next_check_at:
+                row.next_check_at = None
+                row.save(update_fields=["next_check_at", "updated_at"])
             return
+        submit = row.status == Payout.Status.QUEUED
         if submit:
             if not settings.LENCO_PAYOUTS_ENABLED:
+                row.next_check_at = now + timedelta(minutes=15)
+                row.save(update_fields=["next_check_at", "updated_at"])
                 return
             if (
                 not collection.settled
@@ -325,17 +384,27 @@ def process_payout(payout):
                 or collection.debit_account_id != settings.LENCO_DEBIT_ACCOUNT_ID
             ):
                 row.status, row.issue = Payout.Status.REVIEW, "payout_requires_review"
+                row.next_check_at = None
                 row.save()
                 return
             from .balances import can_reserve_payout
 
             if not can_reserve_payout(row):
                 row.issue = "awaiting_balance_reconciliation"
+                row.next_check_at = now + timedelta(minutes=1)
                 row.save()
                 return
-            row.status, row.last_checked_at = Payout.Status.SUBMITTING, timezone.now()
-            row.submitted_at = timezone.now()
+            row.status, row.issue = Payout.Status.SUBMITTING, ""
+            row.submitted_at = row.last_checked_at = now
+            row.next_check_at = payout_next_check(row, now)
             row.save()
+        elif row.status != Payout.Status.FAILED and (
+            now - (row.submitted_at or row.created_at) > PAYOUT_CONFIRMATION_LIMIT
+        ):
+            row.status, row.issue = Payout.Status.REVIEW, "payout_unconfirmed"
+            row.next_check_at = None
+            row.save()
+            return
     provider = Provider(collection.environment)
     if submit:
         destination = collection.destination
@@ -352,5 +421,6 @@ def process_payout(payout):
             "payout_submit", collection=collection, payout=row, payload=payload
         )
     else:
+        # A failed payout is only asked again when a webhook wakes it.
         result = provider.request("payout_status", collection=collection, payout=row)
     _apply_payout_result(row, result)

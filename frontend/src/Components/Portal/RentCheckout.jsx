@@ -69,6 +69,7 @@ export default function RentCheckout({ invoice }) {
       <h3>Pay online</h3>
       {notice ? <p role="status">{notice}</p> : null}
       {latest?.status === "failed" ? <p role="status">Your last payment failed. You can try again.</p> : null}
+      {latest?.status === "expired" ? <p role="status">Your last payment was not completed. You can start a new one.</p> : null}
       {review ? <p role="status">This payment needs review. Contact your property manager before paying again.</p> : null}
       {latest?.payment_id ? <p><Link to={`/billing/receipts/${latest.payment_id}`}>View {latest.receipt_number}</Link></p> : null}
       {options.isLoading ? <p role="status">Checking payment options…</p> : null}

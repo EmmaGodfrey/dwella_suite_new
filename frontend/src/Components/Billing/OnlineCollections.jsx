@@ -5,7 +5,7 @@ import { formatMoney } from "../../shared/format";
 import { StatusBadge } from "../../shared/components";
 import "./payments.scss";
 
-const labels = { pending: "Awaiting payment", successful: "Paid", failed: "Failed", review: "Needs review" };
+const labels = { pending: "Awaiting payment", successful: "Paid", failed: "Failed", review: "Needs review", expired: "Not completed" };
 const payoutLabels = { queued: "Payout queued", submitting: "Payout being submitted", pending: "Payout processing", successful: "Payout delivered", failed: "Payout failed", review: "Payout needs review" };
 
 export default function OnlineCollections({ invoiceId }) {
@@ -19,7 +19,7 @@ export default function OnlineCollections({ invoiceId }) {
       {query.isError ? <p role="alert">Could not load collection statuses. <Button size="small" onClick={() => query.refetch()}>Retry</Button></p> : null}
       <ul>{rows.map((row) => (
         <li key={row.id}>
-          <div className="dwella-badge-row"><strong>{formatMoney(row.amount)}</strong><StatusBadge color={row.status === "successful" ? "success" : row.status === "failed" || row.status === "review" ? "danger" : "warning"}>{labels[row.status] || row.status}</StatusBadge></div>
+          <div className="dwella-badge-row"><strong>{formatMoney(row.amount)}</strong><StatusBadge color={row.status === "successful" ? "success" : row.status === "failed" || row.status === "review" ? "danger" : row.status === "expired" ? "subtle" : "warning"}>{labels[row.status] || row.status}</StatusBadge></div>
           <small>{row.reference}</small>
           {row.status === "successful" ? <>
             <span>{row.settled ? `${formatMoney(row.settled_amount)} settled after collection fees` : "Awaiting settlement from Lenco"}</span>

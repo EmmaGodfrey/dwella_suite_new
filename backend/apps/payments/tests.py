@@ -18,7 +18,7 @@ from apps.billing.tests import THIS_MONTH, make_lease
 from apps.organizations.models import Organization, OrganizationMembership
 
 from .evidence import read_exchange, record_exchange
-from .models import Collection, Destination, Exchange, Payout, WebhookReceipt
+from .models import Collection, Destination, Exchange, Payout
 from .provider import Provider, ProviderResult
 from .testing import (
     SECRET,
@@ -75,13 +75,14 @@ def test_signed_webhook_deduplicates_and_does_not_credit_without_verification(ho
             )
             assert response.status_code == 200
         provider.assert_not_called()
-    assert WebhookReceipt.objects.count() == 1 and Exchange.objects.count() == 1
+    assert Exchange.objects.filter(operation="webhook").count() == 1
     assert not Payment.objects.exists()
     with patch("apps.payments.services.Provider") as provider:
         provider.return_value.request.return_value = collection_result(row)
         run_cycle()
     assert Payment.objects.count() == 1
-    assert WebhookReceipt.objects.get().processed_at
+    row.refresh_from_db()
+    assert row.status == "successful" and row.next_check_at is None
 
 
 @pytest.mark.parametrize(
@@ -99,7 +100,7 @@ def test_bad_webhooks_never_create_evidence_or_payments(body, sig):
         HTTP_X_LENCO_SIGNATURE=sig,
     )
     assert response.status_code in {400, 403}
-    assert not WebhookReceipt.objects.exists() and not Exchange.objects.exists()
+    assert not Exchange.objects.exists()
 
 
 def test_tenant_isolation_manager_scope_and_private_evidence(home):
@@ -319,18 +320,13 @@ def test_failed_webhook_requery_remains_queued_for_retry(home):
     with patch("apps.payments.services.Provider") as provider:
         provider.return_value.request.return_value = ProviderResult({}, 503, "http_error")
         run_cycle()
-    receipt = WebhookReceipt.objects.get()
-    assert receipt.last_attempt_at and not receipt.processed_at
-    from datetime import timedelta
-
-    WebhookReceipt.objects.filter(pk=receipt.pk).update(
-        last_attempt_at=timezone.now() - timedelta(minutes=1)
-    )
+    row.refresh_from_db()
+    assert row.next_check_at > timezone.now() and not Payment.objects.exists()
+    Collection.objects.filter(pk=row.pk).update(next_check_at=timezone.now())
     with patch("apps.payments.services.Provider") as provider:
         provider.return_value.request.return_value = collection_result(row)
         run_cycle()
-    receipt.refresh_from_db()
-    assert receipt.processed_at and Payment.objects.count() == 1
+    assert Payment.objects.count() == 1
 
 
 def test_payment_options_follow_enable_switch_and_workspace_approval(home, settings):
@@ -370,7 +366,7 @@ def test_webhook_signature_binds_exact_raw_bytes(home):
         content_type="application/json",
         HTTP_X_LENCO_SIGNATURE=signature(raw),
     )
-    assert response.status_code == 403 and not WebhookReceipt.objects.exists()
+    assert response.status_code == 403 and not Exchange.objects.exists()
 
 
 def test_balance_inspection_is_platform_only_and_money_is_a_string(home):
@@ -386,8 +382,6 @@ def test_balance_inspection_is_platform_only_and_money_is_a_string(home):
 
 
 def test_success_webhook_waits_for_authoritative_status_to_catch_up(home, settings):
-    from datetime import timedelta
-
     settings.LENCO_PAYOUTS_ENABLED = False
     row = checkout(home)
     Collection.objects.filter(pk=row.pk).update(status="failed")
@@ -408,13 +402,11 @@ def test_success_webhook_waits_for_authoritative_status_to_catch_up(home, settin
             row, state="pending", settled=False
         )
         run_cycle()
-    receipt = WebhookReceipt.objects.get()
-    assert not receipt.processed_at and not Payment.objects.exists()
-    WebhookReceipt.objects.filter(pk=receipt.pk).update(
-        last_attempt_at=timezone.now() - timedelta(minutes=1)
-    )
+    row.refresh_from_db()
+    # Still failed locally, but the webhook keeps it under watch.
+    assert row.status == "failed" and row.next_check_at and not Payment.objects.exists()
+    Collection.objects.filter(pk=row.pk).update(next_check_at=timezone.now())
     with patch("apps.payments.services.Provider") as provider:
         provider.return_value.request.return_value = collection_result(row)
         run_cycle()
-    receipt.refresh_from_db()
-    assert receipt.processed_at and Payment.objects.count() == 1
+    assert Payment.objects.count() == 1
