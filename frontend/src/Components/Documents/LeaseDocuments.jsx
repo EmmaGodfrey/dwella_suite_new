@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@fluentui/react-components";
 import { documentError, useAttachOriginal, useDocumentSigners, useLeaseDocuments, useOriginalDocuments, useOriginalDownload, usePrepareDocument } from "../../Services/documents";
-import { FormDrawer, FormModal } from "../../shared/components/FormFlow";
+import { FormPage, FormModal } from "../../shared/components/FormFlow";
 import { formatDate } from "../../shared/format";
 import DocumentPreview, { documentStatus } from "./DocumentPreview";
+import AgreementDraft from "./AgreementDraft";
 import "./documents.scss";
 
 function PrepareAgreement({ lease, previous, onClose, onPrepared }) {
@@ -19,11 +20,13 @@ function PrepareAgreement({ lease, previous, onClose, onPrepared }) {
     if (step === 0 && (!values.landlord_name.trim() || !values.landlord_address.trim() || !values.landlord_signer)) { setError("Enter the landlord's legal name, address and authorised signatory."); return; }
     if (step === 1 && values.agreement_text.trim().length < 200) { setError("Add the complete approved agreement wording (at least 200 characters)."); return; }
     if (step < 2) { setStep(current => current + 1); setError(""); return; }
+    if (!values.landlord_name.trim() || !values.landlord_address.trim() || !values.landlord_signer) { setStep(0); setError("Enter the landlord's legal name, address and authorised signatory."); return; }
+    if (values.agreement_text.trim().length < 200) { setStep(1); setError("Add the complete approved agreement wording (at least 200 characters)."); return; }
     if (!values.terms_approved) { setError("Confirm the wording and signatory authority before preparing this version."); return; }
     mutation.mutate({ ...values, lease: lease.id, landlord_name: values.landlord_name.trim(), landlord_address: values.landlord_address.trim(), landlord_signer: Number(values.landlord_signer) });
   }
-  return <FormDrawer title="Prepare lease agreement" description={`${lease.reference} · ${lease.tenant_name}`}
-    steps={["Parties", "Agreement wording", "Review"]} step={step} onBack={() => { setStep(current => current - 1); setError(""); }}
+  return <div className="dwella-document-editor dwella-agreement-editor"><FormPage title="Prepare lease agreement" description={`${lease.reference} · ${lease.tenant_name}`}
+    steps={["Parties", "Agreement wording", "Review"]} step={step} stepTitle={["Parties", "Agreement wording", "Review agreement"][step]} onBack={() => { setStep(current => current - 1); setError(""); }}
     onClose={onClose} onSubmit={submit} submitLabel="Prepare document" pendingLabel="Preparing PDF…" busy={mutation.isPending}
     errors={error ? { form: error } : undefined} notice={error && <p className="dwella-document-error" role="alert">{error}</p>}>
     {step === 0 && <>
@@ -51,7 +54,7 @@ function PrepareAgreement({ lease, previous, onClose, onPrepared }) {
       <p>Review the generated PDF before inviting anyone to sign. A new version replaces any earlier pending signing version; completed documents stay saved.</p>
       <Checkbox checked={values.terms_approved} onChange={(_, d) => update("terms_approved", d.checked === true)} label="I confirm the full agreement wording is approved, the lease details are correct, and the selected account is authorised to sign for the landlord." />
     </>}
-  </FormDrawer>;
+  </FormPage><AgreementDraft lease={lease} values={values} signer={signers.data?.find(signer => String(signer.id) === String(values.landlord_signer))} /></div>;
 }
 
 function OriginalUpload({ lease, onClose }) {
@@ -83,20 +86,21 @@ export default function LeaseDocuments({ lease, canManage }) {
   const [preparing, setPreparing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState(null);
+  const previewOpener = useRef(null);
   const rows = documents.data?.results || [];
   const attachments = originals.data?.results || [];
   return <section className="dwella-surface dwella-lease-documents">
     <div className="dwella-document-section-heading"><div><h3>Documents and signatures</h3><p>Agreement versions, signing records and signed originals.</p></div>
-      {canManage && <div className="dwella-document-actions"><Button onClick={() => setUploading(true)}>Attach signed original</Button>{lease.status !== "ended" && <Button onClick={() => setPreparing(true)}>Prepare agreement</Button>}</div>}
+      {canManage && <div className="dwella-document-actions"><Button disabled={preparing || Boolean(preview)} onClick={() => setUploading(true)}>Attach signed original</Button>{lease.status !== "ended" && <Button disabled={preparing || Boolean(preview)} onClick={event => { previewOpener.current = event.currentTarget; setPreparing(true); }}>Prepare agreement</Button>}</div>}
     </div>
+    {preparing && <PrepareAgreement lease={lease} previous={rows[0]} onClose={() => { setPreparing(false); requestAnimationFrame(() => previewOpener.current?.focus()); }} onPrepared={doc => { setPreparing(false); setPreview(doc); }} />}
+    {preview && <DocumentPreview key={preview.id} document={preview} returnFocusRef={previewOpener} onClose={() => setPreview(null)} />}
     {documents.isLoading ? <p role="status">Loading document versions…</p> : documents.isError ? <p role="alert">{documentError(documents.error)} <Button onClick={() => documents.refetch()}>Retry</Button></p>
-      : !rows.length ? <p className="dwella-muted-copy">No agreement prepared yet. Add the complete approved wording to create a document for review and signing.</p>
-        : <ul className="dwella-document-list">{rows.map(doc => <li key={doc.id}><div><strong>Lease agreement · v{doc.version}</strong><span>{documentStatus[doc.status]} · {doc.signatures.length}/2 signatures · {formatDate(doc.created_at)}</span>{!doc.current_terms && <small>Lease details have changed since this version.</small>}</div><Button onClick={() => setPreview(doc)}>Preview agreement</Button></li>)}</ul>}
+      : !rows.length ? !preparing && !preview && <p className="dwella-muted-copy">No agreement prepared yet. Add the complete approved wording to create a document for review and signing.</p>
+        : <ul className="dwella-document-list">{rows.map(doc => <li key={doc.id}><div><strong>Lease agreement · v{doc.version}</strong><span>{documentStatus[doc.status]} · {doc.signatures.length}/2 signatures · {formatDate(doc.created_at)}</span>{!doc.current_terms && <small>Lease details have changed since this version.</small>}</div><Button disabled={preparing || Boolean(preview)} onClick={event => { previewOpener.current = event.currentTarget; setPreview(doc); }}>Preview agreement</Button></li>)}</ul>}
     {originals.isError && <p role="alert">Could not load original attachments. <Button onClick={() => originals.refetch()}>Retry</Button></p>}
     {attachments.length > 0 && <><h4>Signed originals</h4><ul className="dwella-document-list">{attachments.map(original => <li key={original.id}><div><strong>Uploaded signed PDF</strong><span>{original.note}</span><small>{formatDate(original.created_at)} · Original preserved · External signatures unverified</small></div><Button disabled={download.isPending} onClick={() => download.mutate(original.id)}>Download original</Button></li>)}</ul></>}
     {download.isError && <p role="alert">{documentError(download.error)}</p>}
-    {preparing && <PrepareAgreement lease={lease} previous={rows[0]} onClose={() => setPreparing(false)} onPrepared={doc => { setPreparing(false); setPreview(doc); }} />}
     {uploading && <OriginalUpload lease={lease} onClose={() => setUploading(false)} />}
-    {preview && <DocumentPreview key={preview.id} document={preview} onClose={() => setPreview(null)} />}
   </section>;
 }

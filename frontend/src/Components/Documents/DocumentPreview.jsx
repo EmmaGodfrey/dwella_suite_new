@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Button, Dialog, DialogBody, DialogContent, DialogSurface, DialogTitle, Select } from "@fluentui/react-components";
+import React, { useEffect, useRef, useState } from "react";
+import { Button, Select } from "@fluentui/react-components";
 import { ArrowDownload20Regular, Dismiss20Regular } from "@fluentui/react-icons";
 import { useMutation } from "@tanstack/react-query";
 import { documentError, managementDocuments, useDocumentAction, useDocumentDownload, useDocumentPage } from "../../Services/documents";
@@ -55,7 +55,13 @@ export function SigningRecord({ doc }) {
   </section>;
 }
 
-export default function DocumentPreview({ document: initial, onClose, onChange }) {
+export default function DocumentPreview({ document: initial, onClose, onChange, returnFocusRef }) {
+  const heading = useRef(null);
+  useEffect(() => {
+    const opener = returnFocusRef?.current || window.document.activeElement;
+    heading.current?.focus();
+    return () => { if (opener?.isConnected) opener.focus({ preventScroll: true }); };
+  }, [returnFocusRef]);
   const [doc, setDoc] = useState(initial);
   const [signing, setSigning] = useState(false);
   const [inviteLink, setInviteLink] = useState(null);
@@ -71,35 +77,33 @@ export default function DocumentPreview({ document: initial, onClose, onChange }
   const email = useDocumentAction(client, doc.id, "email-copies", { onSuccess: data => { setMessage(data.delivered ? "Completed copies have been emailed." : "Delivery failed. The signed PDF is saved; you can retry sending."); refresh.mutate(); }, onError: e => setError(documentError(e)) });
   const busy = invite.isPending || revoke.isPending || email.isPending;
   const open = doc.kind === "lease" && ["ready", "signing"].includes(doc.status) && doc.current_terms;
-  return <Dialog open onOpenChange={(_, data) => { if (!data.open && !busy && !signing) onClose(); }}>
-    <DialogSurface className="dwella-document-dialog">
-      <DialogBody>
-        <div className="dwella-document-heading"><div><DialogTitle>{doc.kind === "invoice" ? "Invoice preview" : "Lease agreement"}</DialogTitle><p>{doc.snapshot.reference} · {documentStatus[doc.status]}</p></div>
-          <Button appearance="subtle" icon={<Dismiss20Regular />} aria-label="Close document preview" disabled={busy || signing} onClick={onClose} />
+  return <section className="dwella-document-workspace" aria-label={doc.kind === "invoice" ? "Invoice preview" : "Lease agreement review"}>
+    <div className="dwella-document-heading"><div><h2 ref={heading} tabIndex={-1}>{doc.kind === "invoice" ? "Invoice preview" : "Lease agreement"}</h2><p>{doc.snapshot.reference} · {documentStatus[doc.status]}</p></div>
+      <Button appearance="subtle" icon={<Dismiss20Regular />} aria-label="Close document preview" disabled={busy || signing} onClick={onClose} />
+    </div>
+    <div className={doc.kind === "lease" ? "dwella-document-editor" : ""}>
+      {doc.kind === "lease" && <div className="dwella-document-rail">
+        <h3>Review and signing</h3>
+        <p className="dwella-document-fineprint">Review every page before signing or inviting the tenant.</p>
+        <div className="dwella-document-actions dwella-document-workflow">
+          {open && <><Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: false }); }}>Create tenant signing link</Button>
+            <Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: true }); }}>Email invitation to tenant</Button></>}
+          {doc.can_sign && <Button appearance="primary" disabled={busy || signing} onClick={() => setSigning(true)}>Sign for landlord</Button>}
+          {["ready", "signing"].includes(doc.status) && <Button disabled={busy || signing} onClick={() => { if (window.confirm("Revoke signing for this version? Existing links will stop working. Saved documents and signatures are retained.")) revoke.mutate({}); }}>Revoke signing</Button>}
+          {doc.status === "signed" && doc.delivery_failed && <Button disabled={busy} onClick={() => email.mutate({})}>Retry emailing completed copies</Button>}
+          <Button disabled={busy || signing || refresh.isPending} onClick={() => { setError(""); refresh.mutate(); }}>Refresh status</Button>
         </div>
-        <DialogContent className="dwella-document-content">
-          {doc.kind === "lease" && <div className="dwella-document-actions dwella-document-workflow">
-            {open && <><Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: false }); }}>Create tenant signing link</Button>
-              <Button disabled={busy || signing} onClick={() => { setError(""); invite.mutate({ email_link: true }); }}>Email invitation to tenant</Button></>}
-            {doc.can_sign && <Button appearance="primary" disabled={busy || signing} onClick={() => setSigning(true)}>Sign for landlord</Button>}
-            {["ready", "signing"].includes(doc.status) && <Button disabled={busy || signing} onClick={() => { if (window.confirm("Revoke signing for this version? Existing links will stop working. Saved documents and signatures are retained.")) revoke.mutate({}); }}>Revoke signing</Button>}
-            {doc.status === "signed" && doc.delivery_failed && <Button disabled={busy} onClick={() => email.mutate({})}>Retry emailing completed copies</Button>}
-            <Button disabled={busy || signing || refresh.isPending} onClick={() => { setError(""); refresh.mutate(); }}>Refresh status</Button>
-          </div>}
-      {!doc.current_terms && doc.status !== "signed" && <p className="dwella-document-notice">Lease details have changed. Prepare a new version before collecting more signatures.</p>}
-          {message && <p role="status" className="dwella-document-notice">{message}</p>}
-          {error && <p role="alert" className="dwella-document-error">{error}</p>}
-          {inviteLink && <div className="dwella-signing-link"><label htmlFor="signing-link">Tenant signing link · share privately</label><input id="signing-link" readOnly value={inviteLink.url} onFocus={event => event.target.select()} />
-            <Button onClick={async () => { try { await navigator.clipboard.writeText(inviteLink.url); setMessage("Signing link copied."); } catch { setMessage("Select and copy the signing link above."); } }}>Copy link</Button></div>}
-          <div className={`dwella-document-layout${signing ? " is-signing" : ""}`}>
-            <PaperPreview doc={doc} />
-            {signing && <SignaturePanel key={doc.sha256} doc={doc} client={client} onCancel={() => setSigning(false)} onSigned={data => {
-              changed(data); setSigning(false); setMessage("Your signature has been recorded. The tenant signs separately.");
-            }} />}
-          </div>
-          {doc.kind === "lease" && <SigningRecord doc={doc} />}
-        </DialogContent>
-      </DialogBody>
-    </DialogSurface>
-  </Dialog>;
+        {!doc.current_terms && doc.status !== "signed" && <p className="dwella-document-notice">Lease details have changed. Prepare a new version before collecting more signatures.</p>}
+        {message && <p role="status" className="dwella-document-notice">{message}</p>}
+        {error && <p role="alert" className="dwella-document-error">{error}</p>}
+        {inviteLink && <div className="dwella-signing-link"><label htmlFor="signing-link">Tenant signing link · share privately</label><input id="signing-link" readOnly value={inviteLink.url} onFocus={event => event.target.select()} />
+          <Button onClick={async () => { try { await navigator.clipboard.writeText(inviteLink.url); setMessage("Signing link copied."); } catch { setMessage("Select and copy the signing link above."); } }}>Copy link</Button></div>}
+        {signing && <SignaturePanel key={doc.sha256} doc={doc} client={client} onCancel={() => setSigning(false)} onSigned={data => {
+          changed(data); setSigning(false); setMessage("Your signature has been recorded. The tenant signs separately.");
+        }} />}
+        <SigningRecord doc={doc} />
+      </div>}
+      <PaperPreview doc={doc} />
+    </div>
+  </section>;
 }

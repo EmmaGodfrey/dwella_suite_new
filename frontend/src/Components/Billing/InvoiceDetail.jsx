@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Button,
@@ -59,6 +59,7 @@ export default function InvoiceDetail() {
   const [paying, setPaying] = useState(false);
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [document, setDocument] = useState(null);
+  const previewButton = useRef(null);
   const preview = useInvoiceDocument({ onSuccess: setDocument, onError: error => toast.error(error.message || "Could not prepare the invoice PDF.") });
   const voidMutation = useVoidInvoiceMutation({
     onSuccess: (data) => {
@@ -107,7 +108,7 @@ export default function InvoiceDetail() {
         </div>
         {canManage ? (
           <div className="dwella-detail-actions">
-            <Button disabled={preview.isPending} onClick={() => preview.mutate(invoice.id)}>{preview.isPending ? "Preparing PDF…" : "Preview invoice"}</Button>
+            <Button ref={previewButton} disabled={preview.isPending} onClick={() => preview.mutate(invoice.id)}>{preview.isPending ? "Preparing PDF…" : document ? "Refresh invoice preview" : "Preview invoice"}</Button>
             {!isVoid && !invoice.payments.some((payment) => !payment.reversed_at) ? <Button onClick={() => setConfirmVoid(true)}>Void</Button> : null}
             {owing ? (
               <Button appearance="primary" icon={<Money20Regular />} onClick={() => setPaying(true)}>Record payment</Button>
@@ -116,65 +117,67 @@ export default function InvoiceDetail() {
         ) : null}
       </header>
 
-      {document && <DocumentPreview document={document} onClose={() => setDocument(null)} />}
-      <div className="dwella-invoice-grid">
-        <section className="dwella-surface">
-          <div className="dwella-invoice-meta">
-            <div><span>Bill to</span><strong>{invoice.tenant_name}</strong><small>{invoice.tenant_phone}</small></div>
-            <div><span>Issued</span><strong>{formatDate(invoice.issue_date)}</strong></div>
-            <div><span>Due</span><strong>{formatDate(invoice.due_date)}</strong></div>
-            {invoice.lease_reference ? <div><span>Lease</span><strong>{invoice.lease_reference}</strong></div> : null}
-          </div>
-
-          <table className="dwella-table dwella-lines-table">
-            <thead>
-              <tr><th scope="col">Description</th><th scope="col">Type</th><th scope="col" className="is-numeric">Amount</th></tr>
-            </thead>
-            <tbody>
-              {invoice.lines.map((line, index) => (
-                <tr key={index}>
-                  <td><strong>{line.description}</strong></td>
-                  <td>{kindLabel(line.kind)}</td>
-                  <td className={`is-numeric ${line.kind === "late_fee" ? "is-negative" : ""}`}>{formatMoney(line.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <dl className="dwella-detail-list dwella-invoice-totals">
-            <div><dt>Total</dt><dd>{formatMoney(invoice.total)}</dd></div>
-            <div><dt>Paid</dt><dd>{formatMoney(invoice.amount_paid)}</dd></div>
-            <div className="is-balance"><dt>Balance due</dt><dd className={owing ? (invoice.days_overdue > 0 ? "is-negative" : "") : ""}>{isVoid ? "Void" : formatMoney(invoice.balance)}</dd></div>
-          </dl>
-        </section>
-
-        <aside className="dwella-invoice-rail">
+      <div className={`dwella-invoice-workspace${document ? " has-preview" : ""}`}>
+        <div className="dwella-invoice-grid">
           <section className="dwella-surface">
-            <h3>Payments</h3>
-            {invoice.payments.length ? (
-              <ul className="dwella-payment-list">
-                {invoice.payments.map((payment) => (
-                  <li key={payment.id}>
-                    <div>
-                      <strong>{formatMoney(payment.amount)}</strong>
-                      <small>{paymentMethodLabel(payment.method)} · {formatDate(payment.paid_on)}{payment.reference ? ` · ${payment.reference}` : ""}</small>
-                      <small><Link to={`/billing/receipts/${payment.id}`}>{payment.receipt_number}</Link>{payment.reversed_at ? " · Reversed" : ""}{payment.recorded_by_name ? ` · recorded by ${payment.recorded_by_name}` : ""}</small>
-                    </div>
-                  </li>
+            <div className="dwella-invoice-meta">
+              <div><span>Bill to</span><strong>{invoice.tenant_name}</strong><small>{invoice.tenant_phone}</small></div>
+              <div><span>Issued</span><strong>{formatDate(invoice.issue_date)}</strong></div>
+              <div><span>Due</span><strong>{formatDate(invoice.due_date)}</strong></div>
+              {invoice.lease_reference ? <div><span>Lease</span><strong>{invoice.lease_reference}</strong></div> : null}
+            </div>
+
+            <table className="dwella-table dwella-lines-table">
+              <thead>
+                <tr><th scope="col">Description</th><th scope="col">Type</th><th scope="col" className="is-numeric">Amount</th></tr>
+              </thead>
+              <tbody>
+                {invoice.lines.map((line, index) => (
+                  <tr key={index}>
+                    <td><strong>{line.description}</strong></td>
+                    <td>{kindLabel(line.kind)}</td>
+                    <td className={`is-numeric ${line.kind === "late_fee" ? "is-negative" : ""}`}>{formatMoney(line.amount)}</td>
+                  </tr>
                 ))}
-              </ul>
-            ) : (
-              <p className="dwella-muted-copy">{isVoid ? "This invoice was voided." : "No payments yet."}</p>
-            )}
+              </tbody>
+            </table>
+
+            <dl className="dwella-detail-list dwella-invoice-totals">
+              <div><dt>Total</dt><dd>{formatMoney(invoice.total)}</dd></div>
+              <div><dt>Paid</dt><dd>{formatMoney(invoice.amount_paid)}</dd></div>
+              <div className="is-balance"><dt>Balance due</dt><dd className={owing ? (invoice.days_overdue > 0 ? "is-negative" : "") : ""}>{isVoid ? "Void" : formatMoney(invoice.balance)}</dd></div>
+            </dl>
           </section>
-          {canManage ? (
+
+          <aside className="dwella-invoice-rail">
             <section className="dwella-surface">
-              <NoteEditor key={invoice.id + (invoice.notes || "")} invoice={invoice} />
+              <h3>Payments</h3>
+              {invoice.payments.length ? (
+                <ul className="dwella-payment-list">
+                  {invoice.payments.map((payment) => (
+                    <li key={payment.id}>
+                      <div>
+                        <strong>{formatMoney(payment.amount)}</strong>
+                        <small>{paymentMethodLabel(payment.method)} · {formatDate(payment.paid_on)}{payment.reference ? ` · ${payment.reference}` : ""}</small>
+                        <small><Link to={`/billing/receipts/${payment.id}`}>{payment.receipt_number}</Link>{payment.reversed_at ? " · Reversed" : ""}{payment.recorded_by_name ? ` · recorded by ${payment.recorded_by_name}` : ""}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="dwella-muted-copy">{isVoid ? "This invoice was voided." : "No payments yet."}</p>
+              )}
             </section>
-          ) : invoice.notes ? (
-            <section className="dwella-surface"><h3>Note</h3><p className="dwella-muted-copy">{invoice.notes}</p></section>
-          ) : null}
-        </aside>
+            {canManage ? (
+              <section className="dwella-surface">
+                <NoteEditor key={invoice.id + (invoice.notes || "")} invoice={invoice} />
+              </section>
+            ) : invoice.notes ? (
+              <section className="dwella-surface"><h3>Note</h3><p className="dwella-muted-copy">{invoice.notes}</p></section>
+            ) : null}
+          </aside>
+        </div>
+        {document && <DocumentPreview key={`${document.id}-${document.sha256}`} document={document} returnFocusRef={previewButton} onClose={() => setDocument(null)} />}
       </div>
 
       {paying ? <RecordPaymentDrawer invoice={invoice} onClose={() => setPaying(false)} onSaved={(data) => {
