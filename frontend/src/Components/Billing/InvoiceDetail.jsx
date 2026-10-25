@@ -21,6 +21,7 @@ import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from ".
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import RecordPaymentDrawer from "./RecordPaymentDrawer";
+import OnlineCollections from "./OnlineCollections";
 import "../../shared/records.scss";
 import "./billing.scss";
 import { useInvoiceDocument } from "../../Services/documents";
@@ -150,6 +151,7 @@ export default function InvoiceDetail() {
           </section>
 
           <aside className="dwella-invoice-rail">
+            <OnlineCollections invoiceId={invoice.id} />
             <section className="dwella-surface">
               <h3>Payments</h3>
               {invoice.payments.length ? (
