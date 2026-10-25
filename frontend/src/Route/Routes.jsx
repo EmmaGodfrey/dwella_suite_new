@@ -28,6 +28,12 @@ import OutreachReview from "../Components/Outreach/ReviewQueue";
 import OutreachOutbox from "../Components/Outreach/Outbox";
 import OutreachSettings from "../Components/Outreach/Settings";
 import PlatformSettings from "../Components/Platform/Settings";
+import PortalLease from "../Components/Portal/MyLease";
+import PortalMaintenance from "../Components/Portal/Maintenance";
+import PortalPayments from "../Components/Portal/Payments";
+import PortalReceipt from "../Components/Portal/Receipt";
+import PortalRepairDetail from "../Components/Portal/RepairDetail";
+import ForTenant from "./ForTenant";
 
 export const routes = [
   { path: "/admin/settings", Component: <PlatformSettings /> },
@@ -45,8 +51,8 @@ export const routes = [
   { path: "/admin/users", title: "Users", Component: <Users /> },
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },
-  { path: "/billing/receipts", title: "Receipts", Component: <Receipts /> },
-  { path: "/billing/receipts/:id", title: "Receipt", Component: <Receipt /> },
+  { path: "/billing/receipts", title: "Receipts", Component: <ForTenant tenant={<PortalPayments />}><Receipts /></ForTenant> },
+  { path: "/billing/receipts/:id", title: "Receipt", Component: <ForTenant tenant={<PortalReceipt />}><Receipt /></ForTenant> },
   {
     path: `/dashboard`,
     title: "Dashboard",
@@ -69,37 +75,37 @@ export const routes = [
     path: `/leases`,
     title: "Leases",
     description: "Lease terms, renewals, deposits, and documents.",
-    Component: <Leases />,
+    Component: <ForTenant tenant={<PortalLease />}><Leases /></ForTenant>,
   },
   {
     path: `/leases/:id`,
     title: "Lease",
     description: "Lease terms and history.",
-    Component: <LeaseDetail />,
+    Component: <ForTenant tenant={<PortalLease />}><LeaseDetail /></ForTenant>,
   },
   {
     path: `/billing`,
     title: "Billing",
     description: "Rent invoices, collections, balances, and payment tracking.",
-    Component: <Billing />,
+    Component: <ForTenant tenant={<PortalPayments />}><Billing /></ForTenant>,
   },
   {
     path: `/billing/invoices/:id`,
     title: "Invoice",
     description: "Invoice lines, payments, and balance.",
-    Component: <InvoiceDetail />,
+    Component: <ForTenant tenant={<PortalPayments />}><InvoiceDetail /></ForTenant>,
   },
   {
     path: `/maintenance`,
     title: "Maintenance",
     description: "Work orders, vendors, approvals, and service tracking.",
-    Component: <Maintenance />,
+    Component: <ForTenant tenant={<PortalMaintenance />}><Maintenance /></ForTenant>,
   },
   {
     path: `/maintenance/:id`,
     title: "Maintenance request",
     description: "Progress, conversation and scheduling for one repair.",
-    Component: <RequestDetail />,
+    Component: <ForTenant tenant={<PortalRepairDetail />}><RequestDetail /></ForTenant>,
   },
   {
     path: `/reports`,

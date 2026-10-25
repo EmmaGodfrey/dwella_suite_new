@@ -81,8 +81,10 @@ export function getPageMeta(pathname, user) {
   const access = getUserAccess(user);
   if (access.persona === "tenant") {
     if (pathname === "/dashboard") return ["Home", "Your tenancy, payments, and maintenance requests."];
-    if (pathname === "/leases") return ["My lease", "Lease details, documents, and renewal information."];
-    if (pathname === "/billing") return ["Payments", "Rent charges, receipts, and payment history."];
+    if (pathname.startsWith("/leases")) return ["My lease", "Lease terms and your signed agreement."];
+    if (pathname.startsWith("/billing")) return ["Payments", "Invoices, receipts, and what you owe."];
+    if (pathname === "/maintenance") return ["Maintenance", "Report a repair and follow it to completion."];
+    if (pathname.startsWith("/maintenance/")) return ["Repair", "Progress and messages with your property manager."];
   }
   if (access.persona === "platform_admin" && pathname === "/dashboard") {
     return ["Administration", "Property manager activity and platform portfolio oversight."];

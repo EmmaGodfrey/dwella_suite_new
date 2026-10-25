@@ -9,6 +9,8 @@ import { useCurrentUserQuery } from "../../Services/queries";
 import { useAvatarUploadMutation, useIdentityVerificationMutation, useProfileUpdateMutation } from "../../Services/mutations";
 import { PageSection, defaultStatusColor, StatusBadge } from "../../shared/components";
 import { useFormErrors } from "../../shared/useFormErrors";
+import { getUserAccess } from "../../shared/access";
+import ContactDetails from "../Portal/ContactDetails";
 
 const displayStatus = (value) => {
   const status = (value || "not_submitted").replace(/_/g, " ");
@@ -138,6 +140,7 @@ const Profile = () => {
         </aside>
 
         <div className="dwella-profile-stack">
+          {getUserAccess(user).persona === "tenant" ? <ContactDetails /> : null}
           <PageSection className="dwella-profile-section" title="Account details" note="Keep your admin identity accurate for audit trails and ownership records.">
             <form noValidate onSubmit={submitProfile}>
               <div className="dwella-form-grid">

@@ -1,0 +1,162 @@
+// Tenant self-service pages. Layout and tokens follow the manager pages; the
+// grid collapses to one column on phones.
+
+.dwella-portal {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+
+.dwella-portal-unlinked {
+  max-width: 44rem;
+}
+
+.dwella-portal-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--dwella-info-soft);
+}
+
+.dwella-portal-banner strong {
+  display: block;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+}
+
+.dwella-portal-banner p {
+  margin: 4px 0 0;
+  color: var(--dwella-muted);
+}
+
+.dwella-portal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 16px;
+}
+
+.dwella-portal-stat {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 6px;
+}
+
+.dwella-portal-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+
+.dwella-portal-stat strong {
+  color: var(--dwella-ink);
+  font-family: var(--font-display, inherit);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  font-weight: 600;
+}
+
+.dwella-portal-stat small {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+}
+
+.dwella-portal-stat small.is-danger {
+  color: var(--dwella-danger);
+}
+
+.dwella-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.dwella-portal-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.dwella-portal-heading h2,
+.dwella-portal-heading h3 {
+  margin: 0;
+}
+
+.dwella-portal-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-portal-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-portal-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.dwella-portal-list span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dwella-portal-list small {
+  color: var(--dwella-muted);
+}
+
+.dwella-portal-list a {
+  color: var(--dwella-link);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dwella-portal-list a:hover {
+  text-decoration: underline;
+}
+
+.dwella-portal-table tbody tr {
+  cursor: pointer;
+}
+
+.dwella-portal-thread li.is-yours > div {
+  background: var(--dwella-primary-soft);
+}
+
+.dwella-portal-receipt {
+  max-width: 40rem;
+}
+
+.dwella-portal-receipt .dwella-portal-amount {
+  margin: 0;
+  color: var(--dwella-accent-strong, var(--dwella-success));
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  font-weight: 600;
+}
+
+@media print {
+  .dwella-portal-receipt .dwella-portal-print {
+    display: none;
+  }
+}

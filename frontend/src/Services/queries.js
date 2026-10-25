@@ -3,7 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { apiRequest, getApiBaseUrl } from "./apiClient";
 import { queryKeys } from "./queryKeys";
 
-const toSearchParams = (filters = {}) => {
+export const toSearchParams = (filters = {}) => {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
