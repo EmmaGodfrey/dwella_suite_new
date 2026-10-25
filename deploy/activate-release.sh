@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+umask 077
 
 target=${1:?"Deployment target path is required"}
 release="${target}.release"

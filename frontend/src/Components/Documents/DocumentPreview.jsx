@@ -72,10 +72,10 @@ export default function DocumentPreview({ document: initial, onClose, onChange, 
   function changed(data) { setDoc(data); onChange?.(data); }
   const refresh = useMutation({ mutationFn: () => client.get(doc.id, "document"), onSuccess: changed, onError: e => setError(documentError(e)) });
   const invite = useDocumentAction(client, doc.id, "invite", { onSuccess: (data) => {
-    setInviteLink(data); setMessage("Signing link created. It expires in 7 days and requires tenant email verification."); refresh.mutate();
+    setInviteLink(data); setMessage(data.email_queued ? "Invitation queued for email. The signing link expires in 7 days and requires tenant email verification." : "Signing link created. It expires in 7 days and requires tenant email verification."); refresh.mutate();
   }, onError: e => setError(documentError(e)) });
   const revoke = useDocumentAction(client, doc.id, "revoke", { onSuccess: data => { changed(data); setConfirmRevoke(false); setInviteLink(null); setMessage("Signing revoked. Existing links can no longer open this version."); }, onError: e => { setConfirmRevoke(false); setError(documentError(e)); } });
-  const email = useDocumentAction(client, doc.id, "email-copies", { onSuccess: data => { setMessage(data.delivered ? "Completed copies have been emailed." : "Delivery failed. The signed PDF is saved; you can retry sending."); refresh.mutate(); }, onError: e => setError(documentError(e)) });
+  const email = useDocumentAction(client, doc.id, "email-copies", { onSuccess: data => { setMessage(data.delivered ? "Completed copies have been emailed." : data.queued ? "Completed copies are queued for email. Your signed PDF is saved." : "Delivery failed. The signed PDF is saved; you can retry sending."); refresh.mutate(); }, onError: e => setError(documentError(e)) });
   const busy = invite.isPending || revoke.isPending || email.isPending;
   const open = doc.kind === "lease" && ["ready", "signing"].includes(doc.status) && doc.current_terms;
   return <section className="dwella-document-workspace" aria-label={doc.kind === "invoice" ? "Invoice preview" : "Lease agreement review"}>

@@ -6,7 +6,10 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.cache import cache
 from django.core.management import call_command
+from django.db.models import Count
 from django.utils import timezone
+
+from apps.documents.models import SigningEmail
 
 from .jobs import JOBS
 from .models import JobRun
@@ -98,4 +101,8 @@ def scheduler_status():
                 ).count(),
             }
         )
-    return {"heartbeat": cache.get(HEARTBEAT_KEY), "jobs": jobs}
+    counts = dict(SigningEmail.objects.values("status").annotate(total=Count("pk"))
+                  .values_list("status", "total"))
+    return {"heartbeat": cache.get(HEARTBEAT_KEY), "jobs": jobs,
+            "signing_mailer": {"heartbeat": cache.get("signing-mailer:heartbeat"),
+                               "counts": counts}}

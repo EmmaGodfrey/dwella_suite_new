@@ -24,11 +24,11 @@ printf 'Replace the %s database with %s? Type RESTORE to continue: ' "${environm
 read -r answer
 [ "${answer}" = "RESTORE" ] || { echo "Cancelled."; exit 1; }
 
-compose stop backend scheduler
-trap 'compose up -d backend scheduler' EXIT
+compose stop backend scheduler signing-mailer
+trap 'compose up -d backend scheduler signing-mailer' EXIT
 compose exec -T postgres sh -c \
   'pg_restore --clean --if-exists --no-owner --single-transaction -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
   < "${dump}"
-compose up -d backend scheduler
+compose up -d backend scheduler signing-mailer
 trap - EXIT
 echo "Restored ${dump}."

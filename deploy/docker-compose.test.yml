@@ -116,6 +116,19 @@ services:
 
   # Nightly verified database dump and media archive under data/backups.
   # Restore with deploy/restore-backup.sh. Copy data/backups off this server too.
+  signing-mailer:
+    image: dwella-suite-test-backend:latest
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ../.env.test
+    environment:
+      APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
+    depends_on:
+      backend:
+        condition: service_healthy
+    entrypoint: ["python", "manage.py", "run_signing_mailer"]
+
   backup:
     image: postgres:16-alpine
     user: "1000:1000"
