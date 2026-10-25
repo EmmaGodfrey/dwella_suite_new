@@ -1,0 +1,112 @@
+.dwella-import-drawer.fui-DrawerOverlay {
+  width: min(48rem, 100vw);
+}
+
+.dwella-import-template {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--dwella-wash);
+}
+
+.dwella-import-template h3 {
+  margin: 0;
+  color: var(--dwella-ink);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-h4);
+  font-weight: 600;
+}
+
+.dwella-import-drop {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 32px 16px;
+  border: 1px dashed var(--dwella-line);
+  border-radius: var(--radius-md);
+  color: var(--dwella-muted);
+  text-align: center;
+  cursor: pointer;
+}
+
+.dwella-import-drop strong {
+  color: var(--dwella-ink);
+  overflow-wrap: anywhere;
+}
+
+.dwella-import-drop.has-file {
+  border-style: solid;
+  border-color: var(--dwella-primary);
+}
+
+.dwella-import-drop:focus-within {
+  outline: 2px solid var(--dwella-primary);
+  outline-offset: 2px;
+}
+
+.dwella-import-drop input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.dwella-import-counts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dwella-import-counts .dwella-muted-copy {
+  margin-left: auto;
+  font-size: var(--fs-small);
+}
+
+.dwella-import-rows td.is-danger {
+  color: var(--dwella-danger);
+}
+
+.dwella-import-rows td {
+  vertical-align: top;
+}
+
+.dwella-import-error {
+  margin: 0;
+  color: var(--dwella-danger);
+}
+
+.dwella-callout.is-danger,
+.dwella-callout.is-success {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.dwella-callout.is-danger {
+  color: var(--dwella-ink);
+  background: var(--dwella-danger-soft);
+}
+
+.dwella-callout.is-danger strong {
+  color: var(--dwella-danger);
+}
+
+.dwella-callout.is-success {
+  color: var(--dwella-ink);
+  background: var(--dwella-success-soft);
+}
+
+.dwella-callout.is-success strong {
+  color: var(--dwella-success);
+  font-size: var(--fs-h4);
+}
+
+.dwella-callout p {
+  margin: 0;
+}

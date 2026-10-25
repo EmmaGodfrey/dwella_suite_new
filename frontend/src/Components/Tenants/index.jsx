@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button, Input } from "@fluentui/react-components";
 import {
+  ArrowUpload20Regular,
   Call20Regular,
   Chat20Regular,
   Edit20Regular,
@@ -18,6 +19,7 @@ import { daysUntil, formatDate, formatMoney, initials } from "../../shared/forma
 import { leaseBadgeProps, tenantBadgeProps, tenantStatuses } from "../../shared/tenancy";
 import TenantDrawer from "./TenantDrawer";
 import TenantConfirm from "./TenantConfirm";
+import ImportDrawer from "../Imports/ImportDrawer";
 import { useTenantActionMutation } from "../../Services/mutations";
 import { toast } from "react-toastify";
 import "../../shared/records.scss";
@@ -178,7 +180,7 @@ export default function Tenants() {
     ordering: "full_name",
   }));
   const [selectedId, setSelectedId] = useState(null);
-  const [drawer, setDrawer] = useState(null); // null | "add" | "edit"
+  const [drawer, setDrawer] = useState(null); // null | "add" | "edit" | "import"
 
   useEffect(() => {
     if (params.get("new") === "1" && canManage) {
@@ -242,6 +244,7 @@ export default function Tenants() {
         />
         {canManage ? (
           <PageActions>
+            <Button icon={<ArrowUpload20Regular />} onClick={() => setDrawer("import")}>Import CSV</Button>
             <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setDrawer("add")}>
               Add tenant
             </Button>
@@ -329,7 +332,7 @@ export default function Tenants() {
         </div>
       )}
 
-      {drawer ? (
+      {drawer === "import" ? <ImportDrawer kind="tenants" onClose={() => setDrawer(null)} /> : drawer ? (
         <TenantDrawer
           key={drawer === "edit" ? tenant?.id : "add"}
           open

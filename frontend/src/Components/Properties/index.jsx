@@ -17,6 +17,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add20Regular,
+  ArrowUpload20Regular,
   Building20Regular,
   Building24Regular,
   Camera20Regular,
@@ -34,6 +35,7 @@ import {
 } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
 import { EmptyState, StatusBadge, labelize, PageActions } from "../../shared/components";
+import ImportDrawer from "../Imports/ImportDrawer";
 import { PropertyPhoto } from "../../shared/components/PropertyPhoto";
 import { formatMoney } from "../../shared/format";
 import PropertyForm from "./PropertyForm";
@@ -365,6 +367,7 @@ export default function Properties() {
   });
   const [selectedId, setSelectedId] = useState(null);
   const [mode, setMode] = useState("view");
+  const [importing, setImporting] = useState(false);
   const saving = useIsMutating({ mutationKey: ["saveProperty"] }) > 0;
   const { data: summary } = useDashboardSummaryQuery({ enabled: Boolean(user), staleTime: 60_000 });
   const townOptions = [
@@ -458,6 +461,7 @@ export default function Properties() {
         ) : null}
         {canManage ? (
           <PageActions>
+            <Button icon={<ArrowUpload20Regular />} onClick={() => setImporting(true)}>Import units</Button>
             <Button appearance="primary" icon={<Add20Regular />} onClick={() => setMode("add")}>
               Add property
             </Button>
@@ -609,6 +613,7 @@ export default function Properties() {
           )}
         </section>
       </div>
+      {importing ? <ImportDrawer kind="units" onClose={() => setImporting(false)} /> : null}
     </div>
   );
 }
