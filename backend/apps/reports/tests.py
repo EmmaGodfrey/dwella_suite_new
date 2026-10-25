@@ -16,6 +16,10 @@ from apps.properties.models import Unit
 pytestmark = pytest.mark.django_db
 
 
+def body(response):
+    return b"".join(response.streaming_content).decode("utf-8-sig")
+
+
 @pytest.fixture
 def dataset():
     org = Organization.objects.create(name="Reports portfolio")
@@ -83,7 +87,7 @@ def test_property_filter_pagination_and_full_export(dataset, report):
     exported = client.get(base + "&page_size=1&export=csv")
     assert exported.status_code == 200
     assert exported["Content-Type"].startswith("text/csv")
-    csv_rows = list(csv.reader(StringIO(exported.content.decode("utf-8-sig"))))
+    csv_rows = list(csv.reader(StringIO(body(exported))))
     assert len(csv_rows) == data["total_rows"] + 1
     assert "attachment;" in exported["Content-Disposition"]
 
@@ -93,7 +97,7 @@ def test_exports_escape_spreadsheet_formulas(dataset):
     lease.tenant.full_name = '=HYPERLINK("https://example.com")'
     lease.tenant.save()
     response = client.get("/api/v1/reports/arrears/?export=csv")
-    rows = list(csv.DictReader(StringIO(response.content.decode("utf-8-sig"))))
+    rows = list(csv.DictReader(StringIO(body(response))))
     assert rows[0]["tenant"].startswith("'=HYPERLINK")
 
 
@@ -131,3 +135,30 @@ def test_voided_and_paid_invoices_are_not_arrears(dataset):
     data = client.get("/api/v1/reports/arrears/").json()["response_data"]
     assert data["total_rows"] == 5
     assert data["totals"]["balance"] == "475.00"
+
+
+@pytest.mark.parametrize("report", ["rent-roll", "arrears"])
+def test_report_queries_do_not_grow_with_the_portfolio(dataset, report):
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    org, client, lease, _ = dataset
+    url = f"/api/v1/reports/{report}/"
+
+    def queries(path):
+        with CaptureQueriesContext(connection) as captured:
+            assert client.get(path).status_code == 200
+        return len(captured)
+
+    before = queries(url), queries(url + "?export=csv")
+    for n in range(20):
+        unit = Unit.objects.create(
+            organization=org, property=lease.unit.property, name=f"Flat {n}", rent_amount=100
+        )
+        create_invoice(
+            organization=org, tenant=lease.tenant, unit=unit,
+            issue_date=timezone.localdate() - timedelta(days=40),
+            due_date=timezone.localdate() - timedelta(days=40),
+            lines=[{"kind": "rent", "description": "Rent", "amount": Decimal("10")}],
+        )
+    assert (queries(url), queries(url + "?export=csv")) == before
