@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -40,6 +41,12 @@ def live_alerts(org):
     for lease in (
         Lease.objects.for_organization(org)
         .filter(status=Lease.Status.ACTIVE, end_date__lte=today + timedelta(days=30))
+        # A renewal in progress already answers "this lease ends soon".
+        .exclude(
+            Exists(
+                Lease.objects.filter(renewal_of=OuterRef("pk"), status__in=Lease.OPEN_STATUSES)
+            )
+        )
         .select_related("tenant", "unit")
         .order_by("end_date", "pk")[:100]
     ):
@@ -54,6 +61,27 @@ def live_alerts(org):
                 "body": f"{lease.tenant.full_name} · {lease.unit.name}",
                 "path": f"/leases/{lease.public_id}",
                 "date": lease.end_date.isoformat(),
+            }
+        )
+    for lease in (
+        Lease.objects.for_organization(org)
+        .filter(
+            renewal_of__isnull=False,
+            status__in=(Lease.Status.DRAFT, Lease.Status.PENDING_SIGNATURE),
+            start_date__lte=today,
+        )
+        .select_related("tenant", "unit")
+        .order_by("start_date", "pk")[:100]
+    ):
+        # Signed renewals start on their own; these still need signing or starting.
+        alerts.append(
+            {
+                "id": f"renewal:{lease.public_id}:{lease.start_date}",
+                "kind": "lease",
+                "title": f"{lease.reference} renewal has not started",
+                "body": f"{lease.tenant.full_name} · {lease.unit.name}",
+                "path": f"/leases/{lease.public_id}",
+                "date": lease.start_date.isoformat(),
             }
         )
     for repair in (
