@@ -13,13 +13,14 @@ class FakeS3:
 
     def __init__(self, fail_upload=False):
         self.objects, self.fail_upload, self.uploads = {}, fail_upload, []
+        self.metadata = {}
 
     def head_object(self, Bucket, Key):  # noqa: N803
         if Key not in self.objects:
             raise ClientError({"Error": {"Code": "404"}}, "HeadObject")
-        return {"ContentLength": len(self.objects[Key])}
+        return {"ContentLength": len(self.objects[Key]), "Metadata": self.metadata.get(Key, {})}
 
-    def upload_file(self, filename, bucket, key):
+    def upload_file(self, filename, bucket, key, ExtraArgs=None):  # noqa: N803
         if self.fail_upload:
             raise ClientError(
                 {"Error": {"Code": "AccessDenied", "Message": "secret-key-context"}}, "PutObject"
@@ -27,6 +28,10 @@ class FakeS3:
         self.uploads.append(key)
         with open(filename, "rb") as stream:
             self.objects[key] = stream.read()
+        self.metadata[key] = (ExtraArgs or {}).get("Metadata", {})
+
+    def get_object(self, Bucket, Key):  # noqa: N803
+        return {"Body": io.BytesIO(self.objects[Key])}
 
 
 @pytest.fixture
@@ -71,6 +76,20 @@ def test_incomplete_remote_copy_is_replaced(backups):
     fake.objects["_backups/test/db-2026-11-20.dump"] = b"du"
     run(fake)
     assert fake.objects["_backups/test/db-2026-11-20.dump"] == b"dump"
+
+
+def test_same_size_corrupt_object_is_not_treated_as_a_backup(backups):
+    fake = FakeS3()
+    fake.objects["_backups/test/db-2026-11-20.dump"] = b"bad!"
+    run(fake)
+    assert fake.objects["_backups/test/db-2026-11-20.dump"] == b"dump"
+
+
+def test_download_checksum_failure_is_reported(backups):
+    fake = FakeS3()
+    with patch.object(fake, "get_object", return_value={"Body": io.BytesIO(b"bad!")}):
+        with pytest.raises(CommandError, match="checksum"):
+            run(fake)
 
 
 def test_dedicated_backup_credentials_take_priority(backups, monkeypatch):

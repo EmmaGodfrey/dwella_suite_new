@@ -1,3 +1,4 @@
+import hashlib
 import os
 from pathlib import Path
 
@@ -59,16 +60,30 @@ class Command(BaseCommand):
         for path in files:
             key = target["prefix"] + path.name
             size = path.stat().st_size
+            with path.open("rb") as source:
+                sha256 = hashlib.file_digest(source, "sha256").hexdigest()
             try:
                 try:
-                    if s3.head_object(Bucket=target["bucket"], Key=key)["ContentLength"] == size:
+                    remote = s3.head_object(Bucket=target["bucket"], Key=key)
+                    if (remote["ContentLength"] == size
+                            and remote.get("Metadata", {}).get("sha256") == sha256):
                         continue
                 except s3.exceptions.ClientError as error:
                     if error.response.get("Error", {}).get("Code") not in {"404", "NoSuchKey"}:
                         raise
-                s3.upload_file(str(path), target["bucket"], key)
+                s3.upload_file(str(path), target["bucket"], key,
+                               ExtraArgs={"Metadata": {"sha256": sha256}})
                 if s3.head_object(Bucket=target["bucket"], Key=key)["ContentLength"] != size:
                     raise CommandError(f"{path.name} did not upload completely.")
+                body = s3.get_object(Bucket=target["bucket"], Key=key)["Body"]
+                try:
+                    remote_hash = hashlib.sha256()
+                    for block in iter(lambda stream=body: stream.read(1024 * 1024), b""):
+                        remote_hash.update(block)
+                    if remote_hash.hexdigest() != sha256:
+                        raise CommandError("Offsite backup checksum verification failed.")
+                finally:
+                    body.close()
             except CommandError:
                 raise
             except Exception:
