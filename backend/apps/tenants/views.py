@@ -20,7 +20,7 @@ class TenantViewSet(OrganizationScopedModelViewSet):
         result = super().get_throttles()
         return (
             [*result, InvitationWriteThrottle()]
-            if self.action in {"invite", "revoke_invite"}
+            if self.action in {"invite", "revoke_invite", "remove_portal_access"}
             else result
         )
 
@@ -35,6 +35,12 @@ class TenantViewSet(OrganizationScopedModelViewSet):
         from apps.accounts.invitations import revoke_tenant_invitation
 
         return Response(revoke_tenant_invitation(request, self.get_object()))
+
+    @action(detail=True, methods=["post"], url_path="remove-portal-access")
+    def remove_portal_access(self, request, public_id=None):
+        from apps.accounts.invitations import remove_portal_access
+
+        return Response(remove_portal_access(request, self.get_object()))
 
     serializer_class = TenantSerializer
     queryset = Tenant.objects.prefetch_related(

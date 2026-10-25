@@ -218,6 +218,23 @@ def test_tenant_updates_their_phone_but_not_their_email(home):
     assert AuditEvent.objects.filter(action="tenant.contact_updated_by_tenant").count() == 1
 
 
+def test_manager_removes_portal_access_and_keeps_the_records(home):
+    org, tenant = home["org"], home["lease"].tenant
+    _, manager = account(org, "landlord", "portal-owner")
+    response = manager.post(f"/api/v1/tenants/{tenant.public_id}/remove-portal-access/")
+    assert response.status_code == 200 and data(response)["removed"] is True
+    tenant.refresh_from_db()
+    assert tenant.user is None
+    assert not OrganizationMembership.objects.filter(user=home["user"]).exists()
+    assert home["client"].get("/api/v1/portal/overview/").status_code == 403
+    assert Invoice.objects.filter(tenant=tenant).exists()
+    assert AuditEvent.objects.filter(action="tenant.portal_access_removed").exists()
+    # Tenants cannot remove access themselves.
+    assert home["client"].post(
+        f"/api/v1/tenants/{tenant.public_id}/remove-portal-access/"
+    ).status_code == 403
+
+
 def test_tenant_adds_a_photo_to_their_repair(home):
     import io
 

@@ -109,6 +109,33 @@ def revoke_tenant_invitation(request, tenant):
 
 
 @transaction.atomic
+def remove_portal_access(request, tenant):
+    """Unlink the tenant's account and withdraw pending invitations.
+
+    Records stay with the tenant. The tenant membership is deleted only when no
+    other tenant record in the workspace is linked to the same account, so a
+    later invitation can link them again; an administrator's deactivation of a
+    membership is left untouched.
+    """
+    tenant = Tenant.objects.select_for_update().get(pk=tenant.pk)
+    tenant.portal_invitations.filter(accepted_at__isnull=True, revoked_at__isnull=True).update(
+        revoked_at=timezone.now()
+    )
+    user_id = tenant.user_id
+    if user_id:
+        tenant.user = None
+        tenant.save(update_fields=["user", "updated_at"])
+        if not Tenant.objects.filter(organization=tenant.organization, user_id=user_id).exists():
+            OrganizationMembership.objects.filter(
+                user_id=user_id, organization=tenant.organization, role="tenant", is_active=True
+            ).delete()
+    record_event(
+        request, "tenant.portal_access_removed", tenant, tenant.organization, account_id=user_id
+    )
+    return {"removed": bool(user_id)}
+
+
+@transaction.atomic
 def accept_invitation(request, token, password=""):
     candidate = find_invitation(token)
     tenant = Tenant.objects.select_for_update().get(pk=candidate.tenant_id)
