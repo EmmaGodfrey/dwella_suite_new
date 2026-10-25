@@ -29,7 +29,12 @@ class UnitRow(serializers.Serializer):
     rent_amount = AmountField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     bedrooms = serializers.IntegerField(min_value=0, max_value=50, required=False, default=0)
     bathrooms = serializers.DecimalField(
-        max_digits=4, decimal_places=1, min_value=0, max_value=50, required=False, default=0
+        max_digits=4,
+        decimal_places=1,
+        min_value=Decimal("0"),
+        max_value=Decimal("50"),
+        required=False,
+        default=0,
     )
     floor_area = AmountField(
         max_digits=10, decimal_places=2, min_value=Decimal("0.01"), required=False, allow_null=True
