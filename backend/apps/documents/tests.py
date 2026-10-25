@@ -403,8 +403,9 @@ def test_request_code_throttling(setup):
     assert public.post(url + "request-code/").status_code == 429
 
 
+@pytest.mark.parametrize("failure_reason", ["provider_unavailable", "expired_queue"])
 def test_delivery_failure_retains_completed_document_and_retry_is_idempotent(
-    setup, django_capture_on_commit_callbacks
+    setup, django_capture_on_commit_callbacks, failure_reason,
 ):
     from .signing import send_completed_copies
 
@@ -415,6 +416,10 @@ def test_delivery_failure_retains_completed_document_and_retry_is_idempotent(
     with patch("apps.documents.outbox.EmailMessage.send", side_effect=OSError("Unavailable")):
         with django_capture_on_commit_callbacks(execute=True):
             result = public.post(url + "sign/", sign_payload(first, setup[3].tenant.full_name))
+        if failure_reason == "expired_queue":
+            SigningEmail.objects.filter(kind="completed").update(
+                expires_at=timezone.now() - timedelta(seconds=1),
+            )
         deliver_pending()
     assert result.status_code == 200
     record = DocumentVersion.objects.get()

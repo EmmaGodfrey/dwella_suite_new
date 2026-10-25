@@ -86,8 +86,10 @@ def finish(row, status, *, failure="", retry=False):
                 DocumentVersion.objects.filter(pk=row.document_id).update(
                     copies_emailed_at=now, delivery_failed=False,
                 )
-            elif failure:
-                DocumentVersion.objects.filter(pk=row.document_id).update(delivery_failed=True)
+            elif failure or status == SigningEmail.Status.CANCELLED:
+                DocumentVersion.objects.filter(
+                    pk=row.document_id, copies_emailed_at__isnull=True,
+                ).update(delivery_failed=True)
 
 
 def message_for(row):
