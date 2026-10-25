@@ -19,4 +19,5 @@ class Job:
 JOBS = {
     "beta_emails": Job(command="send_beta_emails", every=timedelta(minutes=15)),
     "billing": Job(command="run_billing", daily_at=time(6, 0)),
+    "offsite_backups": Job(command="upload_backups", every=timedelta(hours=1)),
 }

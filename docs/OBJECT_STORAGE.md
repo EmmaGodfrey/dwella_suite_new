@@ -101,3 +101,18 @@ Live bucket connectivity, unsigned-access denial, and expiring downloads remain
 activation checks until account credentials exist. Automated tests verify signed
 URL generation, safe configuration, upload ACLs, probe cleanup, and access rules
 without contacting an actual cloud account.
+
+## Off-server backups
+
+The `backup` service writes nightly database dumps and media archives to
+`data/backups`, and every deployment adds a `pre-deploy-*.dump`. The scheduler's
+`offsite_backups` job (on by default in production and staging) copies any file
+not yet in the bucket to `_backups/production/` or `_backups/test/`, checking the
+uploaded size. It uses `BACKUP_S3_*` when set, otherwise the environment's
+`STORAGE_S3_*` bucket and credentials. The application never deletes backup
+objects: add an R2 lifecycle rule on the `_backups/` prefix (e.g. delete after
+30 days) for retention. Until credentials are set the job fails visibly in
+`/api/v1/platform/scheduler/status/`.
+
+Restore by downloading a dump from the bucket into `data/backups` and running
+`deploy/restore-backup.sh prod|test <file>`.
