@@ -21,6 +21,10 @@ def reverse_payment(payment, *, reason, user):
     """Correct the ledger, keeping the original receipt and who corrected it."""
     invoice = Invoice.objects.select_for_update().get(pk=payment.invoice_id)
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if hasattr(payment, "collection"):
+        raise ValidationError({"reason": [
+            "Online payments require provider reconciliation; they cannot be reversed as cash."
+        ]})
     if payment.reversed_at:
         raise ValidationError({"reason": ["This payment has already been reversed."]})
     if not reason.strip():
