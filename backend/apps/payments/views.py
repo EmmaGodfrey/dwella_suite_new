@@ -4,16 +4,16 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.audit.services import record_event
-from apps.common.permissions import CanViewPortfolio, IsPlatformSuperuser
+from apps.common.permissions import CanManageOrganization, CanViewPortfolio, IsPlatformSuperuser
 from apps.common.workspaces import resolve_workspace
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, OrganizationMembership
 from apps.portal.access import IsPortalTenant, portal_context
 from apps.portal.views import invoices
 
@@ -24,6 +24,7 @@ from .serializers import (
     CollectionSerializer,
     DestinationApprovalSerializer,
     DestinationSerializer,
+    DestinationSetupSerializer,
     TenantCollectionSerializer,
 )
 from .services import approve_destination, checkout_payload, start_checkout
@@ -33,6 +34,15 @@ from .webhooks import MAX_WEBHOOK, receive_webhook
 class PaymentWriteThrottle(UserRateThrottle):
     scope = "payment_write"
     rate = "30/hour"
+
+
+class CanSetReceivingDetails(CanManageOrganization):
+    message = "Sign in as the property manager to set receiving details."
+
+    def has_permission(self, request, view):
+        if request.user and (request.user.is_staff or request.user.is_superuser):
+            return False
+        return super().has_permission(request, view)
 
 
 class WebhookThrottle(AnonRateThrottle):
@@ -155,6 +165,21 @@ class ManagerCollectionList(PrivateView, generics.ListAPIView):
 class ManagerDestinationView(PrivateView):
     permission_classes = [CanViewPortfolio]
 
+    def get_throttles(self):
+        return (
+            [PaymentWriteThrottle()] if self.request.method == "POST" else super().get_throttles()
+        )
+
+    @staticmethod
+    def self_service_enabled():
+        return settings.APP_ENVIRONMENT == "test" and settings.LENCO_ALLOW_UNVERIFIED_DESTINATIONS
+
+    def get_permissions(self):
+        classes = (
+            [CanSetReceivingDetails] if self.request.method == "POST" else self.permission_classes
+        )
+        return [permission() for permission in classes]
+
     def get(self, request):
         row = Destination.objects.filter(
             organization=resolve_workspace(request), enabled=True
@@ -163,8 +188,51 @@ class ManagerDestinationView(PrivateView):
             {
                 "destination": DestinationSerializer(row).data if row else None,
                 "collection_enabled": settings.LENCO_PAYMENTS_ENABLED,
+                "self_service_enabled": self.self_service_enabled(),
+                "phone_verification_enabled": False,
             }
         )
+
+    def post(self, request):
+        if request.user.is_staff or request.user.is_superuser:
+            raise PermissionDenied("Sign in as the property manager to set receiving details.")
+        if not self.self_service_enabled():
+            raise ValidationError("Receiving-number verification is not configured yet.")
+        organization = resolve_workspace(request)
+        if organization.currency != "ZMW":
+            raise ValidationError("Mobile-money payouts require a ZMW workspace.")
+        serializer = DestinationSetupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        data.pop("confirm_details")
+        with transaction.atomic():
+            organization = Organization.objects.select_for_update().get(pk=organization.pk)
+            if not organization.is_active or organization.currency != "ZMW":
+                raise ValidationError("Receiving details require an active ZMW workspace.")
+            if not OrganizationMembership.objects.filter(
+                organization=organization,
+                user=request.user,
+                user__is_active=True,
+                is_active=True,
+                role="landlord",
+            ).exists():
+                raise PermissionDenied("Active property manager access is required.")
+            row = approve_destination(
+                organization=organization,
+                user=request.user,
+                **data,
+                reason="Self-service test setup; phone ownership verification explicitly deferred.",
+            )
+            record_event(
+                request,
+                "payment.destination_saved",
+                row,
+                organization=organization,
+                operator=row.operator,
+                phone_suffix=row.phone[-4:],
+                verification="test_bypass",
+            )
+        return Response(DestinationSerializer(row).data)
 
 
 class PlatformDestinationView(PrivateView):
