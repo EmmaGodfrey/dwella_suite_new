@@ -4,6 +4,22 @@ import { queryClient } from "./queryClient";
 
 const keys = (...parts) => ["onlinePayments", ...parts];
 
+export const useReceivingDetails = (options = {}) => useQuery({
+  queryKey: keys("destination"),
+  queryFn: ({ signal }) => api.get("/payments/destination/", { signal }),
+  retry: false,
+  ...options,
+});
+
+export const useSaveReceivingDetails = () => useMutation({
+  mutationFn: (details) => api.post("/payments/destination/", details),
+  retry: false,
+  onSuccess: () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: keys("destination") }),
+    queryClient.invalidateQueries({ queryKey: keys("options") }),
+  ]),
+});
+
 export const useTenantPaymentOptions = () => useQuery({
   queryKey: keys("options"), queryFn: () => api.get("/payments/tenant/options/"), retry: false,
 });

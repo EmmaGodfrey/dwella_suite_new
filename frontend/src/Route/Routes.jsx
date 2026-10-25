@@ -1,6 +1,7 @@
 //Pages
 import Billing from "../Components/Billing";
 import InvoiceDetail from "../Components/Billing/InvoiceDetail";
+import ReceivingDetails from "../Components/Billing/ReceivingDetails";
 import Dashboard from "../Components/Dashboard";
 import LeaseDetail from "../Components/Leases/LeaseDetail";
 import Leases from "../Components/Leases";
@@ -36,6 +37,7 @@ import PortalRepairDetail from "../Components/Portal/RepairDetail";
 import ForTenant from "./ForTenant";
 
 export const routes = [
+  { path: "/billing/receiving-details", title: "Receiving details", Component: <ReceivingDetails /> },
   { path: "/admin/settings", Component: <PlatformSettings /> },
   { path: "/admin/outreach/contacts/:id", Component: <OutreachContact /> },
   { path: "/admin/outreach/sequences", Component: <OutreachSequences /> },

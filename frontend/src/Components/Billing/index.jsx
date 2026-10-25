@@ -142,6 +142,7 @@ export default function Billing() {
 
       <div className="dwella-page-toolbar">
         <Button onClick={() => navigate("/billing/receipts")}>Receipts</Button>
+        {getUserAccess(user).persona === "landlord" && <Button onClick={() => navigate("/billing/receiving-details")}>Receiving details</Button>}
         <SegmentedFilter
           label="Filter invoices"
           options={invoiceViews}
