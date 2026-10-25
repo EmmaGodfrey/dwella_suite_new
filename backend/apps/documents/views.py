@@ -239,7 +239,7 @@ class DocumentViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):
         if document.status != "signed":
             raise ValidationError("Copies can be emailed after all parties have signed.")
         delivered = send_completed_copies(document.pk)
-        return Response({"delivered": delivered})
+        return Response({"delivered": delivered, "queued": not delivered})
 
 
 class OriginalViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):

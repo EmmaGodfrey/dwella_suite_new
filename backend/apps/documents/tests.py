@@ -18,11 +18,12 @@ from apps.billing.tests import make_lease
 from apps.organizations.models import Organization, OrganizationMembership
 
 from .files import inspect_pdf
-from .models import DocumentVersion, SignedLeaseOriginal, SigningInvite
+from .models import DocumentVersion, SignedLeaseOriginal, SigningEmail, SigningInvite
+from .outbox import deliver_pending
 from .rendering import digest
 
 ROOT = "/api/v1/documents/versions/"
-pytestmark = pytest.mark.django_db
+pytestmark = pytest.mark.django_db(transaction=True)
 
 
 def member(org, name="manager", role="landlord"):
@@ -101,6 +102,7 @@ def verified(client, doc):
     token, url = invitation(client, doc)
     public = APIClient()
     assert public.post(url + "request-code/").status_code == 200
+    deliver_pending()
     code = re.search(r"code is (\d{6})", mail.outbox[-1].body)[1]
     response = public.post(url + "verify/", {"code": code}, format="json")
     assert response.status_code == 200, response.content
@@ -203,6 +205,7 @@ def test_complete_two_party_signing_preserves_revisions_and_does_not_activate(
     with django_capture_on_commit_callbacks(execute=True):
         tenant = public.post(url + "sign/", sign_payload(first, lease.tenant.full_name))
     assert tenant.status_code == 200, tenant.content
+    deliver_pending()
     final = tenant.json()["response_data"]
     assert final["status"] == "signed"
     record = DocumentVersion.objects.get()
@@ -281,6 +284,7 @@ def test_public_challenge_discloses_nothing_and_attempts_persist(setup):
     good = public.post(url + "request-code/")
     unknown = public.post("/api/v1/signing/" + "x" * 43 + "/request-code/")
     assert good.json() == unknown.json()
+    deliver_pending()
     assert len(mail.outbox) == 1
     code = re.search(r"code is (\d{6})", mail.outbox[-1].body)[1]
     public.post(url + "request-code/")
@@ -381,10 +385,13 @@ def test_render_failure_rolls_back_and_invite_delivery_failure_is_actionable(set
         with pytest.raises(ValueError):
             client.post(f"{ROOT}{doc['id']}/sign/", sign_payload(doc))
     assert not DocumentVersion.objects.get().signatures.exists()
-    with patch("apps.documents.signing.send_mail", side_effect=OSError("Provider failure")):
+    with patch("apps.documents.outbox.EmailMessage.send", side_effect=OSError("Provider failure")):
         response = client.post(f"{ROOT}{doc['id']}/invite/", {"email_link": True})
-    assert response.status_code == 400
-    assert not SigningInvite.objects.exists()
+        assert response.status_code == 200
+        assert response.json()["response_data"]["email_queued"]
+        assert deliver_pending() == 0
+    assert SigningInvite.objects.exists()
+    assert SigningEmail.objects.get().status == "pending"
 
 
 def test_request_code_throttling(setup):
@@ -405,15 +412,18 @@ def test_delivery_failure_retains_completed_document_and_retry_is_idempotent(
     client = setup[2]
     public, _, url = verified(client, doc)
     first = client.post(f"{ROOT}{doc['id']}/sign/", sign_payload(doc)).json()["response_data"]
-    with patch("apps.documents.signing.EmailMessage.send", side_effect=OSError("Unavailable")):
+    with patch("apps.documents.outbox.EmailMessage.send", side_effect=OSError("Unavailable")):
         with django_capture_on_commit_callbacks(execute=True):
             result = public.post(url + "sign/", sign_payload(first, setup[3].tenant.full_name))
+        deliver_pending()
     assert result.status_code == 200
     record = DocumentVersion.objects.get()
     assert record.status == "signed" and record.delivery_failed
     assert not record.copies_emailed_at and record.signatures.count() == 2
     before = len(mail.outbox)
-    assert send_completed_copies(record.pk)
+    assert not send_completed_copies(record.pk)
+    SigningEmail.objects.filter(kind="completed").update(next_attempt_at=timezone.now())
+    assert deliver_pending() == 1
     assert send_completed_copies(record.pk)
     assert len(mail.outbox) == before + 1
     record.refresh_from_db()
@@ -440,6 +450,7 @@ def test_otp_expiry_replay_and_verification_session_is_bound_to_link(setup):
     token, url = invitation(setup[2], doc)
     public = APIClient()
     public.post(url + "request-code/")
+    deliver_pending()
     code = re.search(r"code is (\d{6})", mail.outbox[-1].body)[1]
     invite = SigningInvite.objects.get(token_hash=digest(token.encode()))
     invite.otp_expires_at = timezone.now() - timedelta(seconds=1)

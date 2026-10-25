@@ -8,6 +8,7 @@ django-cors-headers==4.6.0
 celery==5.4.0
 redis==5.2.1
 django-storages[s3]==1.14.6
+cryptography==50.0.2
 gunicorn==23.0.0
 whitenoise==6.8.2
 Pillow==11.0.0

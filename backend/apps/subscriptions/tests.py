@@ -292,6 +292,7 @@ def test_batch_guard_rolls_back_oversized_imports_and_validates_actual_growth(en
             pytest.fail("Negative growth must be rejected")
 
 
+@pytest.mark.django_db(transaction=True)
 def test_new_document_work_can_be_gated_without_locking_existing_signers_out(env):
     org, user, client, _ = env
     lease = make_lease(org, active=False)

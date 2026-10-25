@@ -4,7 +4,6 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth.hashers import check_password, make_password
-from django.core.mail import EmailMessage, send_mail
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -16,7 +15,8 @@ from apps.subscriptions.catalog import Feature
 from apps.subscriptions.services import require_feature
 
 from .files import MAX_SIGNATURE_BYTES, clean_image, read_upload
-from .models import DocumentSignature, DocumentVersion, SigningInvite
+from .models import DocumentSignature, DocumentVersion, SigningEmail, SigningInvite
+from .outbox import cipher, enqueue
 from .rendering import digest, lease_pdf
 from .services import active_signer, require_current, validate_pdf_size
 
@@ -76,6 +76,8 @@ def verified_invite(request, token, *, read=False):
 
 @transaction.atomic
 def issue_invite(request, document, email_link=False):
+    if email_link:
+        require_email_delivery()
     # All signing writes take locks in the same order: document, then invitation.
     document = DocumentVersion.objects.select_for_update().get(pk=document.pk)
     require_current(document)
@@ -96,27 +98,15 @@ def issue_invite(request, document, email_link=False):
     link = f"{settings.FRONTEND_URL.rstrip('/')}/sign/{token}"
     if email_link:
         # Explicit manager action only. Never accept a replacement recipient from the client.
-        try:
-            require_email_delivery()
-            sent = send_mail(
-                f"Review and sign lease {document.snapshot['reference']}",
-                f"You have been invited to review a lease agreement.\n\n{link}\n\n"
-                "The link expires in 7 days. "
-                "We will verify your email before showing the agreement.",
-                settings.DEFAULT_FROM_EMAIL,
-                [invite.email],
-                fail_silently=False,
-            )
-            if sent != 1:
-                raise RuntimeError("Delivery unavailable")
-        except Exception as error:
-            raise ValidationError("Invitation could not be delivered. Please try again.") from error
+        enqueue(document, SigningEmail.Kind.INVITATION, invite=invite,
+                payload={"token": token}, expires_at=invite.expires_at,
+                dedupe_key=f"invitation:{invite.pk}")
     document.status = "signing"
     document.save(update_fields=["status", "updated_at"])
     record_event(
         request, "document.signing_invited", document, document.organization, emailed=email_link
     )
-    return {"url": link, "expires_at": invite.expires_at}
+    return {"url": link, "expires_at": invite.expires_at, "email_queued": email_link}
 
 
 def request_code(request, token):
@@ -141,14 +131,9 @@ def request_code(request, token):
         invite.save()
         try:
             require_email_delivery()
-            send_mail(
-                "Your Dwella lease verification code",
-                f"Your verification code is {code}. It expires in 10 minutes.\n\n"
-                "This code only opens your lease for review; entering it does not sign anything.",
-                settings.DEFAULT_FROM_EMAIL,
-                [invite.email],
-                fail_silently=False,
-            )
+            enqueue(document, SigningEmail.Kind.OTP, invite=invite, payload={"code": code},
+                    expires_at=invite.otp_expires_at,
+                    dedupe_key=f"otp:{invite.pk}:{digest(invite.otp_hash.encode())}")
         except Exception:
             # Same public response if delivery fails. No code or recipient in application logs.
             invite.otp_hash = ""
@@ -196,42 +181,20 @@ def verify_code(request, token, code):
 
 @transaction.atomic
 def send_completed_copies(document_id):
+    """Queue a durable intent; delivery runs only in the separate outbox worker."""
     document = DocumentVersion.objects.select_for_update().get(pk=document_id)
     if document.copies_emailed_at or document.status != "signed":
         return not document.delivery_failed
-    recipients = list(
-        dict.fromkeys(
-            filter(
-                None,
-                [document.snapshot["tenant_email"], document.snapshot["landlord_signer_email"]],
-            )
+    row = enqueue(document, SigningEmail.Kind.COMPLETED,
+                  dedupe_key=f"completed:{document.pk}:{document.sha256}")
+    if row.status in {SigningEmail.Status.FAILED, SigningEmail.Status.CANCELLED}:
+        SigningEmail.objects.filter(pk=row.pk).update(
+            status=SigningEmail.Status.PENDING, attempts=0, next_attempt_at=timezone.now(),
+            expires_at=timezone.now() + timedelta(days=7), failure_code="",
+            encrypted_payload=cipher().encrypt(b"{}"),
         )
-    )
-    try:
-        require_email_delivery()
-        message = EmailMessage(
-            f"Signed lease {document.snapshot['reference']} · v{document.version}",
-            "All required signatures have been recorded. Your completed agreement and signing "
-            "record are attached. This does not change the tenancy's activation status.",
-            settings.DEFAULT_FROM_EMAIL,
-            to=recipients,
-        )
-        message.attach(
-            f"{document.snapshot['reference']}-v{document.version}.pdf",
-            bytes(document.pdf),
-            "application/pdf",
-        )
-        if not recipients or message.send(fail_silently=False) != 1:
-            raise RuntimeError("Delivery unavailable")
-    except Exception:
-        DocumentVersion.objects.filter(pk=document.pk).update(delivery_failed=True)
-        logger.warning("Signed-document copy delivery failed")
-        return False
-    DocumentVersion.objects.filter(pk=document.pk).update(
-        copies_emailed_at=timezone.now(),
-        delivery_failed=False,
-    )
-    return True
+        DocumentVersion.objects.filter(pk=document.pk).update(delivery_failed=False)
+    return bool(document.copies_emailed_at)
 
 
 def add_signature(request, document, data, *, invite=None):
@@ -306,7 +269,7 @@ def add_signature(request, document, data, *, invite=None):
             sha256=document.sha256,
         )
         if document.status == "signed":
-            transaction.on_commit(lambda: send_completed_copies(document.pk))
+            send_completed_copies(document.pk)
     return document
 
 
