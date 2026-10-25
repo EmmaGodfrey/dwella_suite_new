@@ -48,3 +48,6 @@ frontend/output/
 
 # Shared agent memory (personal notes, contacts; never commit)
 .agents/memory/
+
+# Deployment data: uploads, backups and pre-deploy dumps (never commit)
+/data/
