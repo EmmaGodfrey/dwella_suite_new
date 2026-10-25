@@ -105,4 +105,5 @@ def scheduler_status():
                   .values_list("status", "total"))
     return {"heartbeat": cache.get(HEARTBEAT_KEY), "jobs": jobs,
             "signing_mailer": {"heartbeat": cache.get("signing-mailer:heartbeat"),
-                               "counts": counts}}
+                               "counts": counts},
+            "payments_worker": {"heartbeat": cache.get("payments-worker:heartbeat")}}

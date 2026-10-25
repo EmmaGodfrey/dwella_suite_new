@@ -96,6 +96,22 @@ services:
         condition: service_healthy
     entrypoint: ["python", "manage.py", "run_signing_mailer"]
 
+  # Checks due Lenco collections and payouts and reconciles the balance every
+  # five minutes. Idle without Lenco settings; money only moves when
+  # LENCO_PAYMENTS_ENABLED / LENCO_PAYOUTS_ENABLED are set.
+  payments-worker:
+    image: dwella-suite-backend:latest
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ../.env.prod
+    environment:
+      APP_CACHE_URL: redis://redis:6379/1
+    depends_on:
+      backend:
+        condition: service_healthy
+    entrypoint: ["python", "manage.py", "run_payments_worker"]
+
   backup:
     image: postgres:16-alpine
     user: "1000:1000"

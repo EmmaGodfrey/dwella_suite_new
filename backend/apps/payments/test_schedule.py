@@ -188,3 +188,22 @@ def test_unconfirmed_payout_goes_to_review_after_three_days(home):
     payout.refresh_from_db()
     assert payout.status == "review" and payout.issue == "payout_unconfirmed"
     assert payout.next_check_at is None
+
+
+def test_one_broken_row_is_deferred_without_blocking_the_rest(home):
+    broken = checkout(home)
+    Collection.objects.filter(pk=broken.pk).update(status="failed")  # frees the invoice
+    healthy = checkout(home, amount="50.00")
+    Collection.objects.update(next_check_at=timezone.now())
+    calls = []
+
+    def check(row):
+        calls.append(row.pk)
+        if row.pk == broken.pk:
+            raise RuntimeError("unexpected provider shape")
+
+    with patch("apps.payments.worker.reconcile_collection", side_effect=check):
+        run_cycle()
+    assert set(calls) == {broken.pk, healthy.pk}
+    broken.refresh_from_db()
+    assert broken.next_check_at - timezone.now() > timedelta(minutes=14)

@@ -1,3 +1,5 @@
+import logging
+from datetime import timedelta
 from time import monotonic
 
 from django.conf import settings
@@ -7,6 +9,17 @@ from .models import Collection, Payout
 from .services import process_payout, reconcile_collection
 
 CYCLE_SECONDS = 25
+logger = logging.getLogger(__name__)
+
+
+def _check(handler, row):
+    """One row; an unexpected error defers only that row, never the queue."""
+    try:
+        handler(row)
+    except Exception:
+        logger.exception("Payment check failed for %s", row.reference)
+        later = timezone.now() + timedelta(minutes=15)
+        type(row).objects.filter(pk=row.pk).update(next_check_at=later)
 
 
 def run_cycle(limit=50):
@@ -26,7 +39,7 @@ def run_cycle(limit=50):
     for row in collections:
         if monotonic() > deadline:
             return count
-        reconcile_collection(row)
+        _check(reconcile_collection, row)
         count += 1
     payouts = (
         Payout.objects.filter(collection__environment=environment, next_check_at__lte=now)
@@ -36,6 +49,6 @@ def run_cycle(limit=50):
     for row in payouts:
         if monotonic() > deadline:
             return count
-        process_payout(row)
+        _check(process_payout, row)
         count += 1
     return count
