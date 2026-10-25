@@ -19,6 +19,7 @@ def health(request):
 
 urlpatterns = [
     path("api/v1/platform/outreach/", include("apps.outreach.urls")),
+    path("api/v1/platform/scheduler/", include("apps.scheduler.urls")),
     path("api/v1/platform/", include("apps.audit.urls")),
     path("admin/", admin.site.urls),
     path("api/health/", health, name="health"),

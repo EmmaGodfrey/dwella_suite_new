@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "apps.subscriptions",
     "apps.integrations",
     "apps.marketing",
+    "apps.scheduler",
 ]
 
 MIDDLEWARE = [
@@ -240,6 +241,10 @@ SPECTACULAR_SETTINGS = {
         }
     },
 }
+
+# Recurring jobs from apps/scheduler/jobs.py that this environment runs. Empty by
+# default so a new job never starts in production until it is listed here.
+SCHEDULER_JOBS = env_list("APP_SCHEDULER_JOBS", "")
 
 CELERY_BROKER_URL = __import__("os").getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
