@@ -1,5 +1,6 @@
-.dwella-notification-trigger {
+.dwella-icon-action.dwella-notification-trigger {
   position: relative;
+  overflow: visible;
 }
 .dwella-notification-count {
   display: grid;
@@ -14,6 +15,11 @@
   position: absolute;
   top: -3px;
   right: -4px;
+  z-index: 1;
+  pointer-events: none;
+  font-weight: 600;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--dwella-paper);
 }
 .dwella-notification-panel {
   padding: 0;
