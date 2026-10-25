@@ -106,4 +106,4 @@ def test_failed_snapshot_keeps_last_complete_backup(tmp_path):
     with pytest.raises(OSError):
         snapshot(Broken({"photo.png": b"next"}), "bucket", path)
     assert path.read_bytes() == before
-    assert not path.with_name(path.name + ".tmp").exists()
+    assert not list(path.parent.glob(path.name + ".*.tmp"))

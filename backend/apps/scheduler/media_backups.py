@@ -4,6 +4,7 @@ import hashlib
 import io
 import json
 import os
+import secrets
 import tarfile
 from pathlib import Path, PurePosixPath
 
@@ -35,7 +36,7 @@ class DigestReader:
 
 def snapshot(s3, bucket, destination):
     destination = Path(destination)
-    temporary = destination.with_name(destination.name + ".tmp")
+    temporary = destination.with_name(destination.name + "." + secrets.token_hex(8) + ".tmp")
     manifest = {"version": 1, "source_bucket": bucket, "objects": []}
     try:
         descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
