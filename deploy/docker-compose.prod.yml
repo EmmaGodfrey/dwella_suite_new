@@ -60,21 +60,22 @@ services:
       retries: 5
       start_period: 30s
 
-  # Sends due beta applicant emails every 15 minutes. Reuses the backend image;
-  # the backend's healthcheck means migrations have already run.
-  beta-mailer:
+  # Runs the recurring jobs listed in APP_SCHEDULER_JOBS (see apps/scheduler/jobs.py)
+  # and records every run. Reuses the backend image; the backend's healthcheck
+  # means migrations have already run. Add "billing" to start daily rent runs.
+  scheduler:
     image: dwella-suite-backend:latest
     pull_policy: never
     restart: unless-stopped
     env_file:
       - ../.env.prod
+    environment:
+      APP_CACHE_URL: redis://redis:6379/1
+      APP_SCHEDULER_JOBS: ${APP_SCHEDULER_JOBS:-beta_emails}
     depends_on:
       backend:
         condition: service_healthy
-    entrypoint:
-      - sh
-      - -c
-      - "while true; do python manage.py send_beta_emails || true; sleep 900; done"
+    entrypoint: ["python", "manage.py", "run_scheduler"]
 
   frontend:
     build:
