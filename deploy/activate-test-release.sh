@@ -22,6 +22,23 @@ ln -s "${shared}/data" "${release}/data"
   docker compose --env-file .env.test -f "${compose_file}" build
 )
 
+# The new backend migrates on start, so dump the live database first. A failed
+# dump stops the deployment before anything is switched.
+if [ -d "${target}" ] && (
+  cd "${target}"
+  docker compose --env-file .env.test -f "${compose_file}" ps --status running --services | grep -qx postgres
+); then
+  mkdir -p "${shared}/data/backups"
+  dump="${shared}/data/backups/pre-deploy-$(date -u +%Y%m%dT%H%M%SZ).dump"
+  (
+    cd "${target}"
+    docker compose --env-file .env.test -f "${compose_file}" exec -T postgres \
+      sh -c 'pg_dump -Fc --no-owner -U "$POSTGRES_USER" "$POSTGRES_DB"'
+  ) > "${dump}.tmp"
+  mv "${dump}.tmp" "${dump}"
+  ls -1t "${shared}"/data/backups/pre-deploy-*.dump | tail -n +11 | xargs -r rm -f
+fi
+
 rm -rf "${previous}"
 if [ -d "${target}" ]; then
   mv "${target}" "${previous}"
