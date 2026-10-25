@@ -132,6 +132,41 @@ def test_pdf_versions_preview_and_no_page_restructure(setup):
     assert lease.status == "draft"
 
 
+def test_rendered_pages_are_reused_without_a_worker_or_render_throttle(setup):
+    _, _, client, _ = setup
+    doc = prepare(setup)
+    url = f"{ROOT}{doc['id']}/page/?page=1&sha256={doc['sha256']}"
+    first = client.get(url)
+    assert first.status_code == 200, first.content
+    with (
+        patch("apps.documents.views.inspect_pdf") as worker,
+        patch("apps.documents.throttles.DocumentRenderThrottle.rate", "1/hour"),
+    ):
+        for _ in range(3):
+            again = client.get(url)
+            assert again.status_code == 200
+            assert again.content == first.content
+            assert again["Cache-Control"] == "private, no-store"
+    worker.assert_not_called()
+    # A cached digest never bypasses the version check.
+    assert client.get(f"{ROOT}{doc['id']}/page/?page=1&sha256={'0' * 64}").status_code == 400
+
+
+def test_invoice_preview_on_a_later_day_reuses_the_unchanged_version(setup):
+    org, _, client, lease = setup
+    lease.status = "active"
+    lease.save()
+    generate_rent_invoices(org, timezone.localdate().replace(day=1))
+    invoice = Invoice.objects.get()
+    url = f"/api/v1/billing/invoices/{invoice.public_id}/document/"
+    doc = client.post(url).json()["response_data"]
+    later = timezone.localdate() + timedelta(days=3)
+    with patch("django.utils.timezone.localdate", return_value=later):
+        again = client.post(url).json()["response_data"]
+    assert again["id"] == doc["id"]
+    assert DocumentVersion.objects.filter(invoice=invoice).count() == 1
+
+
 def test_invoice_snapshot_is_private_immutable_and_deduplicated(setup):
     org, _, client, lease = setup
     lease.status = "active"

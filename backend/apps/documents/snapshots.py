@@ -1,7 +1,5 @@
 import json
 
-from django.utils import timezone
-
 from .rendering import digest
 
 
@@ -80,5 +78,4 @@ def invoice_source(invoice):
             }
             for pay in invoice.payments.filter(reversed_at__isnull=True).order_by("pk")
         ],
-        "as_of": timezone.localdate().isoformat(),
     }
