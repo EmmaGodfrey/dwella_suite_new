@@ -84,6 +84,12 @@ entries during rotation. Preserve protected application secrets when recovering
 the database. Cryptography's Fernet/MultiFernet implementation is used rather
 than custom encryption.
 
+PostgreSQL default-deny row security keeps the outbox private to the owning
+application role, including when another database reader receives a SELECT
+grant. The existing external assistant role has its outbox grant revoked. If
+deployment later separates the migration owner from the application runtime
+role, provision an explicit application-only row policy before that change.
+
 The `signing-mailer` service processes committed entries independently of long
 backup jobs. Its claim/finalization transactions are short: no SMTP runs inside
 a database transaction or signing-row lock. Delivery rechecks expiry, revocation,

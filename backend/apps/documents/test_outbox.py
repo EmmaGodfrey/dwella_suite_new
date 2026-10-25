@@ -1,5 +1,6 @@
 import json
 import threading
+import uuid
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -188,3 +189,26 @@ def test_slow_smtp_holds_no_document_lock_and_other_workers_do_not_duplicate(set
     assert not thread.is_alive() and not errors
     row.refresh_from_db()
     assert row.status == "sent" and row.attempts == 1
+
+
+def test_external_database_readers_cannot_read_the_private_outbox(setup):
+    if connection.vendor != "postgresql":
+        pytest.skip("PostgreSQL row security required")
+    _, _, row = queued_code(setup)
+    role = "outbox_reader_" + uuid.uuid4().hex
+    with connection.cursor() as cursor:
+        cursor.execute(f'CREATE ROLE "{role}" NOLOGIN NOSUPERUSER NOBYPASSRLS')
+        try:
+            cursor.execute(f'GRANT USAGE ON SCHEMA public TO "{role}"')
+            # Even accidental default grants must not expose any outbox rows.
+            cursor.execute(f'GRANT SELECT ON documents_signingemail TO "{role}"')
+            cursor.execute(f'SET ROLE "{role}"')
+            try:
+                cursor.execute("SELECT count(*) FROM documents_signingemail")
+                assert cursor.fetchone()[0] == 0
+            finally:
+                cursor.execute("RESET ROLE")
+            assert SigningEmail.objects.filter(pk=row.pk).exists()
+        finally:
+            cursor.execute(f'DROP OWNED BY "{role}"')
+            cursor.execute(f'DROP ROLE "{role}"')
