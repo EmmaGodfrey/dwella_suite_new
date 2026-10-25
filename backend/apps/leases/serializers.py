@@ -7,7 +7,7 @@ from apps.properties.models import Unit
 from apps.tenants.models import Tenant
 
 from .models import Lease
-from .services import UNIT_TAKEN_MESSAGE, create_lease
+from .services import RENEWAL_TERMS, UNIT_TAKEN_MESSAGE, conflicting_leases, create_lease
 
 
 def scoped_queryset(serializer, model):
@@ -27,6 +27,13 @@ class LeaseSerializer(OrganizationScopedSerializer):
     property_name = serializers.CharField(source="unit.property.name", read_only=True)
     # Create-only switch: start the lease straight away instead of as a draft.
     activate = serializers.BooleanField(write_only=True, required=False, default=False)
+    renewal_of_id = serializers.UUIDField(
+        source="renewal_of.public_id", read_only=True, default=None
+    )
+    renewal_of_reference = serializers.CharField(
+        source="renewal_of.reference", read_only=True, default=None
+    )
+    renewal = serializers.SerializerMethodField()
 
     class Meta:
         model = Lease
@@ -53,6 +60,9 @@ class LeaseSerializer(OrganizationScopedSerializer):
             "ended_at",
             "notes",
             "activate",
+            "renewal_of_id",
+            "renewal_of_reference",
+            "renewal",
             "is_active",
             "created_at",
             "updated_at",
@@ -65,6 +75,21 @@ class LeaseSerializer(OrganizationScopedSerializer):
             fields["tenant"].queryset = scoped_queryset(self, Tenant)
         fields["unit"].queryset = scoped_queryset(self, Unit).select_related("property")
         return fields
+
+    def get_renewal(self, obj):
+        # The renewal in progress or running, if any; ended ones are history.
+        renewal = next(
+            (item for item in obj.renewals.all() if item.status in Lease.OPEN_STATUSES), None
+        )
+        if renewal is None:
+            return None
+        return {
+            "id": str(renewal.public_id),
+            "reference": renewal.reference,
+            "status": renewal.status,
+            "start_date": renewal.start_date,
+            "end_date": renewal.end_date,
+        }
 
     def validate_rent_due_day(self, value):
         if not 1 <= value <= 28:
@@ -90,6 +115,14 @@ class LeaseSerializer(OrganizationScopedSerializer):
 
     def validate(self, attrs):
         instance = self.instance
+        if instance and instance.renewal_of_id:
+            # A renewal follows its lease: same tenant and unit, from the next day.
+            fixed = {"tenant", "unit", "start_date"} & set(attrs)
+            changed = [name for name in fixed if attrs[name] != getattr(instance, name)]
+            if changed:
+                raise serializers.ValidationError(
+                    {name: ["A renewal keeps the tenant, unit and start date."] for name in changed}
+                )
         if instance and instance.status != Lease.Status.DRAFT:
             locked = {"tenant", "unit", "start_date", "monthly_rent"} & set(attrs)
             changed = [name for name in locked if attrs[name] != getattr(instance, name)]
@@ -116,10 +149,7 @@ class LeaseSerializer(OrganizationScopedSerializer):
             raise serializers.ValidationError({"monthly_rent": ["Rent must be more than zero."]})
 
         if unit is not None:
-            open_leases = Lease.objects.filter(unit=unit, status__in=Lease.OPEN_STATUSES)
-            if instance:
-                open_leases = open_leases.exclude(pk=instance.pk)
-            if open_leases.exists():
+            if conflicting_leases(unit, instance).exists():
                 raise serializers.ValidationError({"unit": [UNIT_TAKEN_MESSAGE]})
         return attrs
 
@@ -129,6 +159,26 @@ class LeaseSerializer(OrganizationScopedSerializer):
     def update(self, instance, validated_data):
         validated_data.pop("activate", None)
         return super().update(instance, validated_data)
+
+
+class RenewLeaseSerializer(serializers.ModelSerializer):
+    """New end date and any changed terms; everything else copies over."""
+
+    class Meta:
+        model = Lease
+        fields = ["end_date", *RENEWAL_TERMS]
+        extra_kwargs = {name: {"required": False} for name in RENEWAL_TERMS}
+        extra_kwargs["end_date"] = {"required": True}
+
+    validate_rent_due_day = LeaseSerializer.validate_rent_due_day
+    validate_late_fee_percent = LeaseSerializer.validate_late_fee_percent
+    validate_notice_period_months = LeaseSerializer.validate_notice_period_months
+    validate_deposit_amount = LeaseSerializer.validate_deposit_amount
+
+    def validate_monthly_rent(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Rent must be more than zero.")
+        return value
 
 
 class TenantLeaseSerializer(LeaseSerializer):

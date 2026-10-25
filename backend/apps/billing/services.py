@@ -105,9 +105,20 @@ def generate_rent_invoices(organization, period_start, today=None):
         .exclude(status=Invoice.Status.VOID)
         .values_list("lease_id", flat=True)
     )
+    # A renewal continues the same tenancy: when the lease it follows ended
+    # mid-month and was billed for it, that month is not billed twice. (Only one
+    # of the two is ever active, so only the earlier lease can be billed first.)
+    billed_before = set(
+        Invoice.objects.filter(
+            lease_id__in=[lease.renewal_of_id for lease in leases if lease.renewal_of_id],
+            period_start=first,
+        )
+        .exclude(status=Invoice.Status.VOID)
+        .values_list("lease_id", flat=True)
+    )
     created = 0
     for lease in leases:
-        if lease.id in billed:
+        if lease.id in billed or lease.renewal_of_id in billed_before:
             continue
         # Never due before it is issued: a month billed late (e.g. a landlord
         # who joins mid-month) gets its grace period from today, so tenants

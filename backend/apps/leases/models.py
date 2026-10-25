@@ -32,6 +32,11 @@ class Lease(OrganizationScopedModel):
     activated_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True)
+    # A renewal is a new agreement for the same tenant and unit that starts the
+    # day after this one ends. It waits as a draft until it is signed and due.
+    renewal_of = models.ForeignKey(
+        "self", on_delete=models.PROTECT, related_name="renewals", blank=True, null=True
+    )
 
     class Meta:
         ordering = ["-start_date", "-created_at"]
@@ -41,10 +46,25 @@ class Lease(OrganizationScopedModel):
                 fields=["organization", "reference"],
                 name="unique_lease_reference_per_organization",
             ),
+            # A renewal may be prepared while the lease it follows is running,
+            # but a unit never has two active leases or two pending renewals.
             models.UniqueConstraint(
                 fields=["unit"],
-                condition=Q(status__in=["draft", "pending_signature", "active"]),
+                condition=Q(
+                    status__in=["draft", "pending_signature", "active"],
+                    renewal_of__isnull=True,
+                ),
                 name="one_open_lease_per_unit",
+            ),
+            models.UniqueConstraint(
+                fields=["unit"],
+                condition=Q(status="active"),
+                name="one_active_lease_per_unit",
+            ),
+            models.UniqueConstraint(
+                fields=["renewal_of"],
+                condition=Q(status__in=["draft", "pending_signature", "active"]),
+                name="one_open_renewal_per_lease",
             ),
             models.CheckConstraint(
                 condition=Q(end_date__gt=F("start_date")),

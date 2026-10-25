@@ -3,11 +3,12 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from apps.audit.services import record_event
 from apps.common.viewsets import OrganizationScopedModelViewSet
 
 from .models import Lease
-from .serializers import LeaseSerializer
-from .services import activate_lease, end_lease
+from .serializers import LeaseSerializer, RenewLeaseSerializer
+from .services import activate_lease, create_renewal, end_lease
 
 
 class LeaseFilter(filters.FilterSet):
@@ -23,7 +24,9 @@ class LeaseFilter(filters.FilterSet):
 
 class LeaseViewSet(OrganizationScopedModelViewSet):
     serializer_class = LeaseSerializer
-    queryset = Lease.objects.select_related("tenant", "unit__property")
+    queryset = Lease.objects.select_related(
+        "tenant", "unit__property", "renewal_of"
+    ).prefetch_related("renewals")
     filterset_class = LeaseFilter
     search_fields = ["reference", "tenant__full_name", "unit__name", "unit__property__name"]
     ordering_fields = ["start_date", "end_date", "created_at", "reference"]
@@ -32,6 +35,15 @@ class LeaseViewSet(OrganizationScopedModelViewSet):
     def activate(self, request, public_id=None):
         lease = activate_lease(self.get_object())
         return Response(self.get_serializer(lease).data)
+
+    @action(detail=True, methods=["post"])
+    def renew(self, request, public_id=None):
+        serializer = RenewLeaseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        renewal = create_renewal(self.get_object(), **serializer.validated_data)
+        record_event(request, "lease.renewal_drafted", renewal, renewal.organization)
+        renewal = self.get_queryset().get(pk=renewal.pk)
+        return Response(self.get_serializer(renewal).data, status=201)
 
     @action(detail=True, methods=["post"])
     def end(self, request, public_id=None):
