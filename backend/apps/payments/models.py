@@ -66,6 +66,19 @@ class Collection(UUIDModel, TimeStampedModel):
     destination = models.ForeignKey(Destination, on_delete=models.PROTECT)
     environment = models.CharField(max_length=7)
     idempotency_key = models.UUIDField()
+    # Existing attempts keep the original hosted flow during rollout.
+    channel = models.CharField(
+        max_length=12,
+        default="checkout",
+        choices=[
+            ("checkout", "Hosted checkout"),
+            ("card", "Card"),
+            ("mobile-money", "Mobile money"),
+        ],
+    )
+    payer_phone = models.CharField(max_length=16, blank=True)
+    payer_operator = models.CharField(max_length=10, blank=True)
+    collection_submitted_at = models.DateTimeField(null=True)
     reference = models.CharField(max_length=50, default=collection_reference, unique=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default="ZMW")
