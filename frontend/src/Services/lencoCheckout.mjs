@@ -50,10 +50,10 @@ export async function openLencoCheckout(config, onReturn, signal) {
   // Every callback merely asks our backend to verify the saved reference.
   // Callback amounts/status/references never modify Dwella's ledger.
   let returned = false;
-  const verify = () => { if (!returned) { returned = true; onReturn(); } };
+  const verify = (event) => { if (!returned) { returned = true; onReturn(event); } };
   window.LencoPay.getPaid({ ...details,
-    onSuccess: verify,
-    onConfirmationPending: verify,
-    onClose: verify,
+    onSuccess: () => verify("success"),
+    onConfirmationPending: () => verify("pending"),
+    onClose: () => verify("close"),
   });
 }

@@ -24,11 +24,11 @@ test("callbacks only trigger verification once and never trust callback payloads
   let options;
   globalThis.window = { LencoPay: { getPaid: (value) => { options = value; } } };
   globalThis.document = { createElement: () => ({ remove() {} }), head: { appendChild: (script) => queueMicrotask(() => script.onload()) } };
-  let returns = 0;
-  await openLencoCheckout(config, () => { returns += 1; });
+  const returns = [];
+  await openLencoCheckout(config, (event) => { returns.push(event); });
   options.onSuccess({ reference: "wrong", amount: "999", status: "successful" });
   options.onClose();
-  assert.equal(returns, 1);
+  assert.deepEqual(returns, ["success"]);
   assert.equal(options.reference, "rent-test");
   assert.equal(options.amount, 100);
 });
