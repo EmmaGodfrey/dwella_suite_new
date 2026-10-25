@@ -3,6 +3,7 @@ import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface
 import { Dismiss20Regular } from "@fluentui/react-icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGuidedTour } from "../../Services/accountSetup";
+import { optimisticTourStep } from "../../shared/tourState";
 import "./tour.scss";
 
 export default function GuidedTour({ user, enabled }) {
@@ -42,6 +43,11 @@ export default function GuidedTour({ user, enabled }) {
     return () => { observer.disconnect(); window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); highlighted?.removeAttribute("data-tour-active"); };
   }, [open, mode, step, location.pathname, navigate]);
   const act = async (action) => {
+    if (optimisticTourStep(tour, action)) {
+      // The step moves immediately; a failed save restores the server's step and shows the error.
+      query.mutation.mutate({ action, step: tour.current_step });
+      return;
+    }
     try {
       const data = await query.mutation.mutateAsync({ action, ...(["next", "back", "finish"].includes(action) ? { step: tour.current_step } : {}) });
       if (["pause", "skip"].includes(action)) { setOpen(false); launcher.current?.focus(); }
@@ -52,7 +58,9 @@ export default function GuidedTour({ user, enabled }) {
   if (query.isError) return <Button appearance="subtle" onClick={() => query.refetch()}>Retry tour</Button>;
   if (!tour?.available) return null;
   const active = mode === "step";
-  const busy = query.mutation.isPending;
+  // Next/Back stay usable while earlier steps save in order; other actions wait.
+  const busy = query.mutation.isPending && !optimisticTourStep(tour, "back");
+  const finishing = active && index === tour.steps.length - 1;
   const style = active && anchor && window.innerWidth >= 900 ? { left: Math.min(anchor.left, window.innerWidth - 360), top: Math.max(16, Math.min(anchor.top, window.innerHeight - 300)) } : undefined;
   return <>
     <Button ref={launcher} className="dwella-tour-launcher" aria-label={tour.updates_available ? "New guidance" : "Product tour"} appearance="subtle" onClick={() => { query.mutation.reset(); setMode("welcome"); setOpen(true); }}><span className="dwella-tour-launcher-full">{tour.updates_available ? "New guidance" : "Product tour"}</span><span className="dwella-tour-launcher-short">{tour.updates_available ? "New" : "Tour"}</span></Button>
@@ -65,7 +73,7 @@ export default function GuidedTour({ user, enabled }) {
             {query.mutation.isError ? <p role="alert">Could not save your tour progress. Please try again.</p> : null}
           </DialogContent>
           <DialogActions>
-            {active ? <><Button appearance="subtle" disabled={busy} onClick={() => act("pause")}>Pause</Button><Button disabled={busy || index === 0} onClick={() => act("back")}>Back</Button><Button appearance="primary" disabled={busy} onClick={() => act("next")}>{busy ? "Saving…" : index === tour.steps.length - 1 ? "Finish" : "Next"}</Button></> : mode === "complete" ? <Button appearance="primary" onClick={() => setOpen(false)}>Done</Button> : <>
+            {active ? <><Button appearance="subtle" disabled={busy} onClick={() => act("pause")}>Pause</Button><Button disabled={busy || index === 0} onClick={() => act("back")}>Back</Button><Button appearance="primary" disabled={busy || (finishing && query.mutation.isPending)} onClick={() => act("next")}>{busy || (finishing && query.mutation.isPending) ? "Saving…" : finishing ? "Finish" : "Next"}</Button></> : mode === "complete" ? <Button appearance="primary" onClick={() => setOpen(false)}>Done</Button> : <>
               <Button appearance="subtle" disabled={busy} onClick={() => act("skip")}>Not now</Button>
               {!["not_started", "completed"].includes(tour.status) ? <Button disabled={busy} onClick={() => act("replay")}>Replay</Button> : null}
               <Button appearance="primary" disabled={busy} onClick={() => act(tour.updates_available ? "new_steps" : tour.status === "not_started" ? "start" : tour.status === "completed" ? "replay" : "resume")}>{busy ? "Loading…" : tour.updates_available ? "Show what’s new" : tour.status === "not_started" ? "Start tour" : tour.status === "completed" ? "Replay tour" : "Resume tour"}</Button>
