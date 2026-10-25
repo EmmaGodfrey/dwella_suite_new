@@ -15,6 +15,7 @@ import { downloadPortalFile, usePortalInvoice, usePortalInvoices, usePortalPayme
 import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from "../../shared/billing";
 import { SegmentedFilter, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
+import RentCheckout from "./RentCheckout";
 import PortalState from "./PortalState";
 
 const views = [
@@ -76,9 +77,7 @@ function InvoiceDrawer({ id, onClose }) {
                 <p className="dwella-muted-copy">No payments recorded yet.</p>
               )}
             </section>
-            <p className="dwella-muted-copy">
-              Pay {invoice.issuer.name} the way you usually do. Payments they record appear here with a receipt.
-            </p>
+            <RentCheckout key={invoice.id} invoice={invoice} />
           </div>
         ) : null}
       </DrawerBody>
