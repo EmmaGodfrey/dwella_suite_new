@@ -65,6 +65,8 @@ services:
     env_file:
       - ../.env.test
     environment:
+      # Shared by every gunicorn worker: rate limits and rendered document pages.
+      APP_CACHE_URL: redis://redis:6379/1
       VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.handyagents.wazabanda.dev/agent}
     depends_on:
       postgres:
