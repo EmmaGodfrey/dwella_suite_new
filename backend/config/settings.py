@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.marketing",
     "apps.scheduler",
     "apps.portal",
+    "apps.imports",
 ]
 
 MIDDLEWARE = [

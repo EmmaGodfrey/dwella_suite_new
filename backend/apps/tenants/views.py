@@ -7,13 +7,17 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.common.viewsets import OrganizationScopedModelViewSet
+from apps.imports.importers import TenantImporter
+from apps.imports.views import ImportActionsMixin
 from apps.leases.models import Lease
 
 from .models import Tenant
 from .serializers import TenantSerializer
 
 
-class TenantViewSet(OrganizationScopedModelViewSet):
+class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
+    importer_class = TenantImporter
+
     def get_throttles(self):
         from apps.accounts.invitations import InvitationWriteThrottle
 

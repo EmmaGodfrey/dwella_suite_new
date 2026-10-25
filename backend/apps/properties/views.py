@@ -9,6 +9,8 @@ from rest_framework.views import APIView
 from apps.common.permissions import CanViewPortfolio, IsPlatformAdmin, get_user_access
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.common.workspaces import resolve_workspace
+from apps.imports.importers import UnitImporter
+from apps.imports.views import ImportActionsMixin
 from apps.organizations.models import Organization, OrganizationMembership
 
 from .models import Property, Unit
@@ -249,8 +251,9 @@ class UnitFilter(filters.FilterSet):
         return queryset.filter(held | ~Q(occupancy_status=Unit.OccupancyStatus.VACANT)).distinct()
 
 
-class UnitViewSet(OrganizationScopedModelViewSet):
+class UnitViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
     serializer_class = UnitSerializer
+    importer_class = UnitImporter
     queryset = Unit.objects.select_related("property")
     filterset_class = UnitFilter
     search_fields = ["name", "property__name"]
