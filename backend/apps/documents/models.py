@@ -117,3 +117,36 @@ class SignedLeaseOriginal(OrganizationScopedModel):
 
     def __str__(self):
         return self.filename
+
+
+class SigningEmail(UUIDModel, TimeStampedModel):
+    """Transactional email intent. Sensitive link/code payloads are encrypted."""
+
+    class Kind(models.TextChoices):
+        INVITATION = "invitation", "Invitation"
+        OTP = "otp", "Verification code"
+        COMPLETED = "completed", "Completed copies"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        SENDING = "sending", "Sending"
+        SENT = "sent", "Sent"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    document = models.ForeignKey(DocumentVersion, on_delete=models.PROTECT)
+    invite = models.ForeignKey(SigningInvite, null=True, on_delete=models.PROTECT)
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    dedupe_key = models.CharField(max_length=180, unique=True)
+    encrypted_payload = models.BinaryField(editable=False)
+    expires_at = models.DateTimeField()
+    next_attempt_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    claim_token = models.UUIDField(null=True, editable=False)
+    locked_until = models.DateTimeField(null=True)
+    sent_at = models.DateTimeField(null=True)
+    failure_code = models.CharField(max_length=40, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["status", "next_attempt_at"], name="signing_email_due")]
