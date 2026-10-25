@@ -36,6 +36,20 @@ Claude and Codex share one memory in `.agents/memory/` (gitignored: it holds per
 - Run `python manage.py check`, `ruff check .`, and relevant `pytest` tests before finishing.
 - For changes touching shared backend behavior, run the full backend test suite.
 
+## Performance and Efficiency
+
+- Treat query count, database round trips, memory use, external requests and persisted row growth as design constraints, not a later cleanup step.
+- Measure representative hot paths before and after a change. For list endpoints, compare a small and a full page: query count must not grow once per returned row. Add query-count regression tests for confirmed bottlenecks.
+- Read related data with deliberate `select_related`/`prefetch_related`, filtered annotations or bulk lookups. Do not issue ORM queries inside serializer methods or per-row validation/import loops when a bounded batch query can answer them.
+- Push filtering, counts, sums and existence checks into the database. Avoid loading whole tables, histories, binary document payloads or unused model fields to compute a summary or render a list.
+- Bound pagination, batch sizes, retries and worker run time. Avoid repeatedly scanning or downloading complete growing histories; incremental processing needs a durable cursor, overlap/deduplication and a recovery path.
+- Keep transactions and row locks short and consistent in order. Never put network calls, SMTP, object storage, PDF rendering or other slow work inside a locked transaction without a documented necessity.
+- Preserve financial correctness, tenant isolation and fresh authorization checks when optimizing. Never replace an exact monetary invariant with an unexplained tolerance or treat pending money as paid to save work.
+- Use request-local reuse for repeated context reads; cross-request caches require explicit expiry/invalidation and must not become the authority for permissions or money.
+- Retain meaningful financial/audit evidence without writing endless identical polling snapshots. Operational logs need a bounded retention policy; do not remove financial evidence as a performance shortcut.
+- Prefer framework-native and existing infrastructure solutions. Do not add dependencies, services or broad caches without measured need. Run focused checks during implementation and the required full suite once the final shared changes are ready.
+- During concurrent work, record ownership and leave another agent's active modules untouched. Separate audit findings from measured results, fixes and deferred work; passing functional tests alone is not a performance or production-readiness claim.
+
 ## Frontend
 
 - Work in `frontend/`.
