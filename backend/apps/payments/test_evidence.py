@@ -33,8 +33,21 @@ def test_response_evidence_is_encrypted_redacted_and_immutable(settings):
 
 @pytest.mark.django_db
 def test_evidence_survives_secret_key_rotation(settings):
+    settings.LENCO_EVIDENCE_KEY = ""
     settings.SECRET_KEY = "old-encryption-key"
     row = record_exchange(environment="sandbox", operation="test", body=b'{"status":false}')
     settings.SECRET_KEY_FALLBACKS = [settings.SECRET_KEY]
     settings.SECRET_KEY = "new-encryption-key"
+    assert read_exchange(row)["response"]["status"] is False
+
+
+@pytest.mark.django_db
+def test_dedicated_evidence_key_rotation_preserves_retained_history(settings):
+    from cryptography.fernet import Fernet
+
+    old_key = Fernet.generate_key().decode()
+    settings.LENCO_EVIDENCE_KEY = old_key
+    row = record_exchange(environment="sandbox", operation="test", body=b'{"status":false}')
+    settings.LENCO_EVIDENCE_KEY = Fernet.generate_key().decode()
+    settings.LENCO_EVIDENCE_KEY_FALLBACKS = [old_key]
     assert read_exchange(row)["response"]["status"] is False

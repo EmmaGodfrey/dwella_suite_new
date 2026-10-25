@@ -274,6 +274,8 @@ def _apply_payout_result(payout, result):
                 "failed",
             }:
                 row.status = data["status"]
+                if row.status == "successful" and row.confirmed_at is None:
+                    row.confirmed_at = timezone.now()
                 row.issue = "payout_failed" if row.status == "failed" else ""
                 try:
                     row.fee = money(data["fee"]) if data.get("fee") is not None else None
@@ -325,7 +327,14 @@ def process_payout(payout):
                 row.status, row.issue = Payout.Status.REVIEW, "payout_requires_review"
                 row.save()
                 return
+            from .balances import can_reserve_payout
+
+            if not can_reserve_payout(row):
+                row.issue = "awaiting_balance_reconciliation"
+                row.save()
+                return
             row.status, row.last_checked_at = Payout.Status.SUBMITTING, timezone.now()
+            row.submitted_at = timezone.now()
             row.save()
     provider = Provider(collection.environment)
     if submit:

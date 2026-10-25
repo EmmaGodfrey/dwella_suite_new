@@ -271,3 +271,84 @@ def test_concurrent_checkout_and_payout_debit_once_on_postgres(home):
     assert calls.count("payout_submit") == 1
     payout.refresh_from_db()
     assert payout.status == "successful"
+
+
+@pytest.mark.parametrize("state", ["missing", "mismatch", "stale", "insufficient"])
+def test_payout_waits_for_fresh_matching_funded_balance(home, state):
+    from datetime import timedelta
+
+    from .models import BalanceSnapshot, ProviderAccount
+
+    row = paid(home)
+    account = ProviderAccount.objects.get()
+    if state == "missing":
+        # Preserve immutable history; select a different debit account instead.
+        Collection.objects.filter(pk=row.pk).update(
+            debit_account_id="00000000-0000-0000-0000-000000000002"
+        )
+    else:
+        BalanceSnapshot.objects.create(
+            account=account,
+            available_balance=0 if state == "insufficient" else 100000,
+            ledger_balance=100000,
+            status="mismatch" if state == "mismatch" else "matched",
+        )
+        if state == "stale":
+            with patch(
+                "apps.payments.balances.timezone.now",
+                return_value=timezone.now() + timedelta(minutes=7),
+            ):
+                with patch("apps.payments.services.Provider") as provider:
+                    process_payout(row.payout)
+                    provider.assert_not_called()
+            return
+    with patch("apps.payments.services.Provider") as provider:
+        process_payout(row.payout)
+        provider.assert_not_called()
+    row.payout.refresh_from_db()
+    assert row.payout.status in {"queued", "review"}
+
+
+@pytest.mark.django_db(transaction=True)
+def test_distinct_payouts_cannot_concurrently_reserve_the_same_balance(home):
+    if connection.vendor != "postgresql":
+        pytest.skip("PostgreSQL account reservation lock")
+    from concurrent.futures import ThreadPoolExecutor
+
+    from django.db import close_old_connections
+
+    from .models import BalanceSnapshot, ProviderAccount
+
+    paid(home)
+    second = checkout(home)
+    with patch("apps.payments.services.Provider") as provider:
+        provider.return_value.request.return_value = collection_result(
+            second, id="provider-collection-2"
+        )
+        reconcile_collection(second)
+    BalanceSnapshot.objects.create(
+        account=ProviderAccount.objects.get(),
+        status="matched",
+        available_balance=100,
+        ledger_balance=100,
+    )
+    payouts = list(Payout.objects.order_by("pk"))
+
+    def send(row):
+        close_old_connections()
+        try:
+            process_payout(row)
+        finally:
+            connection.close()
+
+    with patch("apps.payments.services.Provider") as provider:
+        provider.return_value.request.side_effect = lambda operation, **kwargs: payout_result(
+            kwargs["payout"]
+        )
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            list(pool.map(send, payouts))
+        assert provider.return_value.request.call_count == 1
+    assert Payout.objects.filter(status="successful").count() == 1
+    assert (
+        Payout.objects.filter(status="queued", issue="awaiting_balance_reconciliation").count() == 1
+    )

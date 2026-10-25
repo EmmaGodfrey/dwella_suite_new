@@ -17,6 +17,7 @@ from apps.billing.services import (
 from apps.billing.tests import THIS_MONTH, make_lease
 from apps.organizations.models import Organization, OrganizationMembership
 
+from .models import BalanceSnapshot, ProviderAccount
 from .provider import ProviderResult
 from .services import approve_destination, reconcile_collection, start_checkout
 
@@ -63,6 +64,23 @@ def home():
         operator="airtel",
         account_name="Manager Wallet",
         reason="Confirmed with the workspace owner",
+    )
+    account = ProviderAccount.objects.create(
+        environment="sandbox",
+        account_id=ACCOUNT,
+        currency="ZMW",
+        opening_balance=100000,
+        app_opening_balance=100000,
+    )
+    BalanceSnapshot.objects.create(
+        account=account,
+        available_balance=100000,
+        ledger_balance=100000,
+        expected_balance=100000,
+        difference=0,
+        app_expected_balance=100000,
+        app_difference=0,
+        status="matched",
     )
     return {
         "org": org,

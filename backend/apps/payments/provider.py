@@ -4,6 +4,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from http.client import HTTPException
+from uuid import UUID
 
 from django.conf import settings
 
@@ -19,6 +20,7 @@ class ProviderResult:
     payload: dict
     http_status: int | None
     error: str = ""
+    exchange_id: int | None = None
 
 
 class Provider:
@@ -31,14 +33,27 @@ class Provider:
         self.environment = environment
         self.base = LencoClient.ACCOUNTS_URLS[environment].removesuffix("/accounts")
 
-    def request(self, operation, *, collection, payout=None, payload=None):
-        reference = payout.reference if payout else collection.reference
-        if not re.fullmatch(r"[A-Za-z0-9._-]{1,50}", reference):
+    def request(
+        self, operation, *, collection=None, payout=None, payload=None, account_id=None, page=1
+    ):
+        reference = payout.reference if payout else collection.reference if collection else ""
+        if operation in {
+            "collection_status",
+            "payout_status",
+            "payout_submit",
+        } and not re.fullmatch(r"[A-Za-z0-9._-]{1,50}", reference):
             raise ValueError("Invalid provider reference.")
+        if not isinstance(page, int) or not 1 <= page <= 100:
+            raise ValueError("Invalid provider page.")
+        if operation == "transactions":
+            account_id = str(UUID(account_id))
         paths = {
             "collection_status": f"/collections/status/{reference}",
             "payout_status": f"/transfers/status/{reference}",
             "payout_submit": "/transfers/mobile-money",
+            "accounts": f"/accounts?page={page}",
+            "transactions": f"/transactions?accountId={account_id}&page={page}",
+            "banks": "/banks?country=zm",
         }
         request = urllib.request.Request(
             self.base + paths[operation],
@@ -48,6 +63,7 @@ class Provider:
                 "Authorization": f"Bearer {settings.LENCO_SECRET_KEY}",
                 "Accept": "application/json",
                 "Content-Type": "application/json",
+                "User-Agent": "Dwella-Integration-Check/1.0",
             },
         )
         body, status, error, content_type = b"", None, "", ""
@@ -79,7 +95,7 @@ class Provider:
             error = error or "invalid_json"
         # Errors are persisted before domain validation, so a bad provider
         # response cannot disappear with a failed invoice transaction.
-        record_exchange(
+        exchange = record_exchange(
             environment=self.environment,
             operation=operation,
             body=body,
@@ -89,4 +105,4 @@ class Provider:
             error=error,
             request_payload=payload,
         )
-        return ProviderResult(parsed, status, error)
+        return ProviderResult(parsed, status, error, exchange.pk)

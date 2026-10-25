@@ -37,6 +37,13 @@ def strict_json(body):
 
 
 def cipher():
+    if settings.LENCO_EVIDENCE_KEY:
+        return MultiFernet(
+            [
+                Fernet(key)
+                for key in [settings.LENCO_EVIDENCE_KEY, *settings.LENCO_EVIDENCE_KEY_FALLBACKS]
+            ]
+        )
     return MultiFernet(
         [
             Fernet(
