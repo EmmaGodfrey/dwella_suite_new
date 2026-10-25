@@ -77,7 +77,29 @@ services:
         condition: service_healthy
     entrypoint: ["python", "manage.py", "run_scheduler"]
 
+  # Nightly verified database dump and media archive under data/backups.
+  # Restore with deploy/restore-backup.sh. Copy data/backups off this server too.
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../data/backups:/backups
+      - ../data/media:/media:ro
+      - ./backup-loop.sh:/backup-loop.sh:ro
+    entrypoint: ["sh", "/backup-loop.sh"]
+
   frontend:
+    environment:
+      MEDIA_CSP_ORIGIN: ${MEDIA_CSP_ORIGIN:-}
     build:
       context: ..
       dockerfile: frontend/Dockerfile
