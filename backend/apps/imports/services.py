@@ -64,6 +64,9 @@ class Importer:
     def key(self, data):
         raise NotImplementedError
 
+    def prime(self, rows):
+        """Load what `existing` needs for all valid rows in one query."""
+
     def existing(self, data):
         """A message when the record already exists in the workspace."""
         raise NotImplementedError
@@ -120,8 +123,9 @@ def read_rows(importer, text):
 def check(importer, rows):
     """Classify rows as ready, duplicate or invalid, in file order."""
     results, seen = [], {}
-    for number, values in rows:
-        data, errors = importer.clean(values)
+    cleaned = [(number, values, *importer.clean(values)) for number, values in rows]
+    importer.prime([data for _, _, data, errors in cleaned if not errors])
+    for number, values, data, errors in cleaned:
         if errors:
             results.append({"row": number, "status": "invalid", "values": values, "errors": errors})
             continue

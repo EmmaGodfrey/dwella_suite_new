@@ -151,3 +151,17 @@ def test_tenant_import_normalises_phones_and_skips_known_tenants(org, manager):
     assert (tenant.phone_number, tenant.email, tenant.status) == (
         "+260971234567", "mwila@example.com", "applicant"
     )
+
+
+def test_preview_queries_do_not_grow_with_the_number_of_rows(org, manager):
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    def queries(count):
+        rows = "".join(f"Tenant {n},097{n:07d}\n" for n in range(count))
+        with CaptureQueriesContext(connection) as captured:
+            response = preview(manager, TENANTS, "full_name,phone_number\n" + rows)
+        assert data(response)["counts"]["ready"] == count
+        return len(captured)
+
+    assert queries(5) == queries(200)

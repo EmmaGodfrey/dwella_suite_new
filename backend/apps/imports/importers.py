@@ -84,8 +84,12 @@ class UnitImporter(Importer):
     def key(self, data):
         return data["property"].pk, data["unit"].casefold()
 
+    def prime(self, rows):
+        names = Unit.objects.filter(property__in={row["property"] for row in rows})
+        self.known = {(pk, name.casefold()) for pk, name in names.values_list("property", "name")}
+
     def existing(self, data):
-        if Unit.objects.filter(property=data["property"], name__iexact=data["unit"]).exists():
+        if self.key(data) in self.known:
             return f"{data['property'].name} already has a unit called {data['unit']}."
         return None
 
@@ -162,11 +166,17 @@ class TenantImporter(Importer):
     def key(self, data):
         return data["phone_number"]
 
-    def existing(self, data):
+    def prime(self, rows):
         # Archived tenants count: the phone number stays unique in the workspace.
-        if Tenant.objects.filter(
-            organization=self.organization, phone_number=data["phone_number"]
-        ).exists():
+        self.known = set(
+            Tenant.objects.filter(
+                organization=self.organization,
+                phone_number__in={row["phone_number"] for row in rows},
+            ).values_list("phone_number", flat=True)
+        )
+
+    def existing(self, data):
+        if data["phone_number"] in self.known:
             return "A tenant with this phone number is already on file."
         return None
 
