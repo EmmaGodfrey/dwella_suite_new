@@ -21,7 +21,9 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 
-COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+ENV MEDIA_CSP_ORIGIN=""
+COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
+COPY --chmod=755 deploy/15-validate-media-origin.sh /docker-entrypoint.d/15-validate-media-origin.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
