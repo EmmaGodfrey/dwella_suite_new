@@ -40,3 +40,31 @@ Official sources: [checkout](https://lenco-api.readme.io/v2.0/reference/accept-p
 [mobile-money transfer](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money),
 [transfer verification](https://lenco-api.readme.io/v2.0/reference/get-transfer-by-reference),
 [webhooks](https://lenco-api.readme.io/v2.0/reference/webhooks).
+
+## Payout settings and balance reconciliation extension
+
+User direction, 2026-10-25: design a manager form for receiving details and payout
+cadence; research bank/card payouts; support holding funds for a payout period;
+keep Dwella totals and compare them with Lenco's balances and transactions.
+
+The v2 bank-account transfer API and banks directory document Zambia (`zm`). No
+card-payout endpoint was found; accepting a tenant's card payment does not imply
+paying out to another card. The proposed UI offers mobile money or bank account,
+and immediate/weekly/monthly/manual cadence. These new screens and scheduled
+batch payouts are a design extension, not already active functionality.
+
+Implement a private imported transaction ledger and retained balance snapshots.
+Freeze an opening baseline once; subsequent comparisons use that baseline plus
+credits minus debits. Also compare provider cash with Dwella's own settled-rent
+minus paid-out principal and actual payout fees, using a separately frozen app
+opening position. Unknown external transactions, incomplete pagination, changed
+provider rows and differences must be visible, never silently balanced away.
+An initial baseline is not proof of historical reconciliation. Bank balances
+are platform assets; landlord holdings are separate liabilities, and unsettled
+collections cannot be released. Read-only reconciliation does not authorize a
+live transfer. New tables get the same RLS and external-role restrictions.
+
+Sources: [bank payout](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-bank-account),
+[banks directory](https://lenco-api.readme.io/v2.0/reference/get-banks),
+[accounts/balances](https://lenco-api.readme.io/v2.0/reference/get-accounts),
+[transaction feed](https://lenco-api.readme.io/v2.0/reference/get-transactions).

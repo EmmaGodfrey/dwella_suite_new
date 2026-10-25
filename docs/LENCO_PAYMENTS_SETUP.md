@@ -1,119 +1,172 @@
-# Lenco payment integration: initial setup
+# Lenco rent payments
 
-Reviewed 2026-10-25. The user confirmed the keys are live and authorized using
-that account. Live API authentication is verified. Collection, payout and webhook
-flows are still unimplemented; nothing has been deployed for this integration.
+Updated 2026-10-25. Tenant checkout, server verification, receipts, immediate
+mobile-money payouts, private response history and balance reconciliation are
+implemented locally. Nothing in this payment integration has been deployed or
+activated. Subscription billing remains deferred.
 
-## Current setup
+## Implemented flow
 
-Public and secret/API keys were entered in a hidden-input PowerShell window and
-saved only to the protected local root `.env`:
+1. A linked tenant opens their own invoice and chooses a partial or full amount.
+   The server fixes the reference, currency, amount and approved landlord
+   destination; an idempotency key prevents a repeated request creating a debit.
+2. Lenco's hosted widget collects mobile money/card details. Dwella never handles
+   card PAN/CVV. Its callbacks only queue a server check, never mark an invoice
+   paid. Pending attempts can resume with the same reference.
+3. The worker fetches the collection by reference and checks identity, currency
+   and amount. A successful collection creates one ordinary billing payment and
+   receipt, updating invoice balances, arrears, tenant totals and notifications.
+   A void/manual-payment race preserves received money as a reconciliation
+   exception instead of crediting twice or losing the provider result.
+4. When the net funds settle into the configured account, a payout is queued to
+   the immutable approved phone/operator. Payout is submitted only with a fresh,
+   matching balance snapshot and sufficient unreserved available balance. The
+   claim commits before the HTTP request. A crash, timeout or ambiguous response
+   causes status polling of that reference, never a second POST/debit.
+5. Payout delivery/failure is separate from rent payment. A failed payout does not
+   undo the tenant's payment. Managers see collection/settlement/payout states in
+   the invoice, plus payout failures in their notification bell.
 
-- `LENCO_ENVIRONMENT=live`
-- `LENCO_LIVE_PUBLIC_KEY`
-- `LENCO_LIVE_SECRET_KEY`
-- `LENCO_PAYMENTS_ENABLED=false` (reserved configuration; no collection
-  implementation exists yet).
+Collection fees reduce the landlord's settled principal. In this first flow the
+platform account covers the separate payout fee and needs its own fee float.
+Payout requests use the actual settled net, not an invented fee estimate. Pending
+and recent completed payout principal/known fees reserve the reported balance
+until the next comparison. Fee policy for period batches is still a design
+choice; SaaS subscription prices have not been selected.
 
-Do not put the secret in Vite variables, browser responses, logs, tracked files or
-command arguments. Keys have not been installed on the server. The original
-sandbox key-entry helper under ignored `output/` is not suitable for reentering
-live credentials; do not rerun it for this live setup.
+## Responses and financial records
 
-From `backend/`, run the read-only diagnostic:
+Every provider request retains its timestamp, operation, HTTP status, safe error
+category, original response digest and encrypted/redacted JSON response. Failed
+HTTP responses, network failures, invalid JSON and oversized bodies are recorded.
+Arbitrary non-JSON text is represented by a safe byte-count/digest diagnostic,
+not retained verbatim. Credentials, authorization headers, OTP/PIN and sensitive
+card fields are excluded. Valid webhook bodies are retained with duplicate
+protection; bad signatures do not create evidence.
 
-```powershell
-.venv/Scripts/python.exe manage.py check_lenco --environment live
+Evidence and financial snapshots are append-only in PostgreSQL. Payment tables
+have default-deny RLS and unrelated external-reader grants are revoked. Only
+platform superusers can inspect decrypted evidence; access is audited. Tenants
+never receive internal provider bodies or landlord receiving details.
+
+The read-only balance import copies every advertised transaction page, dedupes
+provider IDs and preserves changed/missing-row discrepancies. It freezes an
+opening baseline once, then compares:
+
+- opening balance + imported credits - imported debits against Lenco ledger;
+- a separate opening application position + settled rent - confirmed payouts
+  and actual payout fees against Lenco ledger.
+
+Available and ledger balances remain distinct. Incomplete pagination/data is not
+labelled matched. External top-ups, withdrawals, unallocated receipts, provider
+charges or an in-flight collection/payout can produce a discrepancy requiring
+review or a later sync. The opening baseline is not proof of historical accuracy
+and is never silently recalculated to hide a difference.
+
+## Configuration and operational readiness
+
+Secrets live only in the protected root environment file (server installation
+will use its protected deployment environment file):
+
+```dotenv
+LENCO_ENVIRONMENT=live
+LENCO_LIVE_PUBLIC_KEY=<public checkout key>
+LENCO_LIVE_SECRET_KEY=<secret API token>
+LENCO_DEBIT_ACCOUNT_ID=<verified ZMW account UUID>
+LENCO_EVIDENCE_KEY=<dedicated Fernet key>
+LENCO_EVIDENCE_KEY_FALLBACKS=
+LENCO_PAYMENTS_ENABLED=false
+LENCO_PAYOUTS_ENABLED=false
 ```
 
-The explicit environment must match `LENCO_ENVIRONMENT`. Each environment uses
-only its matching secret. The client sends one GET, with TLS verification, a
-timeout, bounded JSON parsing and no redirects or environment fallback. It
-prints only a count or a safe error and never initiates a payment or transfer.
-The live resource is the documented
-[v2 accounts endpoint](https://lenco-api.readme.io/v2.0/reference/get-accounts).
+Keep the evidence key and retained fallback keys with protected recovery secrets;
+backups containing encrypted responses require those keys. The original ignored
+sandbox key-entry helper must not be reused for live keys. No secret belongs in
+Vite variables. A public key is supplied only by the scoped checkout API.
 
-Actual result on 2026-10-25: live authentication succeeded; one account record on
-the first page. Account details and balances were not printed or persisted. This
-does not prove card/mobile-money rail activation, the public checkout key,
-webhook delivery or a successful collection. An earlier sandbox check with these
-keys returned HTTP 401 before the user clarified their environment.
+Run from a configured backend environment:
 
-A sandbox option exists, using separately named `LENCO_SANDBOX_SECRET_KEY` with
-`LENCO_ENVIRONMENT=sandbox`. Its v2 URL combines the documented sandbox hostname
-with the v2 resource and still needs provider confirmation. The documented sandbox
-checkout script failed TLS negotiation from this machine. Neither sandbox
-collections nor browser checkout were verified; do not bypass TLS checks.
+```powershell
+python manage.py check_lenco --environment live
+python manage.py sync_lenco_finances
+python manage.py process_lenco_payments
+```
 
-## Agreed implementation direction
+The first balance sync establishes a baseline; a subsequent clean sync must
+match before a payout can be submitted. The sync/check commands are read-only
+with respect to Lenco. `process_lenco_payments` can move money only when the payout
+switch is explicitly enabled and all guards pass. Never run it as a live debit
+connectivity test.
 
-Use Lenco's [hosted checkout](https://lenco-api.readme.io/v2.0/reference/accept-payments)
-for mobile money and cards, with only the public key in the browser. Dwella must
-never collect card PAN/CVV. Amounts use major currency units, represented with
-Decimal in Dwella. The server chooses the invoice, amount, currency and unique
-reference; the browser cannot supply an authoritative paid amount.
+At deployment, migrate the database; install the protected configuration; approve
+receiving details with an audit reason; configure the public webhook URL
+`/api/v1/payments/webhook/` in Lenco Pay; verify delivery and controlled collection/
+payout behavior; then enable the chosen switches/jobs. Add `lenco_finances`
+(five minutes) and `lenco_payments` (30 seconds) to the existing
+`APP_SCHEDULER_JOBS` list without removing other jobs. They are off by default.
+The reconciliation cycle bounds its work so a provider outage does not monopolise
+the shared scheduler indefinitely.
 
-The [API authentication guide](https://lenco-api.readme.io/v2.0/reference/get-started)
-requires HTTPS Bearer authentication. HTTP 200 or a checkout callback alone does
-not mean rent was paid. Recheck the
-[collection by reference](https://lenco-api.readme.io/v2.0/reference/get-collection-by-reference)
-on the server and validate reference, amount, currency and workspace/invoice
-ownership before recording a payment.
+The reviewed [getting-started](https://lenco-api.readme.io/v2.0/reference/get-started)
+and [payout](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money)
+pages do not state that separate provider approval is mandatory for this flow.
+Account-specific payout permission, fees/limits and actual delivery are still
+unverified; a successful account read does not prove a transfer works.
 
-Add a separate provider payment-attempt lifecycle to preserve pending, successful,
-failed and reconciliation-required outcomes. Retain the existing manual payment
-flow. Provider success must be deduplicated transactionally and produce one
-receipt. An already-paid or voided invoice must place received money into a
-reconciliation exception rather than discard the provider outcome. Avoid holding
-database locks across network requests.
+## API surface
 
-For [webhooks](https://lenco-api.readme.io/v2.0/reference/webhooks), validate
-`X-Lenco-Signature` with constant-time comparison over the exact raw request
-bytes. The documented signing algorithm is HMAC-SHA512 using the hex SHA256 of
-the API token as the key. Verify a real sandbox sample before relying on this
-contract. Persist a bounded receipt, deduplicate/reconcile asynchronously and
-acknowledge quickly; handle retries and out-of-order events. Poll status as a
-fallback. Keep successful collection separate from settled funds.
+All paths below are under `/api/v1/payments/`, with the existing response envelope,
+authentication, mailbox/workspace checks and private/no-store headers.
 
-Managers see their own destination, fees, net amounts and settlement status from
-[provider settlement data](https://lenco-api.readme.io/v2.0/reference/get-settlements),
-never API credentials. Tenants see only their own invoices and attempts. Provider
-configuration stays platform-admin controlled. New sensitive tables need explicit
-PostgreSQL privileges and RLS protections against unrelated external DB roles.
+| Endpoint | Purpose |
+| --- | --- |
+| `GET tenant/options/` | Whether online payment is available for this tenant's workspace |
+| `POST tenant/invoices/<invoice UUID>/checkout/` | Amount + UUID idempotency key; server checkout configuration |
+| `GET tenant/collections/?invoice=<UUID>` | Own attempt history/status |
+| `GET/POST tenant/collections/<UUID>/` | Own status / queue authoritative verification |
+| `GET collections/?invoice=<UUID>` | Manager workspace collection, fee and payout history |
+| `GET destination/` | Manager's approved destination |
+| `POST platform/destinations/<workspace UUID>/` | Superuser approval: phone, operator, holder name and reason |
+| `GET platform/collections/` | Platform collection monitoring |
+| `GET platform/collections/<UUID>/exchanges/` | Evidence metadata, paginated |
+| `GET platform/exchanges/<UUID>/` | Audited decrypted/redacted evidence |
+| `GET platform/balance/` | Latest private account comparison and Dwella totals |
+| `POST webhook/` | Raw-body HMAC-SHA512 signature, durable receipt and fast acknowledgement |
 
-## Before live rent collection
+Checkout/status writes are limited to 30/hour per user. Webhooks have a separate
+600/minute source limit. Hosted callbacks are rechecked on the server; periodic
+polling handles missed webhooks. Provider calls use verified TLS, fixed approved
+hosts, bounded reads, timeouts, no redirects and no environment fallback.
 
-User clarification, 2026-10-25: the desired destination is the landlord's
-mobile-money phone number. Target flow is tenant collection through Dwella,
-followed automatically by a payout to that landlord's verified number. This
-extends the earlier collection-only scope to include mobile-money payouts.
-Lenco documents a separate
-[mobile-money transfer API](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money)
-for Zambia (Airtel, MTN, Zamtel), debiting a specified Lenco account. This is a
-collection followed by a transfer, not a verified native checkout split.
-Only schedule payout after authoritative collection verification and available
-settled funds; track collection and payout independently, prevent duplicate
-transfers, and reconcile uncertain transfer outcomes before retrying. Immediate
-delivery is not guaranteed. Confirm this platform use, account permissions,
-fees and available-funds timing with Lenco before activating automatic payouts.
+## Bank payouts, held funds and review designs
 
-Confirm with Lenco how Dwella's separate property managers are onboarded and how
-their settlement destinations are assigned. The reviewed checkout parameters do
-not establish a split-payment/submerchant arrangement. Do not infer that one
-Dwella merchant may receive every manager's rent or invent automatic payouts.
-Confirm Zambia rail activation, actual fees, fee bearer and settlement schedules
-for this account.
+Lenco documents bank-account payouts and its live Zambia bank directory returned
+22 institutions in the read-only check. No card-payout endpoint was found.
+Bank destinations and scheduled/aggregated/manual withdrawals are **designed,
+not implemented or active** in this first immediate mobile-money flow.
 
-Next implementation slices: attempt model and
-permissions; initiation and authoritative reconciliation; signed webhook receipt
-and polling; scoped status/receipt APIs; approved tenant checkout UI. Exercise
-[sandbox fixtures](https://lenco-api.readme.io/v2.0/reference/test-cards-and-accounts),
-duplicates, tampering, amount/currency mismatch, permission failures, timeout,
-out-of-order events and manual-payment races before deployment. Autopay,
-automatic bank matching and refunds remain outside this initial scope. Automatic
-landlord mobile-money payouts are now requested as described above.
+Review the [new payout designs](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW?node-id=227-107):
+desktop drawers for mobile money (227:113) and bank accounts (227:214),
+monthly (232:106) and manual hold (232:243), held funds/request payout (232:380),
+landlord history (227:315), platform reconciliation (227:423) and the phone
+form (227:514). Examples are illustrative.
+Proposed timing is immediate/weekly/monthly/manual. Implement period batches and
+separate landlord liabilities/reservations after the design is agreed; do not
+expose pooled platform cash as a landlord's spendable balance.
 
-Validation for this slice: Django system check and repository Ruff checks pass;
-57 integration tests pass, including 28 Lenco tests for environment selection,
-credential validation, redacted failures, redirects, timeouts and malformed
-responses. The live smoke check was read-only; no collection test has been run.
+## Validation
+
+Full PostgreSQL suite: 782 passed. Full SQLite suite: 770 passed, 12 skipped.
+Additional focused tests cover concurrent account reservations, eventual webhook
+status visibility, immutable financial records and failed/invalid response
+capture. Frontend production build and 19 Node tests pass. Browser checks with
+synthetic data and a mocked provider widget covered invalid amounts, tampered
+callbacks remaining pending, verified receipt/balance refresh, failure without
+credit, manager settlement/payout delivery, mobile layouts and both themes.
+No live collection or transfer was initiated.
+
+Live read-only checks authenticated the account, retrieved the Zambia bank
+list, imported one existing provider transaction and recorded a baseline followed
+by a matched comparison. Actual response copies are retained privately/encrypted;
+no balances, account names or credentials belong in tracked validation artifacts.
+This does not constitute a live payment acceptance test.
