@@ -8,6 +8,10 @@ from rest_framework.permissions import SAFE_METHODS
 
 
 def is_workspace_scoped(request):
+    if request.path_info.startswith("/api/v1/payments/"):
+        return not request.path_info.startswith((
+            "/api/v1/payments/platform/", "/api/v1/payments/webhook/",
+        ))
     return request.path_info.startswith(tuple(
         f"/api/v1/{area}/" for area in (
             "properties", "tenants", "leases", "billing", "reports", "notifications",

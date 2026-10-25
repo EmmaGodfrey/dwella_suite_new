@@ -8,6 +8,7 @@ from apps.common.serializers import OrganizationScopedSerializer
 from apps.integrations.models import FiscalReceipt
 from apps.integrations.serializers import FiscalReceiptSerializer
 from apps.leases.models import Lease
+from apps.payments.serializers import CollectionSerializer
 from apps.tenants.models import Tenant
 
 from .models import Invoice, InvoiceLine, Payment
@@ -33,6 +34,7 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(OrganizationScopedSerializer):
+    online_payment = CollectionSerializer(source="collection", read_only=True, default=None)
     invoice_id = serializers.UUIDField(source="invoice.public_id", read_only=True)
     invoice_reference = serializers.CharField(source="invoice.reference", read_only=True)
     tenant_name = serializers.CharField(source="tenant.full_name", read_only=True)
@@ -41,6 +43,7 @@ class PaymentSerializer(OrganizationScopedSerializer):
     class Meta:
         model = Payment
         fields = [
+            "online_payment",
             "id",
             "organization_id",
             "receipt_number",

@@ -12,6 +12,7 @@ from apps.common.permissions import CanViewPortfolio
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
+from apps.payments.models import Payout
 
 from .models import NotificationRead
 
@@ -115,6 +116,16 @@ def live_alerts(org):
                 "date": timezone.localtime(payment.created_at).date().isoformat(),
             }
         )
+    for payout in Payout.objects.filter(
+        collection__organization=org, status__in=["failed", "review"],
+    ).select_related("collection__invoice").order_by("-updated_at")[:100]:
+        alerts.append({
+            "id": f"payout:{payout.public_id}:{payout.status}", "kind": "payment",
+            "title": "Landlord payout needs attention",
+            "body": f"{payout.collection.invoice.reference} · The rent payment remains recorded.",
+            "path": f"/billing/invoices/{payout.collection.invoice.public_id}",
+            "date": timezone.localtime(payout.updated_at).date().isoformat(),
+        })
     return sorted(alerts, key=lambda alert: (alert["date"], alert["id"]))
 
 

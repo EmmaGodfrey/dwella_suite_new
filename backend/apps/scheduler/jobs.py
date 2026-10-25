@@ -17,6 +17,8 @@ class Job:
 
 
 JOBS = {
+    "lenco_payments": Job(command="process_lenco_payments", every=timedelta(seconds=30)),
+    "lenco_finances": Job(command="sync_lenco_finances", every=timedelta(minutes=5)),
     "beta_emails": Job(command="send_beta_emails", every=timedelta(minutes=15)),
     # Before billing, so a renewal that starts today is the lease that gets billed.
     "renewals": Job(command="start_renewals", daily_at=time(5, 30)),

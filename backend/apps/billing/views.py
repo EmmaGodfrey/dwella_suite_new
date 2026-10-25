@@ -80,7 +80,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         queryset = super().get_queryset()
         if self.action == "retrieve":
             queryset = queryset.select_related("organization__smart_invoice").prefetch_related(
-                "payments__recorded_by"
+                "payments__recorded_by",
+                "payments__collection__destination",
+                "payments__collection__payout",
             )
         return queryset
 
@@ -243,7 +245,15 @@ class PaymentFilter(filters.FilterSet):
 class PaymentViewSet(OrganizationScopedModelViewSet):
     serializer_class = PaymentSerializer
     queryset = Payment.objects.select_related(
-        "invoice__unit__property", "tenant", "recorded_by", "organization", "reversed_by"
+        "invoice__unit__property",
+        "tenant",
+        "recorded_by",
+        "organization",
+        "reversed_by",
+        "collection__invoice",
+        "collection__payment",
+        "collection__destination",
+        "collection__payout",
     )
     filterset_class = PaymentFilter
     search_fields = ["receipt_number", "reference", "tenant__full_name"]
