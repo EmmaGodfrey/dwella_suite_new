@@ -17,12 +17,16 @@ import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../sha
 import { daysUntil, formatDate, formatMoney, initials } from "../../shared/format";
 import { leaseBadgeProps, tenantBadgeProps, tenantStatuses } from "../../shared/tenancy";
 import TenantDrawer from "./TenantDrawer";
+import TenantConfirm from "./TenantConfirm";
+import { useTenantActionMutation } from "../../Services/mutations";
+import { toast } from "react-toastify";
 import "../../shared/records.scss";
 import "./tenants.scss";
 import { useTenantInvitation } from "../../Services/accountSetup";
 import { useQueryClient } from "@tanstack/react-query";
 
 const PAGE_SIZE = 20;
+const statusOptions = [...tenantStatuses, { value: "archived", label: "Archived" }];
 // Avatar tints rotate by name so the same tenant keeps the same colour.
 const TINTS = ["navy", "green", "amber", "violet"];
 const tintFor = (name) => TINTS[[...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % TINTS.length];
@@ -49,6 +53,12 @@ function TableSkeleton() {
 
 function TenantProfile({ tenant, canManage, onEdit }) {
   const client = useQueryClient();
+  const [confirm, setConfirm] = useState(null); // null | "archive" | "remove-portal-access"
+  const restore = useTenantActionMutation({
+    onSuccess: () => toast.success(`${tenant.full_name} restored.`),
+    onError: (error) => toast.error(error.message || "Could not restore the tenant."),
+  });
+  const archived = !tenant.is_active;
   const invitation = useTenantInvitation(tenant.id, { onSuccess: () => client.invalidateQueries({ queryKey: ["tenants"] }) });
   const lease = tenant.current_lease;
   const endsIn = lease ? daysUntil(lease.end_date) : null;
@@ -60,9 +70,9 @@ function TenantProfile({ tenant, canManage, onEdit }) {
         <Avatar name={tenant.full_name} size="lg" />
         <div>
           <h2>{tenant.full_name}</h2>
-          <StatusBadge {...tenantBadgeProps(tenant.status)} />
+          {archived ? <StatusBadge color="subtle">Archived</StatusBadge> : <StatusBadge {...tenantBadgeProps(tenant.status)} />}
         </div>
-        {canManage ? <Button appearance="subtle" icon={<Edit20Regular />} aria-label="Edit tenant" onClick={onEdit} /> : null}
+        {canManage && !archived ? <Button appearance="subtle" icon={<Edit20Regular />} aria-label="Edit tenant" onClick={onEdit} /> : null}
       </header>
 
       {/* Real links: the device's own phone, SMS and mail apps. In-app
@@ -80,7 +90,18 @@ function TenantProfile({ tenant, canManage, onEdit }) {
         <div><dt>On file since</dt><dd>{formatDate(tenant.created_at)}</dd></div>
       </dl>
 
-      {canManage ? <section>
+      {archived ? (
+        <section className="dwella-callout is-info">
+          <p>Archived {formatDate(tenant.updated_at)}. Their records are kept; restore them to edit details or start a new lease.</p>
+          {canManage ? (
+            <Button disabled={restore.isPending} onClick={() => restore.mutate({ id: tenant.id, action: "restore" })}>
+              {restore.isPending ? "Restoring…" : "Restore tenant"}
+            </Button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {canManage && !archived ? <section>
         <h3>Tenant account</h3>
         <p className="dwella-muted-copy">{tenant.portal_access?.status === "linked" ? "This tenant has linked their account." : tenant.portal_access?.status === "pending" ? "An invitation is waiting for acceptance." : "Invite this tenant to create or link their Dwella account."}</p>
         {tenant.portal_access?.status !== "linked" ? <div className="dwella-contact-actions">
@@ -88,6 +109,9 @@ function TenantProfile({ tenant, canManage, onEdit }) {
           {tenant.portal_access?.status === "pending" ? <Button disabled={invitation.isPending} onClick={() => invitation.mutate(true)}>Revoke</Button> : null}
         </div> : null}
         {!tenant.email ? <p>Add their email address before sending an invitation.</p> : null}
+        {tenant.portal_access?.status === "linked" ? <div className="dwella-contact-actions">
+          <Button onClick={() => setConfirm("remove-portal-access")}>Remove portal access</Button>
+        </div> : null}
         {invitation.isError ? <p role="alert">{invitation.error.message}</p> : invitation.isSuccess ? <p role="status">{invitation.data.revoked ? "Invitation revoked." : "Invitation sent."}</p> : null}
       </section> : null}
 
@@ -111,6 +135,24 @@ function TenantProfile({ tenant, canManage, onEdit }) {
           <p className="dwella-muted-copy">No lease yet. {canManage ? "Create one from Leases." : ""}</p>
         )}
       </section>
+
+      {canManage && !archived ? (
+        <section>
+          <h3>Archive tenant</h3>
+          {lease ? (
+            <p className="dwella-muted-copy">Available once {lease.reference} has ended. Records are kept and you can restore the tenant later.</p>
+          ) : (
+            <>
+              <p className="dwella-muted-copy">For tenants who have moved on. Records are kept and you can restore them later.</p>
+              <div className="dwella-contact-actions">
+                <Button onClick={() => setConfirm("archive")}>Archive tenant</Button>
+              </div>
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {confirm ? <TenantConfirm tenant={tenant} action={confirm} onClose={() => setConfirm(null)} /> : null}
 
       {tenant.notes ? (
         <section>
@@ -159,10 +201,11 @@ export default function Tenants() {
     staleTime: 30_000,
   });
   const tenant = tenantQuery.data;
-  const filtered = Boolean(filters.search || filters.status);
+  const showingArchived = filters.is_active === "false";
+  const filtered = Boolean(filters.search || filters.status || showingArchived);
   const clearFilters = () => {
     setSearch("");
-    setFilters((current) => ({ ...current, search: "", status: "", page: 1 }));
+    setFilters(({ is_active, ...current }) => ({ ...current, search: "", status: "", page: 1 }));
   };
 
   const onSaved = (data) => {
@@ -175,11 +218,15 @@ export default function Tenants() {
       <div className="dwella-page-toolbar">
         <SegmentedFilter
           label="Filter tenants by status"
-          options={tenantStatuses}
-          value={filters.status || "all"}
+          options={statusOptions}
+          value={filters.is_active === "false" ? "archived" : filters.status || "all"}
           onChange={(value) => {
             setSelectedId(null);
-            setFilters((current) => ({ ...current, status: value === "all" ? "" : value, page: 1 }));
+            setFilters((current) => {
+              const { is_active, ...rest } = current;
+              if (value === "archived") return { ...rest, status: "", is_active: "false", page: 1 };
+              return { ...rest, status: value === "all" ? "" : value, page: 1 };
+            });
           }}
         />
         <Input
@@ -211,9 +258,9 @@ export default function Tenants() {
       {listQuery.isError && !tenants.length ? null : !listQuery.isLoading && !tenants.length ? (
         <EmptyState
           icon={<People24Regular />}
-          title={filtered ? "No matching tenants" : "No tenants yet"}
+          title={showingArchived && !filters.search ? "No archived tenants" : filtered ? "No matching tenants" : "No tenants yet"}
           description={
-            filtered ? "Try another search or status." : canManage ? "Add a tenant, and their unit and lease if you have them." : "Tenants will appear once a property manager adds them."
+            showingArchived && !filters.search ? "Tenants you archive appear here with their history." : filtered ? "Try another search or status." : canManage ? "Add a tenant, and their unit and lease if you have them." : "Tenants will appear once a property manager adds them."
           }
           actionLabel={filtered ? "Clear filters" : canManage ? "Add tenant" : undefined}
           onAction={filtered ? clearFilters : canManage ? () => setDrawer("add") : undefined}
@@ -257,7 +304,7 @@ export default function Tenants() {
                       <td>{lease ? `${lease.unit_name} · ${lease.property_name}` : <span className="dwella-muted-copy">—</span>}</td>
                       <td>{lease ? formatDate(lease.end_date) : "—"}</td>
                       <td className="is-numeric">{lease ? formatMoney(lease.monthly_rent, { whole: true }) : "—"}</td>
-                      <td><StatusBadge {...tenantBadgeProps(row.status)} /></td>
+                      <td>{row.is_active ? <StatusBadge {...tenantBadgeProps(row.status)} /> : <StatusBadge color="subtle">Archived</StatusBadge>}</td>
                     </tr>
                   );
                 })}
