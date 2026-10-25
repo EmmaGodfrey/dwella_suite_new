@@ -3,6 +3,7 @@
 # media archive per day, verified before they replace anything, pruned after
 # BACKUP_KEEP_DAYS. These stay on this server; copy /backups off-host as well.
 set -u
+umask 077
 
 keep_days=${BACKUP_KEEP_DAYS:-14}
 backup_hour=${BACKUP_HOUR_UTC:-0}

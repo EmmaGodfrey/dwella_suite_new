@@ -102,7 +102,8 @@ services:
       APP_CACHE_URL: redis://redis:6379/1
       # Staging email only reaches these test inboxes; add testers comma-separated.
       APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
-      APP_SCHEDULER_JOBS: ${APP_SCHEDULER_JOBS:-offsite_backups}
+      APP_SCHEDULER_JOBS: ${APP_SCHEDULER_JOBS:-media_snapshots,offsite_backups}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
       # offsite_backups copies data/backups to BACKUP_S3_* (or STORAGE_S3_*) hourly.
       APP_BACKUP_DIR: /backups
       BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-_backups/test/}
@@ -111,12 +112,13 @@ services:
         condition: service_healthy
     entrypoint: ["python", "manage.py", "run_scheduler"]
     volumes:
-      - ../data/backups:/backups:ro
+      - ../data/backups:/backups
 
   # Nightly verified database dump and media archive under data/backups.
   # Restore with deploy/restore-backup.sh. Copy data/backups off this server too.
   backup:
     image: postgres:16-alpine
+    user: "1000:1000"
     restart: unless-stopped
     environment:
       PGHOST: postgres

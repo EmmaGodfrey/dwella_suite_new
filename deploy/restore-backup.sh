@@ -17,13 +17,18 @@ esac
 test -f "${dump}"
 compose() { docker compose --env-file "${env_file}" -f "${compose_file}" "$@"; }
 
+# Reject a bad archive before stopping anything. The restore itself is atomic.
+compose exec -T postgres pg_restore --list < "${dump}" >/dev/null
+
 printf 'Replace the %s database with %s? Type RESTORE to continue: ' "${environment}" "${dump}"
 read -r answer
 [ "${answer}" = "RESTORE" ] || { echo "Cancelled."; exit 1; }
 
 compose stop backend scheduler
+trap 'compose up -d backend scheduler' EXIT
 compose exec -T postgres sh -c \
   'pg_restore --clean --if-exists --no-owner --single-transaction -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
   < "${dump}"
 compose up -d backend scheduler
+trap - EXIT
 echo "Restored ${dump}."
