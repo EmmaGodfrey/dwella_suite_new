@@ -29,3 +29,11 @@ malformed data, default-closed and explicit test-only bypass, repeated actions
 and preservation of earlier collection destinations. Run the full backend suite
 and frontend build before test deployment.
 Production must remain untouched and test data must not be reset again.
+
+Validation completed 2026-10-25: isolated full PostgreSQL backend suite 852
+passed, Django/Ruff/migration checks clean; frontend production build and 19 Node
+tests passed. Synthetic Playwright verified client/server validation, successful
+save, repeated editing and re-confirmation, close/cancel, desktop and 390px mobile
+in light/dark themes without horizontal overflow. No real destination or payment
+was submitted during validation. Test-only deployment follows the existing
+annotated test-v* CI gate; production is excluded.

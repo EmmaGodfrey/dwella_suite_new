@@ -101,10 +101,19 @@ with respect to Lenco. `process_lenco_payments` can move money only when the pay
 switch is explicitly enabled and all guards pass. Never run it as a live debit
 connectivity test.
 
-At deployment, migrate the database; install the protected configuration; approve
-receiving details with an audit reason; configure the public webhook URL
+At deployment, migrate the database; install the protected configuration; configure the public webhook URL
 `/api/v1/payments/webhook/` in Lenco Pay; verify delivery and controlled collection/
 payout behavior; then enable the chosen switches.
+
+Managers enter receiving details under **Billing → Receiving details**. There
+is no routine admin approval. SMS/WhatsApp ownership verification is not yet
+configured. For the explicitly authorised test flow only, set
+`APP_ENVIRONMENT=test` and `LENCO_ALLOW_UNVERIFIED_DESTINATIONS=true`. Both are
+required; the bypass defaults off. It lets an authenticated active landlord
+save a confirmed mobile-money wallet without a code and records an audit event.
+The screen does not claim the phone is verified. Production must not enable
+this bypass. No bank/card destinations or scheduled/manual payouts are exposed.
+Existing collections retain the destination captured when checkout began.
 
 The `payments-worker` service (`python manage.py run_payments_worker`) does the
 checking, separately from the scheduler. It asks Lenco only about rows that are
