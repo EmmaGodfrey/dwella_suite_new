@@ -81,13 +81,21 @@ def requests(portal):
 
 
 def documents(portal):
-    return DocumentVersion.objects.filter(
-        organization=portal.organization,
-        kind=DocumentVersion.Kind.LEASE,
-        lease__in=leases(portal),
-        status__in=VISIBLE_DOCUMENT_STATUSES,
-    ).prefetch_related(
-        Prefetch("signatures", queryset=DocumentSignature.objects.order_by("signed_at"))
+    return (
+        DocumentVersion.objects.filter(
+            organization=portal.organization,
+            kind=DocumentVersion.Kind.LEASE,
+            lease__in=leases(portal),
+            status__in=VISIBLE_DOCUMENT_STATUSES,
+        )
+        .select_related("lease")
+        .defer("pdf", "unsigned_pdf")
+        .prefetch_related(
+            Prefetch(
+                "signatures",
+                queryset=DocumentSignature.objects.defer("png", "signed_pdf").order_by("signed_at"),
+            )
+        )
     )
 
 
@@ -106,9 +114,11 @@ class OverviewView(PortalMixin, APIView):
             .order_by("due_date", "created_at")
             .first()
         )
-        current = leases(portal).filter(
-            status__in=(Lease.Status.PENDING_SIGNATURE, Lease.Status.ACTIVE)
-        ).select_related("unit__property")
+        current = (
+            leases(portal)
+            .filter(status__in=(Lease.Status.PENDING_SIGNATURE, Lease.Status.ACTIVE))
+            .select_related("unit__property")
+        )
         tenant = portal.tenants[0]
         return Response(
             {
@@ -159,9 +169,11 @@ class LeaseDocumentsView(PortalMixin, APIView):
     def get(self, request, public_id):
         lease = generics.get_object_or_404(leases(self.portal), public_id=public_id)
         versions = documents(self.portal).filter(lease=lease).select_related("lease")
-        originals = SignedLeaseOriginal.objects.filter(
-            organization=self.portal.organization, lease=lease
-        ).select_related("lease")
+        originals = (
+            SignedLeaseOriginal.objects.filter(organization=self.portal.organization, lease=lease)
+            .select_related("lease")
+            .defer("pdf")
+        )
         return private_headers(
             Response(
                 {
@@ -180,7 +192,10 @@ class DocumentFileView(PortalMixin, APIView):
     def get(self, request, public_id, operation):
         if operation not in {"pdf", "page"}:
             raise NotFound()
-        document = generics.get_object_or_404(documents(self.portal), public_id=public_id)
+        document = generics.get_object_or_404(
+            documents(self.portal).defer(None).defer("unsigned_pdf").prefetch_related(None),
+            public_id=public_id,
+        )
         if operation == "page":
             return page_response(request, document.pdf, document.sha256)
         filename = f"{document.snapshot['reference']}-v{document.version}.pdf"
@@ -243,8 +258,12 @@ class InvoiceFileView(PortalMixin, APIView):
         if operation == "info":
             return private_headers(
                 Response(
-                    {"id": str(document.public_id), "sha256": document.sha256,
-                     "page_count": document.page_count, "version": document.version}
+                    {
+                        "id": str(document.public_id),
+                        "sha256": document.sha256,
+                        "page_count": document.page_count,
+                        "version": document.version,
+                    }
                 )
             )
         return pdf_response(document.pdf, f"{document.snapshot['reference']}.pdf")
@@ -283,9 +302,11 @@ class MaintenanceListView(PortalMixin, generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
         lease_id = data.pop("lease", None)
-        current = leases(self.portal).filter(
-            status__in=(Lease.Status.PENDING_SIGNATURE, Lease.Status.ACTIVE)
-        ).select_related("unit__property", "tenant")
+        current = (
+            leases(self.portal)
+            .filter(status__in=(Lease.Status.PENDING_SIGNATURE, Lease.Status.ACTIVE))
+            .select_related("unit__property", "tenant")
+        )
         if lease_id:
             current = current.filter(public_id=lease_id)
         current = list(current[:2])
@@ -376,8 +397,10 @@ class ProfileView(PortalMixin, APIView):
         if len(self.portal.tenants) != 1:
             raise ValidationError("Ask your property manager to update your contact details.")
         with transaction.atomic():
-            tenant = type(self.portal.tenants[0]).objects.select_for_update().get(
-                pk=self.portal.tenants[0].pk
+            tenant = (
+                type(self.portal.tenants[0])
+                .objects.select_for_update()
+                .get(pk=self.portal.tenants[0].pk)
             )
             serializer = ProfileSerializer(tenant, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)

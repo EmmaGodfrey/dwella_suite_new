@@ -55,9 +55,21 @@ class DocumentSerializer(OrganizationScopedSerializer):
         read_only_fields = fields
 
     def get_current_terms(self, obj):
-        return obj.kind == "invoice" or obj.source_fingerprint == fingerprint(
-            lease_source(obj.lease)
-        )
+        checked = self.context.setdefault("_document_current_terms", {})
+        key = id(obj)
+        if key not in checked:
+            checked[key] = obj.kind == "invoice" or obj.source_fingerprint == fingerprint(
+                lease_source(obj.lease)
+            )
+        return checked[key]
+
+    def signer_is_active(self, user, organization):
+        # Metadata only: signing actions still recheck live membership themselves.
+        checked = self.context.setdefault("_document_signer_checks", {})
+        key = (user.pk, organization.pk)
+        if key not in checked:
+            checked[key] = active_signer(user, organization)
+        return checked[key]
 
     def get_can_sign(self, obj):
         request = self.context.get("request")
@@ -71,8 +83,8 @@ class DocumentSerializer(OrganizationScopedSerializer):
             and request
             and request.user.is_authenticated
             and request.user.pk == obj.landlord_signer_id
-            and active_signer(request.user, obj.organization)
-            and not obj.signatures.filter(role="landlord").exists()
+            and self.signer_is_active(request.user, obj.organization)
+            and not any(signature.role == "landlord" for signature in obj.signatures.all())
         )
 
 
