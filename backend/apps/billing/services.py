@@ -209,6 +209,8 @@ def apply_late_fees(organization, today=None):
             status__in=Invoice.UNPAID_STATUSES,
             lease__late_fee_percent__gt=0,
             period_start__isnull=False,
+            # Grace days are never negative, so nothing due today or later qualifies.
+            due_date__lt=today,
         )
         .exclude(lines__kind=InvoiceLine.Kind.LATE_FEE)
         .exclude(pk__in=late_fee_follow_ups().values("charged_for"))
