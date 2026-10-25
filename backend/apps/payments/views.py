@@ -27,7 +27,7 @@ from .serializers import (
     DestinationSetupSerializer,
     TenantCollectionSerializer,
 )
-from .services import approve_destination, checkout_payload, start_checkout
+from .services import approve_destination, checkout_payload, start_checkout, submit_mobile_money
 from .webhooks import MAX_WEBHOOK, receive_webhook
 
 
@@ -66,10 +66,14 @@ class TenantCheckoutView(PrivateView):
         serializer = CheckoutSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         row = start_checkout(invoice=invoice, user=request.user, **serializer.validated_data)
+        if row.channel == "mobile-money":
+            row = submit_mobile_money(row)
         return Response(
             {
                 "collection": TenantCollectionSerializer(row).data,
-                "checkout": checkout_payload(row) if row.status == "pending" else None,
+                "checkout": checkout_payload(row)
+                if row.status == "pending" and row.channel != "mobile-money"
+                else None,
             }
         )
 

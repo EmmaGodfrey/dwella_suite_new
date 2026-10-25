@@ -67,7 +67,17 @@ def approve_destination(*, organization, user, phone, operator, account_name, re
 
 
 @transaction.atomic
-def start_checkout(*, invoice, user, idempotency_key, amount):
+def start_checkout(
+    *, invoice, user, idempotency_key, amount, channel="checkout", phone="", operator=""
+):
+    if channel not in {"checkout", "card", "mobile-money"}:
+        raise ValidationError("Choose a supported payment method.")
+    if channel == "mobile-money":
+        phone = normalize_phone(phone)
+        if operator not in {"mtn", "airtel", "zamtel"}:
+            raise ValidationError("Choose a supported mobile-money network.")
+    elif phone or operator:
+        raise ValidationError("Mobile-money details require the mobile-money payment method.")
     if not settings.LENCO_PAYMENTS_ENABLED:
         raise ValidationError("Online payments are not enabled yet.")
     require_feature(invoice.organization, Feature.ONLINE_PAYMENTS)
@@ -87,6 +97,8 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
             existing.invoice_id != invoice.pk
             or existing.amount != amount
             or existing.environment != settings.LENCO_ENVIRONMENT
+            or (existing.channel, existing.payer_phone, existing.payer_operator)
+            != (channel, phone, operator)
         ):
             raise ValidationError("This payment key was already used for different details.")
         return existing
@@ -99,6 +111,11 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
             and pending.amount == amount
             and pending.environment == settings.LENCO_ENVIRONMENT
             and amount <= invoice.balance
+            and (
+                (pending.channel, pending.payer_phone, pending.payer_operator)
+                == (channel, phone, operator)
+                or (pending.channel == "checkout" and channel == "card")
+            )
         ):
             return pending
         until = timezone.localtime(checkout_started(pending) + CHECKOUT_WINDOW)
@@ -114,7 +131,7 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
         organization=invoice.organization, enabled=True
     ).first()
     if destination is None:
-        raise ValidationError("The manager's receiving number has not been approved yet.")
+        raise ValidationError("The manager's receiving number has not been set up yet.")
     try:
         with transaction.atomic():
             return Collection.objects.create(
@@ -125,6 +142,9 @@ def start_checkout(*, invoice, user, idempotency_key, amount):
                 environment=settings.LENCO_ENVIRONMENT,
                 idempotency_key=idempotency_key,
                 amount=amount,
+                channel=channel,
+                payer_phone=phone,
+                payer_operator=operator,
                 currency="ZMW",
                 debit_account_id=settings.LENCO_DEBIT_ACCOUNT_ID,
                 next_check_at=timezone.now() + timedelta(seconds=30),
@@ -145,7 +165,7 @@ def checkout_payload(collection):
         "amount": f"{collection.amount:.2f}",
         "currency": collection.currency,
         "email": collection.initiated_by.email,
-        "channels": ["mobile-money", "card"],
+        "channels": ["card"] if collection.channel == "card" else ["mobile-money", "card"],
         "bearer": "merchant",
     }
 
@@ -168,6 +188,41 @@ def _issue(collection, code):
 def reconcile_collection(collection):
     """Ask Lenco about one checkout and apply the answer. Safe to repeat."""
     result = Provider(collection.environment).request("collection_status", collection=collection)
+    _apply_verified_collection(collection, result)
+
+
+def submit_mobile_money(collection):
+    """Claim once before sending; unknown outcomes are queried, never resubmitted."""
+    with transaction.atomic():
+        row = Collection.objects.select_for_update().get(pk=collection.pk)
+        if (
+            row.channel != "mobile-money"
+            or row.status != Collection.Status.PENDING
+            or row.collection_submitted_at is not None
+        ):
+            return row
+        row.collection_submitted_at = timezone.now()
+        row.next_check_at = row.collection_submitted_at + timedelta(seconds=30)
+        row.save(update_fields=["collection_submitted_at", "next_check_at", "updated_at"])
+    # No invoice/collection locks are held during this potentially slow call.
+    result = Provider(row.environment).request(
+        "collection_submit",
+        collection=row,
+        payload={
+            "amount": float(row.amount),
+            "reference": row.reference,
+            "phone": row.payer_phone,
+            "operator": row.payer_operator,
+            "country": "zm",
+            "bearer": "merchant",
+        },
+    )
+    _apply_verified_collection(row, result)
+    row.refresh_from_db()
+    return row
+
+
+def _apply_verified_collection(collection, result):
     # Invoice before collection is the common lock order for ledger updates.
     with transaction.atomic():
         invoice = Invoice.objects.select_for_update().get(pk=collection.invoice_id)
@@ -217,6 +272,18 @@ def _apply_collection_result(row, invoice, result, now):
             and isinstance(data.get("id"), str)
             and 0 < len(data["id"]) <= 100
         )
+        if row.channel == "mobile-money" and data.get("status") == "successful":
+            payer = data.get("mobileMoneyDetails") or {}
+            valid = (
+                valid
+                and data.get("type") == "mobile-money"
+                and isinstance(payer, dict)
+                and normalize_phone(payer.get("phone", "")) == row.payer_phone
+                and payer.get("operator") == row.payer_operator
+                and payer.get("country") == "zm"
+            )
+        if row.channel == "card" and data.get("status") == "successful":
+            valid = valid and data.get("type") == "card"
     except ValidationError:
         valid = False
     if not valid:

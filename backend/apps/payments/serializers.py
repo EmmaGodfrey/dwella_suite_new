@@ -9,6 +9,18 @@ from .services import normalize_phone
 class CheckoutSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     idempotency_key = serializers.UUIDField()
+    channel = serializers.ChoiceField(choices=["mobile-money", "card"], default="card")
+    phone = serializers.CharField(max_length=24, required=False)
+    operator = serializers.ChoiceField(choices=["mtn", "airtel", "zamtel"], required=False)
+
+    def validate(self, attrs):
+        if attrs["channel"] == "mobile-money":
+            if not attrs.get("phone") or not attrs.get("operator"):
+                raise serializers.ValidationError("Enter your mobile-money number and network.")
+            attrs["phone"] = normalize_phone(attrs["phone"])
+        elif "phone" in attrs or "operator" in attrs:
+            raise serializers.ValidationError("Card checkout does not accept mobile-money details.")
+        return attrs
 
 
 class DestinationApprovalSerializer(serializers.Serializer):
@@ -51,6 +63,7 @@ class PayoutSerializer(serializers.ModelSerializer):
 
 
 class CollectionSerializer(serializers.ModelSerializer):
+    provider_status = serializers.CharField(source="provider_state.status", default=None)
     id = serializers.UUIDField(source="public_id")
     invoice_id = serializers.UUIDField(source="invoice.public_id")
     receipt_number = serializers.CharField(source="payment.receipt_number", default=None)
@@ -63,6 +76,8 @@ class CollectionSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "reference",
+            "channel",
+            "provider_status",
             "invoice_id",
             "amount",
             "currency",

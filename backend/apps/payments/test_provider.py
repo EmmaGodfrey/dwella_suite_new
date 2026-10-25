@@ -6,7 +6,9 @@ import pytest
 from .provider import Provider
 
 
-@pytest.mark.parametrize("operation", ["collection_status", "payout_status", "payout_submit"])
+@pytest.mark.parametrize(
+    "operation", ["collection_status", "collection_submit", "payout_status", "payout_submit"]
+)
 def test_transport_is_bounded_audited_and_never_retries(operation, settings):
     settings.LENCO_ENVIRONMENT = "sandbox"
     settings.LENCO_SECRET_KEY = "fake-provider-token-only-for-tests"
@@ -19,8 +21,8 @@ def test_transport_is_bounded_audited_and_never_retries(operation, settings):
         result = Provider("sandbox").request(
             operation,
             collection=row,
-            payout=row if operation != "collection_status" else None,
-            payload={"amount": 1} if operation == "payout_submit" else None,
+            payout=row if operation.startswith("payout_") else None,
+            payload={"amount": 1} if operation.endswith("submit") else None,
         )
     assert result.error == "network_error"
     assert build.return_value.open.call_count == 1

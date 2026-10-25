@@ -47,6 +47,7 @@ class Provider:
         reference = payout.reference if payout else collection.reference if collection else ""
         if operation in {
             "collection_status",
+            "collection_submit",
             "payout_status",
             "payout_submit",
         } and not re.fullmatch(r"[A-Za-z0-9._-]{1,50}", reference):
@@ -60,6 +61,7 @@ class Provider:
                 window = f"&from={since:%Y-%m-%d}"
         paths = {
             "collection_status": f"/collections/status/{reference}",
+            "collection_submit": "/collections/mobile-money",
             "payout_status": f"/transfers/status/{reference}",
             "payout_submit": "/transfers/mobile-money",
             "accounts": f"/accounts?page={page}",
@@ -68,7 +70,7 @@ class Provider:
         }
         request = urllib.request.Request(
             self.base + paths[operation],
-            method="POST" if operation == "payout_submit" else "GET",
+            method="POST" if operation in {"payout_submit", "collection_submit"} else "GET",
             data=json.dumps(payload).encode() if payload is not None else None,
             headers={
                 "Authorization": f"Bearer {settings.LENCO_SECRET_KEY}",
@@ -117,6 +119,6 @@ class Provider:
             http_status=status,
             error=error,
             request_payload=payload,
-            repeatable=operation != "payout_submit",
+            repeatable=operation not in {"payout_submit", "collection_submit"},
         )
         return ProviderResult(parsed, status, error, exchange.pk)
