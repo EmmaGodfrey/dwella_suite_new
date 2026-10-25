@@ -181,7 +181,7 @@ export default function Receipt() {
       <div className="dwella-receipt-toolbar">
         <Link to="/billing/receipts">← Receipts</Link>
         <div>
-          {getUserAccess(user).can_manage_properties && !receipt.reversed_at ? (
+          {getUserAccess(user).can_manage_properties && !receipt.reversed_at && !receipt.online_payment ? (
             <Button onClick={() => setConfirm(true)}>Reverse payment</Button>
           ) : null}
           <Button
