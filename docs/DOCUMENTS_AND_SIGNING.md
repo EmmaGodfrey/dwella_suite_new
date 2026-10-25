@@ -57,6 +57,10 @@ All management endpoints require the existing workspace permissions. Public sign
 
 ## Runtime and validation notes
 
+2026-10-25 layout refinement: agreement preparation and saved-document review now sit inline in the lease detail, with fields/signing controls on the left and elevated paper on the right. Invoice previews sit beside invoice details. These follow the split compositions in Figma lease `31:1454` and invoice `32:1560`, using the current fields and supported actions. Narrow viewports stack the columns and the window scrolls the paper. The live agreement draft is an unsaved text preview; preparing a version supplies the authoritative PDF, pagination and signing source.
+
+Validation for this frontend refinement: production build and existing frontend Node tests; browser checks with intercepted fictional API data for preparation validation/approval, live draft, saved preview, signing-panel entry/cancellation, page navigation, zoom, PDF download, preview failure/retry, close focus, payment modal, desktop/mobile and dark mode. Evidence is ignored under `output/playwright/documents-side-*`. This pass does not revalidate backend signing or email delivery.
+
 Apply the documents migration and install the pinned ReportLab/PDFium dependencies. Production invitations, verification codes and completed copies require configured email delivery using the existing email environment settings. Console/dummy backends cannot deliver signing mail and never print verification secrets. Local browser validation used a separate database and a file-based mail backend; no live recipient was contacted.
 
 Source uploads are bounded to 4 MB, submitted signatures to 1 MB, images to eight million source pixels and 1,500 processed pixels per side. PDF sources are limited to 50 pages; generated PDFs to 50 pages/8 MB. PDF parsing/rendering runs in a child process with a ten-second wall timeout, plus CPU/memory limits on Linux. Documents and signature revisions are private database binary records: include them in database backup/capacity planning. They do not use the public media mount.
