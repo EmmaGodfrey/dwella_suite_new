@@ -220,7 +220,7 @@ export default function ImportDrawer({ kind, onClose }) {
               {!changed ? (
                 <p className="dwella-muted-copy">
                   {counts.ready
-                    ? `Only ready rows are imported${skipped ? "; fix the others in your file and import it again" : ""}. This preview stays valid for 30 minutes.`
+                    ? `Only ready rows are imported${counts.invalid ? "; fix the others in your file and import it again" : ""}. This preview stays valid for 30 minutes.`
                     : "No rows are ready to import. Fix the file and upload it again."}
                 </p>
               ) : null}
@@ -237,7 +237,7 @@ export default function ImportDrawer({ kind, onClose }) {
                   <h3>{skipped} {skipped === 1 ? "row" : "rows"} skipped</h3>
                   <p className="dwella-muted-copy">
                     {[counts.duplicate && `${counts.duplicate} already on file`, counts.invalid && `${counts.invalid} with errors`].filter(Boolean).join(", ")}.
-                    {" "}Fix them in your file and import it again; {text.plural} already added are skipped.
+                    {counts.invalid ? ` Fix the rows with errors and import the file again; ${text.plural} already added are skipped.` : ""}
                   </p>
                 </section>
               ) : null}
