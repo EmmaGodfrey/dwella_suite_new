@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Button,
   Dialog,
@@ -9,7 +9,7 @@ import {
   DialogSurface,
   DialogTitle,
 } from "@fluentui/react-components";
-import { CheckmarkCircle20Regular, DocumentText24Regular, Person20Regular } from "@fluentui/react-icons";
+import { ArrowRepeatAll20Regular, CheckmarkCircle20Regular, DocumentText24Regular, Person20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useLeaseActionMutation } from "../../Services/mutations";
@@ -21,6 +21,7 @@ import { leaseBadgeProps } from "../../shared/tenancy";
 import "../../shared/records.scss";
 import "./leases.scss";
 import LeaseDocuments from "../Documents/LeaseDocuments";
+import RenewLeaseDrawer from "./RenewLeaseDrawer";
 
 function History({ lease }) {
   const events = [
@@ -49,6 +50,8 @@ export default function LeaseDetail() {
   const leaseQuery = useLeaseQuery(id, { staleTime: 30_000 });
   const lease = leaseQuery.data;
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [renewing, setRenewing] = useState(false);
+  const navigate = useNavigate();
 
   const action = useLeaseActionMutation({
     onSuccess: (data, variables) => {
@@ -82,6 +85,8 @@ export default function LeaseDetail() {
   const endsIn = daysUntil(lease.end_date);
   const canActivate = canManage && ["draft", "pending_signature"].includes(lease.status);
   const canEnd = canManage && lease.status === "active";
+  const canRenew = canEnd && !lease.renewal;
+  const renewal = lease.renewal;
 
   return (
     <div className="dwella-lease-detail">
@@ -94,6 +99,7 @@ export default function LeaseDetail() {
           </div>
           <p>
             {lease.tenant_name} · {lease.unit_name}, {lease.property_name} · {formatDate(lease.start_date)} – {formatDate(lease.end_date)}
+            {lease.renewal_of_id ? <> · Renews <Link to={`/leases/${lease.renewal_of_id}`}>{lease.renewal_of_reference}</Link></> : null}
           </p>
         </div>
         <div className="dwella-detail-actions">
@@ -103,12 +109,30 @@ export default function LeaseDetail() {
               {action.isPending ? "Starting…" : "Start lease"}
             </Button>
           ) : null}
+          {canRenew ? <Button icon={<ArrowRepeatAll20Regular />} disabled={action.isPending} onClick={() => setRenewing(true)}>Renew lease</Button> : null}
           {canEnd ? <Button disabled={action.isPending} onClick={() => setConfirmEnd(true)}>End lease</Button> : null}
         </div>
       </header>
 
-      {lease.status === "active" && endsIn !== null && endsIn <= 60 ? (
-        <p className="dwella-callout is-warning">{endsIn < 0 ? "The end date has passed. End the lease or extend it." : `Lease ends in ${endsIn} days.`}</p>
+      {renewal ? (
+        <section className="dwella-callout is-info dwella-renewal-callout" aria-label="Renewal">
+          <div>
+            <strong>Renewal {renewal.reference}</strong> <StatusBadge {...leaseBadgeProps(renewal.status)} />
+            <p>
+              {formatDate(renewal.start_date)} – {formatDate(renewal.end_date)}.{" "}
+              {renewal.status === "draft"
+                ? `Prepare the agreement and send it to ${lease.tenant_name} for signing. Once signed, it starts on ${formatDate(renewal.start_date)} by itself.`
+                : renewal.status === "pending_signature"
+                  ? `Waiting for signatures. Once signed, it starts on ${formatDate(renewal.start_date)} by itself.`
+                  : `Running since ${formatDate(renewal.start_date)}.`}
+            </p>
+          </div>
+          <Button as={Link} to={`/leases/${renewal.id}`}>Open renewal</Button>
+        </section>
+      ) : null}
+
+      {lease.status === "active" && !renewal && endsIn !== null && endsIn <= 60 ? (
+        <p className="dwella-callout is-warning">{endsIn < 0 ? "The end date has passed. End the lease or renew it." : `Lease ends in ${endsIn} days.`}</p>
       ) : null}
 
       <div className="dwella-lease-grid">
@@ -131,6 +155,17 @@ export default function LeaseDetail() {
       </div>
 
       <LeaseDocuments lease={lease} canManage={canManage} />
+
+      {renewing ? (
+        <RenewLeaseDrawer
+          lease={lease}
+          onClose={() => setRenewing(false)}
+          onSaved={(data) => {
+            setRenewing(false);
+            navigate(`/leases/${data.id}`);
+          }}
+        />
+      ) : null}
 
       <Dialog open={confirmEnd} onOpenChange={(_, data) => !action.isPending && setConfirmEnd(data.open)}>
         <DialogSurface>

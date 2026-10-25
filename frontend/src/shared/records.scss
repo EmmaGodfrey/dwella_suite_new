@@ -281,6 +281,18 @@
   background: var(--dwella-warning-soft);
 }
 
+.dwella-callout.is-info {
+  color: var(--dwella-ink);
+  background: var(--dwella-info-soft);
+}
+
+.dwella-badge-row {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
 .dwella-surface {
   display: grid;
   align-content: start;
