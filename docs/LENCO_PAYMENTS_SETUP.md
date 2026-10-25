@@ -92,8 +92,11 @@ python manage.py sync_lenco_finances
 python manage.py process_lenco_payments
 ```
 
-The first balance sync establishes a baseline; a subsequent clean sync must
-match before a payout can be submitted. The sync/check commands are read-only
+The first balance sync establishes a baseline; a later sync must be "matched"
+before a payout can be submitted: Lenco's own history adds up exactly, and the
+ledger covers the rent still owed to landlords. Money above that is reported as
+surplus and does not block payouts. Payout fees are paid from that surplus, so
+keep a small float in the collection account or payouts stop with "shortfall". The sync/check commands are read-only
 with respect to Lenco. `process_lenco_payments` can move money only when the payout
 switch is explicitly enabled and all guards pass. Never run it as a live debit
 connectivity test.
@@ -101,11 +104,16 @@ connectivity test.
 At deployment, migrate the database; install the protected configuration; approve
 receiving details with an audit reason; configure the public webhook URL
 `/api/v1/payments/webhook/` in Lenco Pay; verify delivery and controlled collection/
-payout behavior; then enable the chosen switches/jobs. Add `lenco_finances`
-(five minutes) and `lenco_payments` (30 seconds) to the existing
-`APP_SCHEDULER_JOBS` list without removing other jobs. They are off by default.
-The reconciliation cycle bounds its work so a provider outage does not monopolise
-the shared scheduler indefinitely.
+payout behavior; then enable the chosen switches.
+
+The `payments-worker` service (`python manage.py run_payments_worker`) does the
+checking, separately from the scheduler. It asks Lenco only about rows that are
+due: a checkout every 30 seconds at first, slowing with age and expiring after
+30 minutes unpaid; a settled collection or finished payout is never polled
+again. It reconciles the balance every five minutes, importing only recent
+transactions. A repeated identical Lenco answer is not stored again, a balance
+record is written only when the outcome changes, and the worker writes no
+per-run rows. Its heartbeat appears on the scheduler status.
 
 The reviewed [getting-started](https://lenco-api.readme.io/v2.0/reference/get-started)
 and [payout](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money)

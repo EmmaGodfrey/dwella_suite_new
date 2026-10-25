@@ -55,9 +55,10 @@ batch payouts are a design extension, not already active functionality.
 
 Implement a private imported transaction ledger and retained balance snapshots.
 Freeze an opening baseline once; subsequent comparisons use that baseline plus
-credits minus debits. Also compare provider cash with Dwella's own settled-rent
-minus paid-out principal and actual payout fees, using a separately frozen app
-opening position. Unknown external transactions, incomplete pagination, changed
+credits minus debits. Also check that the ledger covers what Dwella holds for
+landlords: settled rent minus paid-out and in-flight principal. Money above that
+is surplus, not a mismatch (revised 2026-10-25: an exact app-side match blocked
+every payout whenever a payout was in flight or unrelated money moved). Unknown external transactions, incomplete pagination, changed
 provider rows and differences must be visible, never silently balanced away.
 An initial baseline is not proof of historical reconciliation. Bank balances
 are platform assets; landlord holdings are separate liabilities, and unsettled
