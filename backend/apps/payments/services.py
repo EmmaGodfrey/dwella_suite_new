@@ -225,15 +225,17 @@ def _apply_collection_result(row, invoice, result, now):
     if row.provider_id and row.provider_id != data["id"]:
         _issue(row, "collection_identity_changed")
         return
-    try:
-        with transaction.atomic():
-            row.provider_id = data["id"]
-            row.save(update_fields=["provider_id"])
-    except IntegrityError:
-        row.refresh_from_db()
-        row.last_checked_at = now
-        _issue(row, "duplicate_provider_collection")
-        return
+    if not row.provider_id:
+        # The unique constraint catches one Lenco payment claimed by two rows.
+        try:
+            with transaction.atomic():
+                row.provider_id = data["id"]
+                row.save(update_fields=["provider_id"])
+        except IntegrityError:
+            row.refresh_from_db()
+            row.last_checked_at = now
+            _issue(row, "duplicate_provider_collection")
+            return
     state = data.get("status")
     row.provider_state = {
         **row.provider_state,
