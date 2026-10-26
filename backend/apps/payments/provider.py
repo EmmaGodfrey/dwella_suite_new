@@ -39,17 +39,21 @@ class Provider:
         *,
         collection=None,
         payout=None,
+        withdrawal=None,
         payload=None,
         account_id=None,
         page=1,
         since=None,
     ):
-        reference = payout.reference if payout else collection.reference if collection else ""
+        row = withdrawal or payout or collection
+        reference = row.reference if row else ""
         if operation in {
             "collection_status",
             "collection_submit",
             "payout_status",
             "payout_submit",
+            "withdrawal_status",
+            "withdrawal_submit",
         } and not re.fullmatch(r"[A-Za-z0-9._-]{1,50}", reference):
             raise ValueError("Invalid provider reference.")
         if not isinstance(page, int) or not 1 <= page <= 100:
@@ -64,13 +68,28 @@ class Provider:
             "collection_submit": "/collections/mobile-money",
             "payout_status": f"/transfers/status/{reference}",
             "payout_submit": "/transfers/mobile-money",
+            "withdrawal_status": f"/transfers/status/{reference}",
+            "withdrawal_submit": (
+                "/transfers/bank-account"
+                if withdrawal and withdrawal.destination.kind == "bank-account"
+                else "/transfers/mobile-money"
+            ),
+            "resolve_mobile_money": "/resolve/mobile-money",
+            "resolve_bank_account": "/resolve/bank-account",
             "accounts": f"/accounts?page={page}",
             "transactions": f"/transactions?accountId={account_id}&page={page}{window}",
             "banks": "/banks?country=zm",
         }
+        posts = {
+            "payout_submit",
+            "collection_submit",
+            "withdrawal_submit",
+            "resolve_mobile_money",
+            "resolve_bank_account",
+        }
         request = urllib.request.Request(
             self.base + paths[operation],
-            method="POST" if operation in {"payout_submit", "collection_submit"} else "GET",
+            method="POST" if operation in posts else "GET",
             data=json.dumps(payload).encode() if payload is not None else None,
             headers={
                 "Authorization": f"Bearer {settings.LENCO_SECRET_KEY}",
@@ -116,9 +135,10 @@ class Provider:
             body=body,
             collection=collection,
             payout=payout,
+            withdrawal=withdrawal,
             http_status=status,
             error=error,
             request_payload=payload,
-            repeatable=operation not in {"payout_submit", "collection_submit"},
+            repeatable=operation not in {"payout_submit", "collection_submit", "withdrawal_submit"},
         )
         return ProviderResult(parsed, status, error, exchange.pk)
