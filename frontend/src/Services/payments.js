@@ -30,7 +30,59 @@ export const useSaveReceivingDetails = () => useMutation({
   onSuccess: () => Promise.all([
     queryClient.invalidateQueries({ queryKey: keys("destination") }),
     queryClient.invalidateQueries({ queryKey: keys("options") }),
+    queryClient.invalidateQueries({ queryKey: keys("payouts") }),
   ]),
+});
+
+export const useCheckReceivingAccount = () => useMutation({
+  mutationFn: (details) => api.post("/payments/destination/check/", details),
+  retry: false,
+});
+
+export const useBanks = (options = {}) => useQuery({
+  queryKey: keys("banks"),
+  queryFn: ({ signal }) => api.get("/payments/banks/", { signal }),
+  staleTime: 60 * 60_000,
+  retry: false,
+  ...options,
+});
+
+const sending = (rows) => rows?.some((row) => ["queued", "submitting", "pending"].includes(row.status));
+
+export const usePayoutSummary = () => useQuery({
+  queryKey: keys("payouts", "summary"),
+  queryFn: ({ signal }) => api.get("/payments/payouts/", { signal }),
+  retry: false,
+  refetchInterval: (query) => Number(query.state.data?.processing) > 0 ? 20_000 : false,
+});
+
+export const useWithdrawals = (page) => useQuery({
+  queryKey: keys("payouts", "withdrawals", page),
+  queryFn: ({ signal }) => api.get(`/payments/withdrawals/?page=${page}&page_size=20`, { signal }),
+  retry: false,
+  placeholderData: (previous) => previous,
+  refetchInterval: (query) => sending(query.state.data?.results) ? 20_000 : false,
+});
+
+export const usePreviewWithdrawal = () => useMutation({
+  mutationFn: (amount) => api.post("/payments/withdrawals/preview/", { amount }),
+  retry: false,
+});
+
+const refreshPayouts = () => queryClient.invalidateQueries({ queryKey: keys("payouts") });
+
+export const useRequestWithdrawal = () => useMutation({
+  mutationFn: ({ amount, fee, idempotencyKey }) => api.post("/payments/withdrawals/", {
+    amount, fee, idempotency_key: idempotencyKey,
+  }),
+  retry: false,
+  onSettled: refreshPayouts,
+});
+
+export const useCancelWithdrawal = () => useMutation({
+  mutationFn: (id) => api.post(`/payments/withdrawals/${id}/cancel/`, {}),
+  retry: false,
+  onSettled: refreshPayouts,
 });
 
 export const useTenantPaymentOptions = () => useQuery({

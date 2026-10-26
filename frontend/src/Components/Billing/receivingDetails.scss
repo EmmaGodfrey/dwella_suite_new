@@ -6,3 +6,15 @@
   h3 { font-size: 0.875rem; margin: 0 0 0.5rem; }
   p { color: var(--dwella-muted); font-size: 0.8125rem; margin: 0; line-height: 1.6; }
 }
+.dwella-receiving-check.fui-Button { justify-self: start; }
+.dwella-receiving-result {
+  background: var(--dwella-wash);
+  border-radius: 6px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  strong { font-size: 0.875rem; }
+  span { overflow-wrap: anywhere; }
+  &.is-found { background: var(--dwella-success-soft); strong { color: var(--dwella-success); } }
+  &.is-missing { background: var(--dwella-danger-soft); strong { color: var(--dwella-danger); } }
+}
