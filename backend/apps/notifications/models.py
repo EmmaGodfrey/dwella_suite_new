@@ -93,7 +93,9 @@ class MessageDelivery(OrganizationScopedModel):
         HELD = "held", "Held"
         QUEUED = "queued", "Queued"
         SENDING = "sending", "Sending"
-        SENT = "sent", "Sent to email server"
+        SENT = "sent", "Accepted by provider"
+        DELIVERED = "delivered", "Delivered"
+        READ = "read", "Read"
         FAILED = "failed", "Failed"
         CANCELLED = "cancelled", "Cancelled"
         REVIEW = "review", "Needs review"
@@ -113,9 +115,15 @@ class MessageDelivery(OrganizationScopedModel):
     available_at = models.DateTimeField(default=timezone.now)
     sent_at = models.DateTimeField(null=True)
     provider_id = models.CharField(max_length=160, blank=True)
+    provider = models.CharField(max_length=16, blank=True)
+    delivered_at = models.DateTimeField(null=True)
+    read_at = models.DateTimeField(null=True)
+    provider_updated_at = models.DateTimeField(null=True)
+    failure_code = models.CharField(max_length=80, blank=True)
 
     class Meta:
         indexes = [
+            models.Index(fields=["provider", "provider_id"], name="notifications_provider_id"),
             models.Index(fields=["organization", "created_at"]),
             models.Index(fields=["status", "created_at"]),
             models.Index(
@@ -124,3 +132,25 @@ class MessageDelivery(OrganizationScopedModel):
                 name="notifications_delivery_sent",
             ),
         ]
+
+
+class PhoneMessagingConsent(models.Model):
+    """Business-wide consent for an exact number; changing a tenant's number does not copy it."""
+
+    channel = models.CharField(max_length=12, choices=[("sms", "SMS"), ("whatsapp", "WhatsApp")])
+    phone = models.CharField(max_length=16)
+    allowed = models.BooleanField(default=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    source = models.CharField(max_length=20)
+    granted_at = models.DateTimeField(null=True)
+    revoked_at = models.DateTimeField(null=True)
+    last_inbound_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["channel", "phone"], name="phone_channel_consent")
+        ]
+
+    def __str__(self):
+        return f"{self.channel} consent {self.pk}"

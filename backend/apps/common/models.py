@@ -44,3 +44,27 @@ class OrganizationScopedModel(UUIDModel, TimeStampedModel, ActiveModel):
             models.Index(fields=["organization", "is_active"]),
             models.Index(fields=["organization", "created_at"]),
         ]
+
+
+class EmailRoutingLock(models.Model):
+    """One short lock shared by every application email sender."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+
+    def __str__(self):
+        return "Shared email routing lock"
+
+
+class EmailUsageBucket(models.Model):
+    provider = models.CharField(max_length=12)
+    hour = models.DateTimeField()
+    recipients = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["provider", "hour"], name="email_usage_hour")
+        ]
+        indexes = [models.Index(fields=["hour"], name="email_usage_retention")]
+
+    def __str__(self):
+        return f"{self.provider}: {self.hour}"
