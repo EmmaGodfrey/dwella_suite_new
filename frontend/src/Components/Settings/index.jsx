@@ -139,7 +139,7 @@ function ChannelRows({ draft, change, channels }) {
         <>
           <StatusBadge color="subtle">Awaiting connection</StatusBadge>
           <span className="settings-inline-note">
-            Preference saved now; delivery waits for connection.
+            Preference saved. Reminders start once this channel is connected.
           </span>
         </>
       )}
@@ -444,19 +444,7 @@ function Messaging() {
           resource="messaging"
           data={query.data}
           key={JSON.stringify(query.data)}
-          body={(v) => ({
-            ...v,
-            daily_cap: v.daily_cap === "" ? null : v.daily_cap,
-          })}
           validate={(v) => ({
-            daily_cap: () =>
-              v.daily_cap === "" ||
-              v.daily_cap === null ||
-              (/^\d+(\.\d{1,2})?$/.test(String(v.daily_cap)) &&
-                Number(v.daily_cap) > 0 &&
-                Number(v.daily_cap) < 100000000)
-                ? ""
-                : "Enter a positive amount with up to two decimal places.",
             quiet_from: () =>
               /^([01]\d|2[0-3]):[0-5]\d/.test(v.quiet_from || "")
                 ? ""
@@ -493,20 +481,14 @@ function Messaging() {
               ))}
               <SettingsSection
                 title="Sending controls"
-                note="Save limits for future messaging. No messages are sent from this page."
+                note="No messages are sent from this page."
               >
                 <SettingsRow label="Automated reminders">
                   <Switch
-                    label="Schedule reminders; delivery depends on channel readiness"
+                    label="Schedule reminders on connected channels"
                     checked={draft.reminders_enabled}
                     onChange={(_, data) => change("reminders_enabled", data.checked)}
                   />
-                </SettingsRow>
-                <SettingsRow
-                  label="SMS fallback if WhatsApp fails"
-                  note="Each fallback would be billed as an additional SMS."
-                >
-                  <Switch checked={false} disabled aria-label="SMS fallback" />
                 </SettingsRow>
                 <div className="dwella-form-grid">
                   {[
@@ -522,23 +504,10 @@ function Messaging() {
                       />
                     </Field>
                   ))}
-                  <Field
-                    label="Daily platform spending cap (ZMW)"
-                    {...errors.fieldProps("daily_cap")}
-                  >
-                    <Input
-                      value={draft.daily_cap ?? ""}
-                      inputMode="decimal"
-                      maxLength={12}
-                      placeholder="Not set"
-                      onChange={(_, d) => change("daily_cap", d.value)}
-                    />
-                  </Field>
                 </div>
                 <p className="settings-note">
-                  Quiet hours use each workspace’s time zone. When delivery is
-                  introduced, a message that would exceed the cap must be held
-                  before sending.
+                  Quiet hours use each workspace’s time zone. Email is limited
+                  to a daily allowance; messages over it wait in the queue.
                 </p>
               </SettingsSection>
             </>
