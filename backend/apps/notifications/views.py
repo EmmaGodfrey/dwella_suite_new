@@ -3,8 +3,9 @@ from datetime import timedelta
 from django.db.models import Exists, OuterRef
 from django.utils import timezone
 from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.billing.models import Invoice, Payment
@@ -13,8 +14,10 @@ from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
 from apps.payments.models import Payout
+from apps.portal.access import portal_context
 
 from .models import NotificationPreferences, NotificationRead
+from .tenant_alerts import tenant_alerts
 
 
 def live_alerts(org):
@@ -139,41 +142,74 @@ def live_alerts(org):
 
 class ReadSerializer(serializers.Serializer):
     ids = serializers.ListField(
-        child=serializers.CharField(max_length=100), min_length=1, max_length=400
+        child=serializers.CharField(max_length=100), min_length=1, max_length=1000
     )
 
 
+class CanViewNotifications(BasePermission):
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if CanViewPortfolio().has_permission(request, view):
+            return True
+        request.tenant_notification_context = portal_context(request)
+        return True
+
+
+class NotificationReadThrottle(UserRateThrottle):
+    scope = "notification_read"
+    rate = "120/hour"
+
+
 class NotificationsView(APIView):
-    permission_classes = [IsAuthenticated, CanViewPortfolio]
+    permission_classes = [IsAuthenticated, CanViewNotifications]
+
+    def get_throttles(self):
+        return (
+            [NotificationReadThrottle()]
+            if self.request.method == "POST"
+            else super().get_throttles()
+        )
+
+    def alerts(self, request):
+        portal = getattr(request, "tenant_notification_context", None)
+        return tenant_alerts(portal, request.user) if portal else live_alerts(self.organization())
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     def organization(self):
         return resolve_workspace(self.request)
 
     def get(self, request):
         org = self.organization()
-        alerts = live_alerts(org) if org else []
+        alerts = self.alerts(request)
         preferences = NotificationPreferences.objects.filter(user=request.user).first()
         if preferences:
             categories = {
                 "payment": "payment",
+                "invoice": "payment",
                 "payout": "payout",
                 "lease": "lease",
                 "renewal": "lease",
                 "repair": "maintenance",
+                "repair_update": "maintenance",
+                "document": "lease",
             }
-            alerts = [
-                alert
-                for alert in alerts
-                if getattr(
-                    preferences,
-                    f"in_app_{categories.get(alert['id'].split(':')[0], 'required')}",
-                    True,
-                )
-            ]
+
+            def enabled(alert):
+                if alert["kind"] == "arrears":
+                    return True
+                category = categories.get(alert["id"].split(":")[0])
+                return category is None or getattr(preferences, f"in_app_{category}", True)
+
+            alerts = [alert for alert in alerts if enabled(alert)]
         read = set(
-            NotificationRead.objects.filter(organization=org, user=request.user).values_list(
-                "key", flat=True
-            )
+            NotificationRead.objects.filter(
+                organization=org, user=request.user, key__in=[alert["id"] for alert in alerts]
+            ).values_list("key", flat=True)
         )
         for alert in alerts:
             alert["read"] = alert["id"] in read
@@ -189,7 +225,7 @@ class NotificationsView(APIView):
         serializer = ReadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         org = self.organization()
-        valid = {alert["id"] for alert in live_alerts(org)} if org else set()
+        valid = {alert["id"] for alert in self.alerts(request)}
         ids = set(serializer.validated_data["ids"])
         if not ids <= valid:
             raise serializers.ValidationError({"ids": ["Select current alerts in this workspace."]})
