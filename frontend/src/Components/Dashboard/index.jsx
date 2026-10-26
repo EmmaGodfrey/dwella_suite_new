@@ -8,6 +8,7 @@ import {
   ChevronRight20Regular,
   DoorArrowLeft20Regular,
   Warning20Regular,
+  Wrench20Regular,
 } from "@fluentui/react-icons";
 
 import {
@@ -57,6 +58,7 @@ const emptySummary = {
   portfolio: { towns_count: 0, towns: [], average_units_per_property: 0 },
   recent_properties: [],
   top_units: [],
+  repairs: { open: 0, urgent: 0, unassigned: 0 },
 };
 
 // A figure reserves its own height while loading, so the band does not change
@@ -271,7 +273,7 @@ function AttentionItem({ tone, icon, title, detail, onClick }) {
 }
 
 // Only decisions the product can back with real records: overdue invoices,
-// leases running out within a month, and empty units.
+// leases running out within a month, open repairs and empty units.
 function NeedsAttention({ data, navigate, enabled }) {
   const in30 = new Date();
   in30.setDate(in30.getDate() + 30);
@@ -287,8 +289,9 @@ function NeedsAttention({ data, navigate, enabled }) {
   const ending = endingQuery.data?.results || [];
   const overdueCount = overdueQuery.data?.pagination?.count || 0;
   const vacant = Number(data.units.vacant || 0);
+  const repairs = data.repairs || { open: 0, urgent: 0, unassigned: 0 };
   const loading = !enabled || overdueQuery.isLoading || endingQuery.isLoading;
-  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0);
+  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0) + Number(repairs.open || 0);
 
   return (
     <section className="dwella-dashboard-card dwella-attention-card">
@@ -335,6 +338,18 @@ function NeedsAttention({ data, navigate, enabled }) {
               />
             );
           })}
+          {repairs.open > 0 && (
+            <AttentionItem
+              tone={repairs.urgent > 0 ? "danger" : "warning"}
+              icon={<Wrench20Regular />}
+              title={`${formatNumber(repairs.open)} open ${repairs.open === 1 ? "repair" : "repairs"}`}
+              detail={[
+                repairs.urgent ? `${formatNumber(repairs.urgent)} urgent` : null,
+                repairs.unassigned ? `${formatNumber(repairs.unassigned)} awaiting assignment` : null,
+              ].filter(Boolean).join(" · ") || "Review progress and scheduled work"}
+              onClick={() => navigate("/maintenance?open=true")}
+            />
+          )}
           {vacant ? (
             <AttentionItem
               tone="info"
