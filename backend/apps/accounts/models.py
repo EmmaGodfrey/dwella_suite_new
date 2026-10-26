@@ -6,6 +6,7 @@ from apps.common.models import TimeStampedModel, UUIDModel
 
 
 class AccountAccessState(TimeStampedModel):
+    tenant_access_removed = models.BooleanField(default=False)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="account_access_state"
     )

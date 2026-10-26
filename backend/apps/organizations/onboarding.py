@@ -97,6 +97,18 @@ class OnboardingView(APIView):
     def check_access(self, request):
         resolve_workspace(request)
         membership = get_active_membership(request.user)
+        from apps.accounts.models import AccountAccessState
+
+        if (
+            not membership
+            and not (request.user.is_staff or request.user.is_superuser)
+            and AccountAccessState.objects.filter(
+                user=request.user, tenant_access_removed=True
+            ).exists()
+        ):
+            raise PermissionDenied(
+                "Tenant access was removed. Ask your property manager for a new invitation."
+            )
         if (
             membership
             and membership.role == "tenant"

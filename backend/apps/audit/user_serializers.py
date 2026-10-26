@@ -29,6 +29,10 @@ class PlatformUserSerializer(CurrentUserSerializer):
             obj,
             membership=memberships[0] if memberships else None,
             verified_access=not self.get_email_verification(obj)["required"],
+            tenant_access_removed=not memberships
+            and bool(
+                getattr(getattr(obj, "account_access_state", None), "tenant_access_removed", False)
+            ),
         )
 
     def get_email_verification(self, obj):

@@ -123,6 +123,11 @@ def remove_portal_access(request, tenant):
     )
     user_id = tenant.user_id
     if user_id:
+        from .models import AccountAccessState
+
+        AccountAccessState.objects.update_or_create(
+            user_id=user_id, defaults={"tenant_access_removed": True}
+        )
         tenant.user = None
         tenant.save(update_fields=["user", "updated_at"])
         if not Tenant.objects.filter(organization=tenant.organization, user_id=user_id).exists():
@@ -197,6 +202,9 @@ def accept_invitation(request, token, password=""):
     invitation.accepted_at, invitation.accepted_by = timezone.now(), user
     invitation.save(update_fields=["accepted_at", "accepted_by", "updated_at"])
     mark_email_verified(user)
+    from .models import AccountAccessState
+
+    AccountAccessState.objects.filter(user=user).update(tenant_access_removed=False)
     record_event(
         request,
         "tenant.invitation_accepted",
