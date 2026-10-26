@@ -24,7 +24,8 @@ export function NotificationBell() {
   const enabled = !user?.email_verification?.required && !access.workspace_suspended && (
     access.persona === "landlord" || tenant || Boolean(access.acting_workspace)
   );
-  const query = useNotificationsQuery({ enabled });
+  // Tenant notices are rarely urgent; refresh them less often than portfolio alerts.
+  const query = useNotificationsQuery({ enabled, ...(tenant ? { refetchInterval: 300_000 } : {}) });
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const mutation = useReadNotificationsMutation();
