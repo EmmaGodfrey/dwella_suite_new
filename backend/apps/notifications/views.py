@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -13,7 +13,7 @@ from apps.common.permissions import CanViewPortfolio
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
-from apps.payments.models import Payout
+from apps.payments.models import Payout, Withdrawal
 from apps.portal.access import portal_context
 
 from .models import NotificationPreferences, NotificationRead
@@ -135,6 +135,29 @@ def live_alerts(org):
                 ),
                 "path": f"/billing/invoices/{payout.collection.invoice.public_id}",
                 "date": timezone.localtime(payout.updated_at).date().isoformat(),
+            }
+        )
+    titles = {
+        "successful": "Withdrawal delivered",
+        "failed": "Withdrawal failed · returned to your balance",
+        "review": "Withdrawal needs attention",
+    }
+    for withdrawal in (
+        Withdrawal.objects.filter(organization=org)
+        .filter(
+            Q(status__in=["failed", "review"])
+            | Q(status="successful", confirmed_at__gte=timezone.now() - timedelta(days=7))
+        )
+        .order_by("-updated_at")[:100]
+    ):
+        alerts.append(
+            {
+                "id": f"withdrawal:{withdrawal.public_id}:{withdrawal.status}",
+                "kind": "payout",
+                "title": titles[withdrawal.status],
+                "body": f"{org.currency} {withdrawal.amount:.2f} · {withdrawal.reference}",
+                "path": "/billing/payouts",
+                "date": timezone.localtime(withdrawal.updated_at).date().isoformat(),
             }
         )
     return sorted(alerts, key=lambda alert: (alert["date"], alert["id"]))

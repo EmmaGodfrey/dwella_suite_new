@@ -8,14 +8,14 @@ from rest_framework.response import Response
 
 from apps.common.permissions import IsPlatformSuperuser
 
-from .models import Collection, Exchange, Payout, ProviderTransaction
-from .serializers import CollectionSerializer
+from .models import Collection, Exchange, Payout, ProviderTransaction, Withdrawal
+from .serializers import CollectionSerializer, WithdrawalSerializer
 from .views import PrivateView
 
 
 class TransactionFilters(serializers.Serializer):
     kind = serializers.ChoiceField(
-        choices=["collections", "payouts", "ledger"], default="collections"
+        choices=["collections", "payouts", "withdrawals", "ledger"], default="collections"
     )
     search = serializers.CharField(max_length=150, required=False, allow_blank=True)
     status = serializers.CharField(max_length=20, required=False, allow_blank=True)
@@ -29,9 +29,10 @@ class TransactionFilters(serializers.Serializer):
         if attrs.get("from_date") and attrs.get("until_date"):
             if attrs["from_date"] > attrs["until_date"]:
                 raise serializers.ValidationError("End date must follow start date.")
-        statuses = (
-            Collection.Status.values if attrs["kind"] == "collections" else Payout.Status.values
-        )
+        statuses = {
+            "collections": Collection.Status.values,
+            "withdrawals": Withdrawal.Status.values,
+        }.get(attrs["kind"], Payout.Status.values)
         if attrs.get("status") and attrs["status"] not in (
             ["credit", "debit"] if attrs["kind"] == "ledger" else statuses
         ):
@@ -87,6 +88,15 @@ class PlatformPayoutSerializer(serializers.ModelSerializer):
         ]
 
 
+class PlatformWithdrawalSerializer(WithdrawalSerializer):
+    workspace = serializers.CharField(source="organization.name")
+    workspace_id = serializers.UUIDField(source="organization.public_id")
+    environment = serializers.CharField()
+
+    class Meta(WithdrawalSerializer.Meta):
+        fields = [*WithdrawalSerializer.Meta.fields, "workspace", "workspace_id", "environment"]
+
+
 class LedgerSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField()
     environment = serializers.CharField(source="account.environment")
@@ -94,6 +104,7 @@ class LedgerSerializer(serializers.ModelSerializer):
     exchange_id = serializers.UUIDField(source="exchange.public_id")
     collection_id = serializers.UUIDField(read_only=True, allow_null=True)
     payout_collection_id = serializers.UUIDField(read_only=True, allow_null=True)
+    withdrawal_id = serializers.UUIDField(read_only=True, allow_null=True)
 
     class Meta:
         model = ProviderTransaction
@@ -108,6 +119,7 @@ class LedgerSerializer(serializers.ModelSerializer):
             "exchange_id",
             "collection_id",
             "payout_collection_id",
+            "withdrawal_id",
         ]
 
 
@@ -125,6 +137,7 @@ class PlatformTransactionsView(PrivateView, generics.ListAPIView):
         return {
             "collections": PlatformCollectionSerializer,
             "payouts": PlatformPayoutSerializer,
+            "withdrawals": PlatformWithdrawalSerializer,
             "ledger": LedgerSerializer,
         }[self.filters()["kind"]]
 
@@ -139,12 +152,16 @@ class PlatformTransactionsView(PrivateView, generics.ListAPIView):
                 provider_id=OuterRef("provider_id"),
                 collection__environment=OuterRef("account__environment"),
             )
+            withdrawals = Withdrawal.objects.filter(
+                provider_id=OuterRef("provider_id"), environment=OuterRef("account__environment")
+            )
             rows = (
                 ProviderTransaction.objects.select_related("account", "exchange")
                 .defer("exchange__encrypted_payload")
                 .annotate(
                     collection_id=Subquery(collections.values("public_id")[:1]),
                     payout_collection_id=Subquery(payouts.values("collection__public_id")[:1]),
+                    withdrawal_id=Subquery(withdrawals.values("public_id")[:1]),
                 )
             )
             env_key, date_key = "account__environment", "posted_at"
@@ -152,6 +169,18 @@ class PlatformTransactionsView(PrivateView, generics.ListAPIView):
                 rows = rows.filter(provider_id__icontains=filters["search"])
             if filters.get("status"):
                 rows = rows.filter(kind=filters["status"])
+        elif kind == "withdrawals":
+            rows = Withdrawal.objects.select_related("organization", "destination")
+            env_key, date_key = "environment", "created_at"
+            if filters.get("search"):
+                rows = rows.filter(
+                    Q(reference__icontains=filters["search"])
+                    | Q(organization__name__icontains=filters["search"])
+                )
+            if filters.get("workspace"):
+                rows = rows.filter(organization__public_id=filters["workspace"])
+            if filters.get("status"):
+                rows = rows.filter(status=filters["status"])
         else:
             prefix = "collection__" if kind == "payouts" else ""
             if kind == "payouts":
@@ -192,6 +221,16 @@ class PlatformCollectionDetail(PrivateView):
             public_id=public_id,
         )
         return Response(PlatformCollectionSerializer(row).data)
+
+
+class PlatformWithdrawalDetail(PrivateView):
+    permission_classes = [IsPlatformSuperuser]
+
+    def get(self, request, public_id):
+        row = get_object_or_404(
+            Withdrawal.objects.select_related("organization", "destination"), public_id=public_id
+        )
+        return Response(PlatformWithdrawalSerializer(row).data)
 
 
 class PlatformPaymentConfiguration(PrivateView):
