@@ -120,7 +120,11 @@ class EmailBackend(BaseEmailBackend):
             return self._send_messages(email_messages)
         finally:
             if not self.managed_connection:
-                self.inner.close()
+                try:
+                    self.inner.close()
+                except Exception:
+                    # Cleanup cannot turn a successful send into a retryable error.
+                    pass
 
     def _send_messages(self, email_messages):
         sent = 0

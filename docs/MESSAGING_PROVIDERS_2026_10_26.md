@@ -183,6 +183,8 @@ Validation results:
   passed. Skips include PostgreSQL-only checks.
 - PostgreSQL 17 common/notifications/signing-outbox checks: **195 passed**.
   Final focused checks after SMTP reuse and consent-race refinements: **22 passed**.
+  Email/message regression checks after the SMTP cleanup refinement: **64 passed**;
+  final quota/connection tests: **10 passed**, with clean database teardown.
   The database was an isolated, loopback-only local test instance.
 - Django system check, Ruff and migration drift check passed.
 - Frontend production build and **25** existing Node checks passed.

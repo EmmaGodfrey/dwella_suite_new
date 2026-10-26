@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from django.core import mail
 from django.core.mail import EmailMessage, EmailMultiAlternatives, get_connection
-from django.db import connection, transaction
+from django.db import connection, connections, transaction
 from django.test import override_settings
 from django.utils import timezone
 
@@ -21,6 +21,13 @@ ROUTING = {
     "RESEND_DAILY_LIMIT": 100,
     "RESEND_MONTHLY_LIMIT": 3000,
 }
+
+
+@pytest.fixture(autouse=True)
+def close_quota_connection(transactional_db):
+    yield
+    # Mirror connections must close before Django drops the shared test database.
+    connections["email_quota"].close()
 
 
 @override_settings(**ROUTING)
@@ -54,6 +61,17 @@ def test_routed_batches_reuse_smtp_and_single_sends_close_the_connection():
                 assert smtp.call_count == 1
                 smtp.return_value.quit.assert_not_called()
             smtp.return_value.quit.assert_called_once()
+
+
+@override_settings(**ROUTING)
+def test_smtp_cleanup_failure_does_not_retry_an_already_accepted_email():
+    with override_settings(
+        EMAIL_PRIMARY_BACKEND="django.core.mail.backends.smtp.EmailBackend",
+        EMAIL_USE_TLS=False, EMAIL_USE_SSL=False, EMAIL_HOST_USER="",
+    ):
+        with patch("django.core.mail.backends.smtp.smtplib.SMTP") as smtp:
+            smtp.return_value.quit.side_effect = OSError("Connection closed after SMTP acceptance")
+            assert EmailMessage("Lease", "Body", to=["a@example.com"]).send() == 1
         with patch("django.core.mail.backends.smtp.smtplib.SMTP") as smtp:
             assert EmailMessage("A", "B", to=["a@example.com"]).send() == 1
             smtp.return_value.quit.assert_called_once()
