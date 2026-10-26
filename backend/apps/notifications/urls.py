@@ -8,6 +8,7 @@ from .message_views import (
     PreviewView,
     RecipientsView,
 )
+from .provider_webhooks import WhatsAppWebhookView
 from .settings_views import (
     PlatformMessagingView,
     PreferenceView,
@@ -19,6 +20,7 @@ from .views import NotificationsView
 app_name = "notifications"
 
 urlpatterns = [
+    path("webhooks/whatsapp/", WhatsAppWebhookView.as_view()),
     path("message-previews/", PreviewView.as_view()),
     path("message-previews/<uuid:public_id>/confirm/", ConfirmView.as_view()),
     path("message-recipients/", RecipientsView.as_view()),
