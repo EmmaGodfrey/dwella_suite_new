@@ -291,7 +291,8 @@ function NeedsAttention({ data, navigate, enabled }) {
   const vacant = Number(data.units.vacant || 0);
   const repairs = data.repairs || { open: 0, urgent: 0, unassigned: 0 };
   const loading = !enabled || overdueQuery.isLoading || endingQuery.isLoading;
-  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0) + Number(repairs.open || 0);
+  // Open repairs show as one item, like vacant units, so they count once.
+  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0) + (repairs.open ? 1 : 0);
 
   return (
     <section className="dwella-dashboard-card dwella-attention-card">
