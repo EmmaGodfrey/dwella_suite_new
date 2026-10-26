@@ -13,7 +13,9 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.access_state import email_status
 from apps.billing.models import Invoice
+from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
+from apps.common.provider_http import ProviderRejected
 from apps.organizations.models import OrganizationMembership
 from apps.subscriptions.services import require_feature
 from apps.tenants.models import Tenant
@@ -25,6 +27,15 @@ from .models import (
     NotificationPreferences,
     ReminderPreferences,
 )
+from .phone_messaging import (
+    personal_phone_preferences,
+    phone_block,
+    send_sms,
+    send_whatsapp,
+    sms_ready,
+    whatsapp_ready,
+    whatsapp_rent_body,
+)
 
 CHANNELS = ("email", "sms", "whatsapp")
 ALL_TENANTS_LIMIT = 2000
@@ -35,8 +46,8 @@ def channel_readiness():
         "email": bool(
             getattr(settings, "MESSAGING_EMAIL_ENABLED", False) and delivery_configured()
         ),
-        "sms": False,
-        "whatsapp": False,
+        "sms": sms_ready(),
+        "whatsapp": whatsapp_ready(),
     }
 
 
@@ -167,7 +178,10 @@ def schedule_reminders(*, now=None, limit=500):
     """
     now = now or timezone.now()
     config, _ = MessagingSettings.objects.get_or_create(pk=1)
-    ready = [channel for channel, ok in channel_readiness().items() if ok]
+    ready = [
+        channel for channel, ok in channel_readiness().items()
+        if ok and (channel != "whatsapp" or settings.WHATSAPP_RENT_TEMPLATE)
+    ]
     if not config.reminders_enabled or not ready:
         return 0
     enabled = Q()
@@ -251,7 +265,7 @@ def schedule_workspace(pk, today, ready, budget):
                     channel=channel,
                     recipient=recipient,
                     subject=f"Rent reminder: {invoice.reference}",
-                    body=reminder_body(invoice),
+                    body=reminder_body(invoice, channel=channel),
                     identity=f"reminder:{invoice.public_id}:{today}:{channel}",
                     reminder_date=today,
                     status="queued" if recipient else "held",
@@ -284,7 +298,8 @@ def claim(pk, now):
     """
     with transaction.atomic():
         MessagingSettings.objects.select_for_update().get(pk=1)
-        if not email_budget(now):
+        row = MessageDelivery.objects.only("channel").get(pk=pk)
+        if row.channel == "email" and not settings.EMAIL_ROUTING_ENABLED and not email_budget(now):
             return None
         return bool(
             MessageDelivery.objects.filter(pk=pk, status="queued").update(
@@ -306,9 +321,7 @@ def dispatch_messages(*, now=None, limit=50):
     config, created = MessagingSettings.objects.get_or_create(pk=1)
     if created:
         config.refresh_from_db()
-    size = min(max(1, min(limit, 100)), email_budget(now))
-    if not size:
-        return 0
+    size = max(1, min(limit, 100))
     ids = list(
         MessageDelivery.objects.filter(status="queued", available_at__lte=now)
         .order_by("available_at", "pk")
@@ -327,6 +340,8 @@ def dispatch_messages(*, now=None, limit=50):
                 "request__actor",
                 "invoice",
             ).get(pk=pk)
+            if row.status != "queued":
+                continue
             try:
                 quiet = quiet_now(row.organization, config, now)
             except (ZoneInfoNotFoundError, ValueError):
@@ -348,7 +363,7 @@ def dispatch_messages(*, now=None, limit=50):
                     reason=reason,
                 )
                 continue
-            if transport is None:
+            if row.channel == "email" and transport is None:
                 transport = get_connection(timeout=min(settings.EMAIL_TIMEOUT, 10))
                 try:
                     transport.open()
@@ -358,18 +373,48 @@ def dispatch_messages(*, now=None, limit=50):
                     break
             claimed = claim(pk, now)
             if claimed is None:
-                break
+                MessageDelivery.objects.filter(pk=pk, status="queued").update(
+                    available_at=now + timedelta(minutes=15), reason="email_quota_reached",
+                )
+                continue
             if not claimed:
                 continue
+            if row.channel in {"sms", "whatsapp"}:
+                reason = phone_block(row, now)
+                if reason:
+                    MessageDelivery.objects.filter(pk=pk, status="sending").update(
+                        status="cancelled", reason=reason,
+                    )
+                    continue
             try:
-                sent = EmailMessage(
-                    row.subject,
-                    row.body,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [row.recipient],
-                    connection=transport,
-                    reply_to=[row.organization.email] if row.organization.email else None,
-                ).send(fail_silently=False)
+                provider, provider_id = "smtp", ""
+                if row.channel == "whatsapp":
+                    provider, provider_id = "whatsapp", send_whatsapp(row)
+                    sent = 1
+                elif row.channel == "sms":
+                    provider, provider_id = "africastalking", send_sms(row)
+                    sent = 1
+                else:
+                    email = EmailMessage(
+                        row.subject, row.body, settings.DEFAULT_FROM_EMAIL, [row.recipient],
+                        connection=transport,
+                        reply_to=[row.organization.email] if row.organization.email else None,
+                    )
+                    sent = email.send(fail_silently=False)
+                    provider = getattr(email, "dwella_provider", "smtp")
+                    provider_id = getattr(email, "dwella_provider_id", "")
+            except EmailQuotaExceeded:
+                MessageDelivery.objects.filter(pk=pk, status="sending").update(
+                    status="queued", reason="email_quota_reached", claimed_at=None,
+                    available_at=now + timedelta(minutes=15),
+                )
+            except ProviderRejected as error:
+                MessageDelivery.objects.filter(pk=pk, status="sending").update(
+                    status="failed", reason="provider_rejected", failure_code=error.code,
+                    provider={"whatsapp": "whatsapp", "sms": "africastalking"}.get(
+                        row.channel, "resend",
+                    ),
+                )
             except Exception:
                 MessageDelivery.objects.filter(pk=pk, status="sending").update(
                     status="review", reason="send_outcome_unknown"
@@ -379,8 +424,10 @@ def dispatch_messages(*, now=None, limit=50):
             else:
                 MessageDelivery.objects.filter(pk=pk, status="sending").update(
                     status="sent" if sent else "failed",
-                    reason="smtp_accepted" if sent else "email_not_accepted",
+                    reason=("smtp_accepted" if provider in {"smtp", "google"}
+                            else "provider_accepted") if sent else "email_not_accepted",
                     sent_at=now if sent else None,
+                    provider=provider, provider_id=provider_id,
                 )
                 count += bool(sent)
     finally:
@@ -445,12 +492,15 @@ def dispatch_block(row, config, now):
             return "reminders_disabled"
         # Re-render from the fresh balance after partial payments.
         invoice.organization = organization
-        row.body = reminder_body(invoice)
+        invoice.tenant = row.tenant
+        row.body = reminder_body(invoice, channel=row.channel)
         MessageDelivery.objects.filter(pk=row.pk, status="queued").update(body=row.body)
-    if row.tenant.user_id and not tenant_accepts(row.tenant.user, row.channel):
+    if row.tenant.user_id and not tenant_accepts(row.tenant.user, row.channel, effective=False):
         return "recipient_opted_out"
-    if row.channel == "whatsapp":
-        return "whatsapp_consent_template_required"
+    if row.channel in {"sms", "whatsapp"}:
+        reason = phone_block(row, now)
+        if reason:
+            return reason
     if not channel_readiness()[row.channel]:
         return "delivery_not_connected"
     if row.channel == "email" and not recipient_allowed(row.recipient):
@@ -458,13 +508,18 @@ def dispatch_block(row, config, now):
     return ""
 
 
-def tenant_accepts(user, channel):
+def tenant_accepts(user, channel, *, effective=True):
     # A tenant who never saved preferences gets the same defaults Settings shows them.
     pref = getattr(user, "notificationpreferences", None) or NotificationPreferences()
+    if effective and channel in {"sms", "whatsapp"}:
+        values = {"sms_enabled": pref.sms_enabled, "whatsapp_enabled": pref.whatsapp_enabled}
+        return personal_phone_preferences(user, values)[f"{channel}_enabled"]
     return getattr(pref, f"{channel}_enabled")
 
 
-def reminder_body(invoice):
+def reminder_body(invoice, *, channel="email"):
+    if channel == "whatsapp":
+        return whatsapp_rent_body(invoice)
     return (
         f"{invoice.reference}: {invoice.organization.currency} "
         f"{invoice.balance:.2f} outstanding. Due {invoice.due_date}. "

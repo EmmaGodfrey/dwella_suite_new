@@ -2,6 +2,7 @@
 
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
@@ -18,6 +19,7 @@ from apps.organizations.models import Organization
 
 from .messaging import channel_readiness
 from .models import MessagingSettings, NotificationPreferences, ReminderPreferences
+from .phone_messaging import personal_phone_preferences, save_user_consent
 
 
 class SettingsWriteThrottle(UserRateThrottle):
@@ -35,6 +37,9 @@ class StrictSerializer(serializers.ModelSerializer):
 
 
 class PersonalSerializer(StrictSerializer):
+    def to_representation(self, instance):
+        return personal_phone_preferences(instance.user, super().to_representation(instance))
+
     class Meta:
         model = NotificationPreferences
         exclude = ["id", "user"]
@@ -147,12 +152,19 @@ class PreferenceView(APIView):
             serializer = self.serializer_class(value, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            if self.model is NotificationPreferences:
+                save_user_consent(request.user, serializer.validated_data)
             record_event(
                 request,
                 "settings.preferences_updated",
                 value,
                 organization=lookup.get("organization"),
                 fields=list(serializer.validated_data),
+                **({"consent_policy_version": "2026-10-26", "consent": {
+                    channel: serializer.validated_data[f"{channel}_enabled"]
+                    for channel in ("sms", "whatsapp")
+                    if f"{channel}_enabled" in serializer.validated_data
+                }} if self.model is NotificationPreferences else {}),
             )
         return Response(self.payload(value))
 
@@ -178,6 +190,24 @@ class PlatformMessagingView(PreferenceView):
 
     def lookup(self, request):
         return {"pk": 1}
+
+    def payload(self, value):
+        return {
+            **super().payload(value),
+            "providers": {
+                "email": {
+                    "routing_enabled": settings.EMAIL_ROUTING_ENABLED,
+                    "google_limit": settings.EMAIL_GOOGLE_LIMIT,
+                    "resend_configured": bool(
+                        settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL
+                    ),
+                    "resend_daily_limit": settings.RESEND_DAILY_LIMIT,
+                    "resend_monthly_limit": settings.RESEND_MONTHLY_LIMIT,
+                },
+                "sms": {"sandbox": settings.AFRICASTALKING_SANDBOX},
+                "whatsapp": {"rent_template_configured": bool(settings.WHATSAPP_RENT_TEMPLATE)},
+            },
+        }
 
 
 class WorkspaceSettingsView(PreferenceView):

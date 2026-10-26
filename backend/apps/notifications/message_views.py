@@ -76,7 +76,7 @@ def request_data(message):
         "expires_at": message.expires_at,
         "confirmed_at": message.confirmed_at,
         "channels": channel_readiness(),
-        "delivery_note": "Queued for email dispatch."
+        "delivery_note": "Queued for delivery; recipient consent and channel rules apply."
         if channel_readiness()[message.channel]
         else "Held until delivery is connected. Nothing has been sent.",
     }
@@ -173,6 +173,11 @@ class DeliverySerializer(serializers.ModelSerializer):
             "created_at",
             "sent_at",
             "reminder_date",
+            "provider",
+            "provider_id",
+            "delivered_at",
+            "read_at",
+            "failure_code",
         ]
 
 
