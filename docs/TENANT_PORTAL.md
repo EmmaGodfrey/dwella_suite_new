@@ -2,7 +2,10 @@
 
 Backend for the agreed MVP "Tenants and self-service" row ([MVP_SCOPE_2026_10_24.md](MVP_SCOPE_2026_10_24.md)). The tenant screens follow the approved Figma frames (file aHlQPzHBsvGR4rNoabRQyW, page "Tenant portal, renewal & imports — MVP") and live in `frontend/src/Components/Portal/`. Tenants reach them through the usual `/dashboard`, `/leases`, `/billing` and `/maintenance` routes, which render the portal for the tenant persona (`Route/ForTenant.jsx`); API calls sit in `Services/portal.js`.
 
-Known gap: removing portal access deletes the tenant membership, so that account becomes "unassigned" and is sent to workspace Setup like a new property manager sign-up.
+Access-removal follow-up (2026-10-26): removing the last tenant link records a
+former-tenant access flag. With no active workspace membership, that account sees
+an access-removed screen and cannot enter business Setup. Accepting a valid fresh
+tenant invitation clears the flag. Historical tenancy/payment records stay intact.
 
 ## Who gets in
 
@@ -37,7 +40,7 @@ Lists use the standard pagination envelope. Tenant-facing serializers in `apps/p
 ## Deliberate limits
 
 - Signing stays on the emailed, code-verified link; the portal only shows that a signature is awaited.
-- Paying online arrives with the Lenco integration. Until then the portal shows balances and receipts only.
+- Online invoice payment and provider-confirmed receipts now use the Lenco integration.
 - A tenant writes at most 60 times an hour across repairs, messages, photos and profile changes.
 
 Tests: `backend/apps/portal/tests.py` (access boundaries, cross-tenant 404s, hidden drafts/documents/notes, PDF reuse, repair flow, phone uniqueness, access removal, overview query budget).

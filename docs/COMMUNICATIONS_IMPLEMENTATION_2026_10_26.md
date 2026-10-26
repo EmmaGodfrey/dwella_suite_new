@@ -107,3 +107,22 @@ fixed by passing prefetched access state into the display projection. Final
 regression tests pass. Initial worker checks also found new-instance quiet-hour
 type conversion, now fixed. No unexplained validation failures remain locally.
 CI PostgreSQL verification and test deployment are the next release checks.
+
+## Verified test release
+
+2026-10-26: code through `bf4dfb0` deployed as `test-v2026.10.26.1` through successful
+[CI run 40355075224](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/40355075224).
+Full SQLite, expanded PostgreSQL, frontend and staging-deployment gates passed;
+the production deployment job was skipped. Live test checks confirm current
+migrations, three private message tables, protected admin APIs, eleven marked
+Handy actions and a successful `messages` scheduler run. New outbound delivery
+is disabled; SMS/WhatsApp APIs remain unattached. Production container identities
+match the saved pre-release baseline.
+
+The deployed browser build passed the send-only message flow, partial-save retry,
+reminder choices, role-specific settings, transaction evidence on demand, mobile
+and dark states, and removed-tenant screen using intercepted synthetic API data.
+No real message, payment or transfer was initiated by these checks. The read-only
+verification script initially needed its quoting and HTTPS request setup corrected;
+the deployed application checks now pass. Research/subscription proposal documents
+were excluded from this application release.
