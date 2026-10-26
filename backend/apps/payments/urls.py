@@ -1,8 +1,16 @@
 from django.urls import path
 
 from . import views
+from .platform_views import (
+    PlatformCollectionDetail,
+    PlatformPaymentConfiguration,
+    PlatformTransactionsView,
+)
 
 urlpatterns = [
+    path("platform/transactions/", PlatformTransactionsView.as_view()),
+    path("platform/configuration/", PlatformPaymentConfiguration.as_view()),
+    path("platform/collections/<uuid:public_id>/", PlatformCollectionDetail.as_view()),
     path("tenant/options/", views.TenantPaymentOptionsView.as_view()),
     path("platform/balance/", views.PlatformBalanceView.as_view()),
     path("tenant/invoices/<uuid:public_id>/checkout/", views.TenantCheckoutView.as_view()),

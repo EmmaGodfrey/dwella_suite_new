@@ -274,7 +274,9 @@ class PlatformExchangeList(PrivateView, generics.ListAPIView):
 
     def get(self, request, public_id):
         row = get_object_or_404(Collection, public_id=public_id)
-        exchanges = Exchange.objects.filter(collection=row).order_by("-created_at")
+        exchanges = Exchange.objects.filter(
+            Q(collection=row) | Q(payout__collection=row)
+        ).defer("encrypted_payload").order_by("-created_at", "-pk")
         page = self.paginate_queryset(exchanges)
         return self.get_paginated_response(
             [
@@ -340,7 +342,8 @@ class PlatformBalanceView(PrivateView):
             else None
         )
         if snapshot is None:
-            return Response({"status": "not_synced"})
+            return Response({"status": "not_synced", "environment": settings.LENCO_ENVIRONMENT,
+                             "currency": "ZMW"})
         fields = [
             "status",
             "issue",
@@ -361,6 +364,8 @@ class PlatformBalanceView(PrivateView):
         ]
         values = {key: getattr(snapshot, key) for key in fields}
         values["checked_at"] = snapshot.account.checked_at
+        values["environment"] = snapshot.account.environment
+        values["currency"] = snapshot.account.currency
         return Response(
             {
                 key: f"{value:.2f}" if isinstance(value, Decimal) else value
