@@ -11,7 +11,7 @@ import { AdminHeader, AdminState, AdminTable, when } from "../Platform/AdminUI";
 import "./messages.scss";
 
 const channelNames = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
-const statusNames = { held: "Held", queued: "Queued", sending: "Sending", sent: "Sent to email server", failed: "Failed", cancelled: "Cancelled", review: "Needs review" };
+const statusNames = { held: "Held", queued: "Queued", sending: "Sending", sent: "Accepted by provider", delivered: "Delivered", read: "Read", failed: "Failed", cancelled: "Cancelled", review: "Needs review" };
 const reasonLabel = (reason) => ({ delivery_not_connected: "Delivery is not connected", send_outcome_unknown: "Send outcome needs review", recipient_opted_out: "Recipient opted out", invoice_no_longer_due: "Invoice paid, cancelled or reminder expired", permission_removed: "Access no longer available", missing_contact: "No contact for this channel", smtp_accepted: "Accepted by email server; delivery unconfirmed" }[reason] || reason?.replaceAll("_", " ") || "—");
 
 export default function Messages() {
@@ -28,7 +28,7 @@ export default function Messages() {
       <Button as={Link} to={platform ? "/settings?tab=messaging" : "/settings?tab=notifications"}>Reminder settings</Button>
       {!platform && <Button appearance="primary" onClick={() => setCompose(true)}>New message</Button>}
     </AdminHeader>
-    <p className="settings-note">SMS and WhatsApp wait for connection. A held request has not been sent. Email acceptance does not confirm delivery.</p>
+    <p className="settings-note">A held request has not been sent. Provider acceptance does not confirm delivery; delivery reports update the status when available.</p>
     <div className="messages-filters">
       <Field label="Search"><Input value={filters.search} onChange={(_, d) => update("search", d.value)} /></Field>
       <Field label="Channel"><Select value={filters.channel} onChange={(_, d) => update("channel", d.value)}><option value="">All channels</option>{Object.entries(channelNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>
@@ -44,7 +44,9 @@ export default function Messages() {
           ...(platform ? [{ key: "workspace_name", label: "Workspace" }] : []),
           { key: "channel", label: "Channel", render: (row) => channelNames[row.channel] },
           { key: "status", label: "Status", render: (row) => <StatusBadge color={row.status === "held" || row.status === "review" ? "warning" : "subtle"}>{statusNames[row.status]}</StatusBadge> },
-          { key: "reason", label: "Details", render: (row) => reasonLabel(row.reason) },
+          { key: "reason", label: "Details", render: (row) => <>
+            {reasonLabel(row.reason)}{row.failure_code && ` (${row.failure_code})`}
+          </> },
           { key: "created_at", label: "Requested", render: (row) => when(row.created_at) },
         ]} />}
     </AdminState>
@@ -205,6 +207,10 @@ function MessageDetail({ id, onClose }) {
       <h3>{query.data.subject}</h3><p>{query.data.tenant_name} · {query.data.recipient}</p>
       <StatusBadge color="subtle">{statusNames[query.data.status]}</StatusBadge>
       <p>{reasonLabel(query.data.reason)}</p><p className="message-body">{query.data.body}</p>
+      {query.data.provider && <p>Provider: {query.data.provider}</p>}
+      {query.data.delivered_at && <p>Delivered: {when(query.data.delivered_at)}</p>}
+      {query.data.read_at && <p>Read: {when(query.data.read_at)}</p>}
+      {query.data.failure_code && <p role="alert">Failure code: {query.data.failure_code}</p>}
       {["held", "queued"].includes(query.data.status) && <Button disabled={cancel.isPending} onClick={async () => { try { await cancel.mutateAsync({ id, confirmed: true }); toast.info("Request cancelled."); onClose(); } catch (e) { setError(e.message); } }}>Cancel this request</Button>}
       {error && <p role="alert">{error}</p>}
     </>}</AdminState>

@@ -229,7 +229,11 @@ function NotificationForm({ persona, personal, reminders }) {
             JSON.stringify(draft[key]) !== JSON.stringify(saved[key]),
         );
         const results = await Promise.allSettled(
-          changes.map(([key, mutation]) => mutation.mutateAsync(draft[key])),
+          changes.map(([key, mutation]) => mutation.mutateAsync(
+            Object.fromEntries(Object.entries(draft[key]).filter(
+              ([field, value]) => value !== saved[key][field],
+            )),
+          )),
         );
         const successful = {};
         let failed = false;
@@ -322,7 +326,7 @@ function NotificationForm({ persona, personal, reminders }) {
         </SettingsSection>
         <SettingsSection
           title={persona === "tenant" ? "Rent reminders" : "Delivery channels"}
-          note="Choose your delivery preferences. Messages on a channel start once it is connected."
+          note="Enable SMS or WhatsApp and save to agree to rent reminders and property notices from Dwella at your linked phone number. Disable either channel here to opt out. You can also reply STOP on WhatsApp."
         >
           <ChannelRows
             draft={draft.personal}
@@ -457,6 +461,19 @@ function Messaging() {
         >
           {({ draft, change, errors }) => (
             <>
+              <SettingsSection
+                title="Email"
+                note="Account emails, signing emails and reminders share the sending allowance."
+              >
+                <SettingsRow label="Routing">
+                  {query.data.providers?.email.routing_enabled
+                    ? `Google up to ${query.data.providers.email.google_limit} recipients, then Resend`
+                    : "Existing email service; automatic routing awaits setup"}
+                </SettingsRow>
+                <SettingsRow label="Resend">
+                  {query.data.providers?.email.resend_configured ? "Configured" : "Awaiting API key and verified sending domain"}
+                </SettingsRow>
+              </SettingsSection>
               {["SMS", "WhatsApp Business"].map((name) => (
                 <SettingsSection
                   key={name}
@@ -468,12 +485,18 @@ function Messaging() {
                   }
                 >
                   <SettingsRow label="Connection">
-                    <StatusBadge color="subtle">Not connected</StatusBadge>
+                    <StatusBadge color="subtle">
+                      {query.data.channels?.[name === "SMS" ? "sms" : "whatsapp"]
+                        ? "Connected" : "Awaiting setup"}
+                    </StatusBadge>
                   </SettingsRow>
-                  <SettingsRow label="Provider">Not selected</SettingsRow>
+                  <SettingsRow label="Provider">
+                    {name === "SMS" ? "Africa’s Talking" : "Meta Cloud API"}
+                  </SettingsRow>
                   <p className="settings-note">
-                    Provider setup is pending. Sending will remain unavailable
-                    until the connection and delivery service are configured.
+                    {name === "SMS"
+                      ? "Sender registration and provider setup are pending."
+                      : "Rent reminders use an approved template. Custom notices require a tenant reply within the last 24 hours."}
                   </p>
                 </SettingsSection>
               ))}
