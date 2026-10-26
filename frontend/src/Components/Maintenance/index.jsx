@@ -178,6 +178,12 @@ export default function Maintenance() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const openFilter = searchParams.get("open") === "true" ? "true" : "";
+  const setOpenFilter = (value) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (value) next.set("open", value);
+    else next.delete("open");
+    return next;
+  });
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const canManage = getUserAccess(user).can_manage_properties;
   const [view, setView] = useState(readView);
@@ -243,7 +249,13 @@ export default function Maintenance() {
           options={(propertiesQuery.data?.results || []).map((item) => ({ value: item.id, label: item.name }))}
           onChange={setFilter("property")}
         />
-        <FilterDropdown label="Work status" allLabel="All requests" value={openFilter} options={[{ value: "true", label: "Open requests" }]} onChange={(value) => setSearchParams((current) => { const next = new URLSearchParams(current); if (value) next.set("open", value); else next.delete("open"); return next; })} />
+        <FilterDropdown
+          label="Work status"
+          allLabel="All requests"
+          value={openFilter}
+          options={[{ value: "true", label: "Open requests" }]}
+          onChange={setOpenFilter}
+        />
         <FilterDropdown label="Priority" allLabel="Any priority" value={filters.priority} options={priorities} onChange={setFilter("priority")} />
         <FilterDropdown
           label="Vendor"
@@ -273,7 +285,7 @@ export default function Maintenance() {
           title={filtered ? "No matching requests" : "No requests yet"}
           description={filtered ? "Try another search or filter." : "Log a repair to track it from report to done."}
           actionLabel={filtered ? "Clear filters" : canManage ? "New request" : undefined}
-          onAction={filtered ? () => { setFilters({ property: "", priority: "", vendor: "" }); setSearch(""); setSearchParams((current) => { const next = new URLSearchParams(current); next.delete("open"); return next; }); } : () => setDrawer("request")}
+          onAction={filtered ? () => { setFilters({ property: "", priority: "", vendor: "" }); setSearch(""); setOpenFilter(""); } : () => setDrawer("request")}
         />
       ) : view === "board" ? (
         <Board requests={requests} loading={listQuery.isLoading} onOpen={open} />
