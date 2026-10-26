@@ -1,87 +1,113 @@
-# Manual landlord withdrawals — discussion draft
+# Manual landlord withdrawals
 
-Prepared 2026-10-26 after the user requested pushing the reviewed MVP additions
-and moving to the next item. This is a proposal, not implemented payment behavior.
+Drafted 2026-10-26 as a proposal; implemented locally the same day (Claude).
+Figma: file `aHlQPzHBsvGR4rNoabRQyW`, page "Payments — Manual withdrawals · 26 Oct"
+(node `261:106`). It supersedes the earlier payout-cadence frames on `227:106`.
 
-## Established direction
+## Direction (confirmed by the user)
 
-- Keep Lenco. User reports collection fees are already charged to tenants through
-  Lenco configuration. Do not add another application collection surcharge.
-- Landlords pay payout fees. Move away from automatic per-collection payouts.
-- Rent and Dwella subscription revenue remain separate accounting purposes.
-- Start with the existing mobile-money destination. Bank destinations are an
-  additional design/integration step, not silently included in this first slice.
+- Keep Lenco. Tenants already pay collection fees through Lenco configuration;
+  Dwella adds no collection surcharge.
+- Landlords pay the payout fee, and withdraw when they choose. Automatic
+  per-collection payouts are off unless `LENCO_AUTOMATIC_PAYOUTS=true`.
+- The landlord enters the **amount they receive**. The fee is shown separately and
+  **amount + fee** is taken from their balance.
+- Receiving accounts can be mobile money or a bank account.
 
-## Proposed landlord flow
+## Balance
 
-1. Billing shows available settled funds, funds awaiting settlement, withdrawals
-   in progress and withdrawal history. Only the landlord's own workspace balance
-   is available; the pooled Lenco balance is not their balance.
-2. Open a Withdraw drawer, choose the amount and review receiving details.
-3. Show amount received, Lenco fee, total deducted and balance remaining, then
-   require explicit confirmation of that exact preview.
-4. Reserve the total once and submit one transfer with one stable reference.
-   Show pending until provider verification proves success/failure.
-5. A timeout or uncertain outcome stays reserved and enters reconciliation.
-   It must never produce a blind duplicate transfer or a second withdrawal.
+Per workspace, in the database:
 
-User confirmed on 2026-10-26: enter **amount the landlord receives**. Show the
-fee separately and reserve **amount received + fee** from the landlord balance.
-Withdraw maximum must account for fee bands and rounding rather than subtracting
-an arbitrary fee from the whole balance. Preserve exact two-decimal arithmetic.
+```
+available = settled rent
+          - legacy payouts (queued/submitting/pending/successful/review)
+          - withdrawals in flight (amount + fee reserved)
+          - successful withdrawals (amount + fee charged)
+```
 
-## Existing code constraints
+Pending collections are "awaiting settlement" and cannot be withdrawn. The pooled
+Lenco account balance is never shown as the landlord's balance.
 
-- `Payout.collection` is currently one-to-one. Successful settled collections
-  create queued payouts in `_record_success`; the worker submits those records.
-  This cannot represent one withdrawal funded by several tenant collections.
-- Existing balance coverage/reservations and evidence rely on that collection
-  link. Update them together; changing just the button or payout switch is not
-  enough to make combined withdrawals correct.
-- Existing transfers pay out the settled principal; known payout fees are treated
-  as platform-account expenditure. New manual withdrawals must reserve both net
-  payout and the landlord's fee without retroactively charging historical fees.
-- Reuse provider status verification, immutable destination snapshots, encrypted
-  exchange evidence, stable references and submission claims. Preserve all old
-  collection/payment/receipt/provider references and in-flight transfers.
+## Fees
 
-## Proposed implementation slices
+Lenco publishes ranges, not an exact quote, so Dwella reserves the top of each
+public band (`LENCO_WITHDRAWAL_FEES` in settings):
 
-1. Model withdrawal intent/preview, amount received, fee quote, total reservation,
-   immutable destination and per-collection allocations. Keep legacy payouts
-   identifiable and readable; prepare a migration/backfill with explicit invariants.
-2. Calculate each workspace's available settled balance in the database, excluding
-   settled amounts already paid/reserved. Include queued confirmed manual requests
-   in reservations immediately. Never allocate pending collections or another
-   workspace's funds. Acquire short locks in a consistent order.
-3. Add bounded preview/confirm/history APIs with fresh workspace/manager/destination
-   checks, expiry, input validation, throttling and idempotency. Preview must not
-   submit a provider transfer. Cancellation only releases an unsubmitted intent.
-4. Replace new automatic payout creation with available funds. Reconcile submitted
-   legacy transfers normally. Before switching, explicitly handle every queued,
-   submitting, pending, successful, failed and review record; no blanket retry or
-   cancellation of uncertain money movements.
-5. Extend the worker, fee reservations, reconciliation and admin evidence/history
-   for manual withdrawals. Keep external calls outside locked transactions.
-6. Refine existing Figma withdrawal/held-balance references, then implement the
-   drawer, fee review, balance display and status/history against those APIs.
-7. Test competing withdrawals, duplicate confirmation, insufficient funds including
-   fees, partial settlements, permission removal, changed destinations, timeout,
-   provider mismatches and migration compatibility on PostgreSQL. Deploy to test
-   for the user's controlled verification before enabling a new live money flow.
+| Rail | Up to K1,000 | Up to K50,000 |
+| --- | --- | --- |
+| Mobile money | K12 | K25 |
+| Bank account | K10 | K25 |
 
-## Fee information still to verify
+The transfer response reports the actual `fee`. The landlord is charged
+`min(reported fee, reserved fee)`; any difference stays in their balance. A fee above
+the reserve is recorded as `withdrawal_fee_above_reserve` for review (Dwella
+absorbs it). A missing fee is charged at the reserve and flagged
+`withdrawal_fee_not_reported`. Minimum withdrawal `LENCO_WITHDRAWAL_MINIMUM`
+(default K10); maximum K50,000 per withdrawal. "Withdraw the maximum" accounts for
+the fee band.
 
-The official transfer endpoint returns a `fee` in its response. A reliable
-pre-transfer fee quote method has not been verified. Public Zambia pricing gives
-ranges, so it is not an exact fee quote for a particular amount/operator/account.
-Obtain authoritative account-specific fee rules or a supported quote capability
-before enabling fee-bearing withdrawals. A mismatch must be visible and reconciled;
-do not silently debit extra fees or use another landlord's reserved principal.
+## Flow and safety rules
 
-Sources checked 2026-10-26:
-- [Lenco mobile-money transfer request/response](https://lenco-api.readme.io/v2.0/reference/initiate-transfer-to-mobile-money)
-- [Lenco Zambia pricing](https://lenco.co/zm/pricing)
+1. `POST /payments/withdrawals/preview/` returns amount, fee, total and balance
+   after. It never contacts Lenco.
+2. `POST /payments/withdrawals/` with amount, the previewed fee and an idempotency
+   key. Under one workspace lock it rechecks membership, receiving account, balance
+   and that the fee is still current, then saves a queued withdrawal. Repeating
+   the same key returns the same withdrawal.
+3. The worker claims the row (committed before any provider call), rechecks that
+   the receiving account is still enabled and the requester is still a landlord
+   (otherwise cancelled), waits while `LENCO_PAYOUTS_ENABLED` is off or the Lenco
+   balance is not freshly matched, then sends **one** transfer
+   (`/transfers/mobile-money` or `/transfers/bank-account`).
+4. Timeouts and unclear answers are only ever checked by reference
+   (`/transfers/status/{reference}`); a transfer is never sent twice. An outright
+   refusal fails the withdrawal and returns amount + fee to the balance. A response
+   whose reference, account or amount does not match goes to review.
+5. Webhooks (`transfer.*`) update the withdrawal by reference. After 3 days without
+   confirmation it goes to review.
+6. Only a queued (unsent) withdrawal can be cancelled.
 
-No payout code, provider configuration, actual balances or money-transfer state
-was changed while preparing this draft.
+## Receiving accounts
+
+- Mobile money (network + number) or bank (bank from `GET /payments/banks/`, a
+  24-hour cached Lenco list, + account number).
+- "Check account" asks Lenco for the registered name (`/resolve/mobile-money`,
+  `/resolve/bank-account`). That name is saved; the landlord cannot type over it.
+- Saving requires the landlord's password, the authenticator code when 2FA is on,
+  and confirmation. An email is sent on every change. Withdrawals already sent keep
+  their original account.
+- Test bypass: only when `APP_ENVIRONMENT=test` and
+  `LENCO_ALLOW_UNVERIFIED_DESTINATIONS=true` **and** Lenco cannot be asked, the
+  landlord may type the name.
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET/POST | `/payments/destination/` | Receiving account (POST = change) |
+| POST | `/payments/destination/check/` | Lenco name lookup |
+| GET | `/payments/banks/` | Zambian banks |
+| GET | `/payments/payouts/` | Balance summary, receiving account, limits |
+| GET/POST | `/payments/withdrawals/` | History / request |
+| POST | `/payments/withdrawals/preview/` | Fee preview |
+| POST | `/payments/withdrawals/<id>/cancel/` | Cancel a queued withdrawal |
+| GET | `/payments/platform/withdrawals/<id>/` | Super admin detail + evidence |
+
+## Frontend
+
+- `/billing/payouts`: balance strip, receiving account, Withdraw drawer with fee
+  review, withdrawal history (cancel for queued rows). Linked from Billing.
+- Receiving account drawer (Payouts and Settings → Billing): type, details, Check
+  account, Lenco result, confirmation, password/2FA.
+- Super admin Transactions: Withdrawals tab and drawer; legacy tab renamed
+  "Automatic payouts".
+- Manager alerts: withdrawal delivered / failed (returned to balance) / needs
+  attention.
+
+## Rollout checklist (test environment first)
+
+- Migrate (`payments.0011`), keep the payments worker running.
+- `LENCO_PAYOUTS_ENABLED=true`, `LENCO_AUTOMATIC_PAYOUTS` unset (false).
+- The Lenco API key needs transfer permission (the earlier 403 blocker) and
+  account-name resolution.
+- Verify with a small real withdrawal on the user's own number before production.
