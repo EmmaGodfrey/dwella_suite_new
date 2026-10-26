@@ -25,7 +25,14 @@ from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from .models import BalanceSnapshot, Collection, Payout, ProviderAccount, ProviderTransaction
+from .models import (
+    BalanceSnapshot,
+    Collection,
+    Payout,
+    ProviderAccount,
+    ProviderTransaction,
+    Withdrawal,
+)
 from .provider import Provider
 
 FRESH_FOR = timedelta(minutes=7)
@@ -42,9 +49,15 @@ class BalanceSyncError(Exception):
 def can_reserve_payout(row):
     """Call inside the payout claim transaction, before committing a debit intent."""
     collection = row.collection
+    return can_reserve(collection.environment, collection.debit_account_id, row.amount, row)
+
+
+def can_reserve(environment, account_id, needed, row):
+    """Whether a fresh, matched Lenco balance covers `needed` after everything
+    already committed. Call inside the claim transaction of `row`."""
     account = (
         ProviderAccount.objects.select_for_update()
-        .filter(environment=collection.environment, account_id=collection.debit_account_id)
+        .filter(environment=environment, account_id=account_id)
         .first()
     )
     if account is None or account.checked_at is None:
@@ -58,20 +71,24 @@ def can_reserve_payout(row):
     ):
         return False
     # Anything the balance read may not reflect yet is reserved.
-    committed = (
-        Payout.objects.filter(
-            collection__environment=collection.environment,
-            collection__debit_account_id=collection.debit_account_id,
-        )
-        .exclude(pk=row.pk)
-        .filter(
-            Q(status__in=[*IN_FLIGHT, "review"])
-            | Q(status="successful", confirmed_at__gt=account.checked_at)
-        )
-        .aggregate(total=Sum("amount"), fees=Sum("fee"))
+    unsettled = Q(status__in=[*IN_FLIGHT, "review"]) | Q(
+        status="successful", confirmed_at__gt=account.checked_at
     )
-    reserved = (committed["total"] or ZERO) + (committed["fees"] or ZERO)
-    return snapshot.available_balance - reserved >= row.amount
+    payouts = Payout.objects.filter(
+        collection__environment=environment, collection__debit_account_id=account_id
+    )
+    withdrawals = Withdrawal.objects.filter(environment=environment, debit_account_id=account_id)
+    if isinstance(row, Payout):
+        payouts = payouts.exclude(pk=row.pk)
+    else:
+        withdrawals = withdrawals.exclude(pk=row.pk)
+    committed = payouts.filter(unsettled).aggregate(total=Sum("amount"), fees=Sum("fee"))
+    sending = withdrawals.filter(unsettled).aggregate(total=Sum("amount"), fees=Sum("fee_reserved"))
+    reserved = sum(
+        (value or ZERO)
+        for value in (committed["total"], committed["fees"], sending["total"], sending["fees"])
+    )
+    return snapshot.available_balance - reserved >= needed
 
 
 def balance_amount(value):
@@ -174,16 +191,34 @@ def landlord_totals(account):
         fees=Sum("fee", filter=Q(status="successful")),
         in_flight=Sum("amount", filter=Q(status__in=IN_FLIGHT)),
     )
+    withdrawals = Withdrawal.objects.filter(
+        environment=account.environment, debit_account_id=str(account.account_id)
+    ).aggregate(
+        paid=Sum("amount", filter=Q(status="successful")),
+        charged=Sum("fee_charged", filter=Q(status="successful")),
+        fees=Sum("fee", filter=Q(status="successful")),
+        in_flight=Sum("amount", filter=Q(status__in=IN_FLIGHT)),
+        in_flight_fees=Sum("fee_reserved", filter=Q(status__in=IN_FLIGHT)),
+    )
     settled = rent["settled"] or ZERO
-    paid = payouts["paid"] or ZERO
+    paid = (payouts["paid"] or ZERO) + (withdrawals["paid"] or ZERO)
+    in_flight = sum(
+        (value or ZERO)
+        for value in (
+            payouts["in_flight"],
+            withdrawals["in_flight"],
+            withdrawals["in_flight_fees"],
+        )
+    )
     return {
         "rent_collections_total": rent["collected"] or ZERO,
         "rent_settled_total": settled,
         "payouts_total": paid,
-        "payout_fees_total": payouts["fees"] or ZERO,
-        # In-flight payouts may already be debited, so they are not counted as
-        # held; a review payout stays held until someone resolves it.
-        "held_for_landlords": settled - paid - (payouts["in_flight"] or ZERO),
+        "payout_fees_total": (payouts["fees"] or ZERO) + (withdrawals["fees"] or ZERO),
+        # In-flight transfers may already be debited, so they are not counted as
+        # held; one in review stays held until someone resolves it. Fees landlords
+        # paid on withdrawals left their share of the balance too.
+        "held_for_landlords": settled - paid - (withdrawals["charged"] or ZERO) - in_flight,
     }
 
 

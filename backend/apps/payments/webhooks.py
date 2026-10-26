@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from .evidence import record_exchange, strict_json
-from .models import Collection, Exchange, Payout
+from .models import Collection, Exchange, Payout, Withdrawal
 from .schedule import stamp
 
 MAX_WEBHOOK = 128 * 1024
@@ -53,7 +53,7 @@ def receive_webhook(body, signature):
     environment = settings.LENCO_ENVIRONMENT
     with transaction.atomic():
         # Locking the row serialises duplicate deliveries.
-        payout = None
+        payout = withdrawal = None
         if event.startswith("collection."):
             row = collection = (
                 Collection.objects.select_for_update()
@@ -68,12 +68,18 @@ def receive_webhook(body, signature):
                 .first()
             )
             collection = payout.collection if payout else None
+            if payout is None:
+                row = withdrawal = (
+                    Withdrawal.objects.select_for_update()
+                    .filter(reference=reference, environment=environment)
+                    .first()
+                )
         # Other activity in this merchant account is outside Dwella's rent flow.
         if row is None:
             return
         digest = hashlib.sha256(body).hexdigest()
         if Exchange.objects.filter(
-            collection=collection, operation="webhook", body_sha256=digest
+            collection=collection, withdrawal=withdrawal, operation="webhook", body_sha256=digest
         ).exists():
             return
         record_exchange(
@@ -82,11 +88,12 @@ def receive_webhook(body, signature):
             body=body,
             collection=collection,
             payout=payout,
+            withdrawal=withdrawal,
         )
         now = timezone.now()
         row.next_check_at = now
         fields = ["next_check_at", "updated_at"]
-        if payout is None:
+        if collection is not None and payout is None:
             # Extends a pending checkout's window and revives an expired one.
             row.provider_state = {**row.provider_state, "webhook_at": stamp(now)}
             fields.append("provider_state")

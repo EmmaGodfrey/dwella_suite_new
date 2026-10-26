@@ -5,8 +5,9 @@ from time import monotonic
 from django.conf import settings
 from django.utils import timezone
 
-from .models import Collection, Payout
+from .models import Collection, Payout, Withdrawal
 from .services import process_payout, reconcile_collection
+from .withdrawals import process_withdrawal
 
 CYCLE_SECONDS = 25
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def _check(handler, row):
 
 
 def run_cycle(limit=50):
-    """Check every collection and payout that is due, oldest first.
+    """Check every collection, payout and withdrawal that is due, oldest first.
 
     One indexed query per kind picks the due rows; rows that cannot change
     have no next check and are never read. Never starts a collection and
@@ -50,5 +51,13 @@ def run_cycle(limit=50):
         if monotonic() > deadline:
             return count
         _check(process_payout, row)
+        count += 1
+    withdrawals = Withdrawal.objects.filter(
+        environment=environment, next_check_at__lte=now
+    ).order_by("next_check_at")[:limit]
+    for row in withdrawals:
+        if monotonic() > deadline:
+            return count
+        _check(process_withdrawal, row)
         count += 1
     return count

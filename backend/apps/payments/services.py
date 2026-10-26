@@ -44,25 +44,39 @@ def money(value, *, positive=False):
 
 
 @transaction.atomic
-def approve_destination(*, organization, user, phone, operator, account_name, reason):
+def approve_destination(
+    *,
+    organization,
+    user,
+    account_name,
+    reason,
+    kind="mobile-money",
+    phone="",
+    operator="",
+    bank_id="",
+    bank_name="",
+    account_number="",
+    lookup_name="",
+):
     from apps.organizations.models import Organization
 
     Organization.objects.select_for_update().get(pk=organization.pk)
+    details = {
+        "kind": kind,
+        "phone": phone,
+        "operator": operator,
+        "bank_id": bank_id,
+        "bank_name": bank_name,
+        "account_number": account_number,
+        "account_name": account_name,
+        "lookup_name": lookup_name,
+    }
     current = Destination.objects.filter(organization=organization, enabled=True).first()
-    if current and (current.phone, current.operator, current.account_name) == (
-        phone,
-        operator,
-        account_name,
-    ):
+    if current and all(getattr(current, key) == value for key, value in details.items()):
         return current  # A repeated approval is not a new version.
     Destination.objects.filter(organization=organization, enabled=True).update(enabled=False)
     return Destination.objects.create(
-        organization=organization,
-        approved_by=user,
-        phone=phone,
-        operator=operator,
-        account_name=account_name,
-        approval_reason=reason,
+        organization=organization, approved_by=user, approval_reason=reason, **details
     )
 
 
@@ -354,9 +368,12 @@ def _record_success(row, invoice, data, now):
             if net > row.amount or (row.settled_amount is not None and row.settled_amount != net):
                 raise ValidationError("Settlement amount mismatch")
             row.settled, row.settled_amount = True, net
-            Payout.objects.get_or_create(
-                collection=row, defaults={"amount": net, "next_check_at": now}
-            )
+            # Settled rent joins the landlord's balance for withdrawal. Only the
+            # legacy setting still pays each collection out on its own.
+            if settings.LENCO_AUTOMATIC_PAYOUTS:
+                Payout.objects.get_or_create(
+                    collection=row, defaults={"amount": net, "next_check_at": now}
+                )
     except ValidationError:
         row.issue = "settlement_details_mismatch"
 
