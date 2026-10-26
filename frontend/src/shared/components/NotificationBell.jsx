@@ -20,7 +20,10 @@ import "./notifications.scss";
 export function NotificationBell() {
   const { data: user } = useCurrentUserQuery();
   const access = getUserAccess(user);
-  const enabled = access.persona === "landlord" || Boolean(access.acting_workspace);
+  const tenant = access.persona === "tenant";
+  const enabled = !user?.email_verification?.required && !access.workspace_suspended && (
+    access.persona === "landlord" || tenant || Boolean(access.acting_workspace)
+  );
   const query = useNotificationsQuery({ enabled });
   const [open, setOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -30,7 +33,7 @@ export function NotificationBell() {
   const count = query.data?.unread_count || 0;
   const shown = unreadOnly ? items.filter((item) => !item.read) : items;
   const mark = (ids) => {
-    if (ids.length) mutation.mutate(ids);
+    if (ids.length) mutation.mutate(ids, { onError: () => query.refetch() });
   };
   return (
     <Popover
@@ -99,7 +102,7 @@ export function NotificationBell() {
           <p className="dwella-notification-empty">
             {unreadOnly
               ? "You’re all caught up."
-              : "No alerts right now. Overdue rent, lease endings and open repairs will appear here."}
+              : tenant ? "Your tenancy, payment and repair notices will appear here." : "No alerts right now. Overdue rent, lease endings and open repairs will appear here."}
           </p>
         ) : (
           <ul>
@@ -139,7 +142,7 @@ export function NotificationBell() {
         {mutation.isError ? (
           <p role="alert">Could not mark notifications as read. Try again.</p>
         ) : null}
-        <footer>Current alerts from your portfolio.</footer>
+        <footer>{tenant ? "Recent notices and current reminders for your tenancy." : "Current alerts from your portfolio."}</footer>
       </PopoverSurface>
     </Popover>
   );

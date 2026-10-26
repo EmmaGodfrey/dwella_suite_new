@@ -39,6 +39,7 @@ const portalMutation = (mutationFn, after) => (options = {}) =>
   useMutation({
     mutationFn,
     onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       after?.(data);
       options.onSuccess?.(data, variables, context);
     },

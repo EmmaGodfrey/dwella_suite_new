@@ -299,29 +299,27 @@ function NotificationForm({ persona, personal, reminders }) {
             </SettingsSection>
           </>
         )}
-        {persona !== "tenant" && (
-          <SettingsSection
-            title="My alerts"
-            note="These preferences control your own in-app alerts. Overdue invoice notices remain visible."
-          >
-            {[
-              ["payment", "Payment received"],
-              ["payout", "Payout needs attention"],
-              ["lease", "Lease ending"],
-              ["maintenance", "Maintenance updates"],
-            ].map(([key, label]) => (
-              <SettingsRow label={label} key={key}>
-                <Switch
-                  aria-label={label}
-                  checked={draft.personal[`in_app_${key}`]}
-                  onChange={(_, d) =>
-                    change("personal", `in_app_${key}`, d.checked)
-                  }
-                />
-              </SettingsRow>
-            ))}
-          </SettingsSection>
-        )}
+        <SettingsSection
+          title="My alerts"
+          note="These preferences control your own in-app alerts. Overdue invoice notices remain visible."
+        >
+          {[
+            ["payment", persona === "tenant" ? "Payment notices" : "Payment received"],
+            ["payout", "Payout needs attention"],
+            ["lease", persona === "tenant" ? "Lease updates" : "Lease ending"],
+            ["maintenance", "Maintenance updates"],
+          ].filter(([key]) => persona !== "tenant" || key !== "payout").map(([key, label]) => (
+            <SettingsRow label={label} key={key}>
+              <Switch
+                aria-label={label}
+                checked={draft.personal[`in_app_${key}`]}
+                onChange={(_, d) =>
+                  change("personal", `in_app_${key}`, d.checked)
+                }
+              />
+            </SettingsRow>
+          ))}
+        </SettingsSection>
         <SettingsSection
           title={persona === "tenant" ? "Rent reminders" : "Delivery channels"}
           note="Choose your delivery preferences. Unconnected channels remain held."
