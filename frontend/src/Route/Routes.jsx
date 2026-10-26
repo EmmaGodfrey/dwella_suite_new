@@ -30,6 +30,7 @@ import OutreachOutbox from "../Components/Outreach/Outbox";
 import PortalLease from "../Components/Portal/MyLease";
 import PortalMaintenance from "../Components/Portal/Maintenance";
 import PortalPayments from "../Components/Portal/Payments";
+import Payouts from "../Components/Billing/Payouts";
 import PortalReceipt from "../Components/Portal/Receipt";
 import PortalRepairDetail from "../Components/Portal/RepairDetail";
 import ForTenant from "./ForTenant";
@@ -55,6 +56,7 @@ export const routes = [
   { path: "/admin/users", title: "Users", Component: <Users /> },
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },
+  { path: "/billing/payouts", title: "Payouts", Component: <ForTenant tenant={<PortalPayments />}><Payouts /></ForTenant> },
   { path: "/billing/receipts", title: "Receipts", Component: <ForTenant tenant={<PortalPayments />}><Receipts /></ForTenant> },
   { path: "/billing/receipts/:id", title: "Receipt", Component: <ForTenant tenant={<PortalReceipt />}><Receipt /></ForTenant> },
   {

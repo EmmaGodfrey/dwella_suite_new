@@ -142,6 +142,7 @@ export default function Billing() {
 
       <div className="dwella-page-toolbar">
         <Button onClick={() => navigate("/billing/receipts")}>Receipts</Button>
+        {canManage ? <Button onClick={() => navigate("/billing/payouts")}>Payouts</Button> : null}
         <SegmentedFilter
           label="Filter invoices"
           options={invoiceViews}

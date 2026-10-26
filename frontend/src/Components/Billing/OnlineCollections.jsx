@@ -1,8 +1,10 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@fluentui/react-components";
 import { useManagerCollections } from "../../Services/payments";
 import { formatMoney } from "../../shared/format";
 import { StatusBadge } from "../../shared/components";
+import { destinationShort } from "../../shared/payouts";
 import "./payments.scss";
 
 const labels = { pending: "Awaiting payment", successful: "Paid", failed: "Failed", review: "Needs review", expired: "Not completed" };
@@ -25,8 +27,10 @@ export default function OnlineCollections({ invoiceId }) {
             <span>{row.settled ? `${formatMoney(row.settled_amount)} settled after collection fees` : "Awaiting settlement from Lenco"}</span>
             {row.fee !== null ? <small>Collection fee: {formatMoney(row.fee)}</small> : null}
           </> : null}
-          {row.payout ? <span>{payoutLabels[row.payout.status] || row.payout.status}</span> : null}
-          {row.destination ? <small>Receiving account: {row.destination.account_name} · {row.destination.operator} · number ending {row.destination.phone.slice(-4)}</small> : null}
+          {row.payout ? <>
+            <span>{payoutLabels[row.payout.status] || row.payout.status}</span>
+            {row.destination ? <small>Receiving account: {row.destination.account_name} · {destinationShort(row.destination)}</small> : null}
+          </> : row.settled ? <small>Added to your balance. <Link to="/billing/payouts">Withdraw from Payouts</Link></small> : null}
           {row.status === "review" || ["failed", "review"].includes(row.payout?.status) ? <small role="status">Contact Dwella support with this collection reference. Confirmed rent remains recorded.</small> : null}
         </li>
       ))}</ul>

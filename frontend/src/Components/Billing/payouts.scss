@@ -1,0 +1,103 @@
+.dwella-payouts-page {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+
+  .dwella-detail-header { margin-bottom: 0; }
+  .dwella-stat-strip { margin: 0; }
+}
+
+.dwella-payouts-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+
+  h2 { font-size: 1.1875rem; margin: 0 0 0.25rem; }
+  p { color: var(--dwella-muted); margin: 0; overflow-wrap: anywhere; }
+}
+
+.dwella-payouts-blocked {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+}
+
+.dwella-payouts-note,
+.dwella-payouts-empty {
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  margin: 0;
+}
+
+.dwella-payouts-note.is-callout {
+  background: var(--dwella-wash);
+  border-radius: 6px;
+  padding: 0.875rem 1rem;
+}
+
+.dwella-payouts-heading {
+  font-size: 1.3125rem;
+  margin: 0.5rem 0 0;
+}
+
+.dwella-payouts-page td .fui-Button { margin-left: 0.5rem; }
+
+.dwella-withdraw {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+
+  .dwella-link-button.fui-Button {
+    justify-self: start;
+    min-width: 0;
+    padding-inline: 0;
+    color: var(--dwella-link);
+    font-weight: 600;
+  }
+}
+
+.dwella-withdraw-review {
+  border-top: 1px solid var(--dwella-line-soft);
+  padding-top: 1.25rem;
+
+  h3 { font-size: 1.0625rem; margin: 0 0 0.75rem; }
+  dl { display: grid; gap: 0.625rem; margin: 0; }
+  dl > div { display: flex; justify-content: space-between; gap: 1rem; }
+  dt { color: var(--dwella-muted); }
+  dd { font-variant-numeric: tabular-nums; font-weight: 600; margin: 0; }
+  .is-total { border-top: 1px solid var(--dwella-line-soft); padding-top: 0.625rem; }
+  .is-total dt { color: inherit; font-weight: 600; }
+}
+
+.dwella-withdraw-note {
+  background: var(--dwella-wash);
+  border-radius: 6px;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+}
+
+.dwella-withdraw-account {
+  display: grid;
+  gap: 0.25rem;
+
+  span { overflow-wrap: anywhere; }
+}
+
+.dwella-payouts-page .dwella-detail-header {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.dwella-payouts-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
