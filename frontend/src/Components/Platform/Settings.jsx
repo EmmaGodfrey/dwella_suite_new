@@ -4,11 +4,11 @@ import { toast } from "react-toastify";
 import { usePlatformList, usePlatformMutation } from "../../Services/platform";
 import { AdminHeader, AdminState } from "./AdminUI";
 
-export default function PlatformSettings() {
+export default function PlatformSettings({ embedded = false }) {
   const query = usePlatformList("settings");
   const mutation = usePlatformMutation({ onSuccess: () => window.dispatchEvent(new Event("dwella:assistant-settings-changed")) });
   return <div className="admin-screen">
-    <AdminHeader title="Platform settings" description="Manage platform-wide features." />
+    {!embedded && <AdminHeader title="Platform settings" description="Manage platform-wide features." />}
     <AdminState query={query}>
       <section className="admin-card">
         <h2>Handy assistant</h2>

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Button, Checkbox, Field, Input, Select } from "@fluentui/react-components";
-import { Payment24Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useReceivingDetails, useSaveReceivingDetails } from "../../Services/payments";
@@ -93,35 +92,20 @@ export default function ReceivingDetails() {
   if (user.isPending) return <p role="status">Loading receiving details…</p>;
   if (!allowed) return <Navigate to="/billing" replace />;
   const destination = query.data?.destination;
-  return <div className="dwella-receiving-page">
-    <Link to="/billing">← Billing</Link>
-    <header className="dwella-page-header">
-      <div className="dwella-page-header-copy"><h1>Receiving details</h1>
-        <p>Choose where your tenant payments are sent.</p></div>
-      {destination && <Button appearance="primary" disabled={!query.data?.self_service_enabled}
-        onClick={() => setEditing(true)}>Edit receiving details</Button>}
-    </header>
-    {query.isPending ? <div className="dwella-skeleton" role="status" aria-label="Loading receiving account" style={{ height: 180 }} /> :
-      query.isError ? <EmptyState title="Could not load receiving details" description={query.error.message}
-        actionLabel="Try again" onAction={() => query.refetch()} /> : <>
-        {!query.data.self_service_enabled && <p role="status" className="dwella-alert">Receiving-number verification is not available yet. Changes are unavailable in this environment.</p>}
-        <section className="dwella-receiving-account">
-          <div className="dwella-receiving-heading"><h2>Receiving account</h2>
-            {destination && <StatusBadge color="success">Active</StatusBadge>}</div>
-          {destination ? <dl className="dwella-receiving-summary">
-            <div><dt>Account-holder name</dt><dd>{destination.account_name}</dd></div>
-            <div><dt>Mobile network</dt><dd>{networks[destination.operator] || destination.operator}</dd></div>
-            <div><dt>Receiving number</dt><dd>{destination.phone}</dd></div>
-            <div><dt>Payout timing</dt><dd>Automatic after settlement</dd></div>
-          </dl> : <EmptyState icon={<Payment24Regular />} title="Add your receiving account"
-            description="Set a mobile-money wallet before your tenants pay rent online."
-            actionLabel={query.data.self_service_enabled ? "Add receiving details" : undefined}
-            onAction={() => setEditing(true)} />}
-        </section>
-        {query.data.self_service_enabled && !query.data.phone_verification_enabled &&
-          <p className="dwella-receiving-note">Phone verification is off for this test. You can save your receiving details without a code.</p>}
-        {!query.data.collection_enabled && <p role="status" className="dwella-receiving-note">Online collection is not enabled for this environment.</p>}
+  return <div className="settings-stack">
+    <section className="settings-section">
+      <header><div><h2>Receiving account</h2><p>Where tenant rent is paid out after the payment settles.</p></div>
+        {query.data?.self_service_enabled && <Button appearance="primary" onClick={() => setEditing(true)}>{destination ? "Edit receiving details" : "Add receiving details"}</Button>}
+      </header>
+      {query.isPending ? <p role="status">Loading receiving account…</p> : query.isError ? <EmptyState title="Could not load receiving details" description={query.error.message} actionLabel="Try again" onAction={() => query.refetch()} /> : <>
+        <div className="settings-row"><div><strong>Status</strong></div><div><StatusBadge color={destination ? "success" : "warning"}>{destination ? "Active" : "Not added"}</StatusBadge></div></div>
+        {[["Mobile network", destination ? networks[destination.operator] || destination.operator : "MTN, Airtel or Zamtel"], ["Account holder", destination?.account_name || "—"], ["Receiving number", destination?.phone || "—"], ["Payout timing", "Automatic after settlement"]].map(([label, value]) => <div className="settings-row" key={label}><div><strong>{label}</strong></div><div>{value}</div></div>)}
+        {!query.data.self_service_enabled && <p className="settings-note">Receiving-number changes are unavailable until verification is configured for this environment.</p>}
+        {query.data.self_service_enabled && !query.data.phone_verification_enabled && <p className="settings-note">Phone verification is off for this test. Saving receiving details does not verify ownership.</p>}
+        {!query.data.collection_enabled && <p className="settings-note">Online collection is disabled in this environment.</p>}
       </>}
+    </section>
+    <section className="settings-section"><header><div><h2>Billing defaults</h2><p>Used when invoices are created in this workspace.</p></div><Button as={Link} to="/settings?tab=workspace">View workspace settings</Button></header><div className="settings-row"><div><strong>Currency</strong></div><div>{user.data?.memberships?.find(item => item.is_active && item.role === "landlord")?.organization?.currency || "ZMW"}</div></div></section>
     {editing && <ReceivingDrawer destination={destination} onClose={() => setEditing(false)} />}
   </div>;
 }

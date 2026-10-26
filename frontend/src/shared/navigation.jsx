@@ -26,7 +26,10 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
-  { to: "/admin/settings", value: "platform-settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin"] },
+  { to: "/messages", value: "messages", group: "operations", label: "Messages", icon: <Mail24Regular />, personas: ["landlord"] },
+  { to: "/admin/messages", value: "admin-messages", group: "platform", label: "Messages", icon: <Mail24Regular />, personas: ["platform_admin"] },
+  { to: "/settings", value: "settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin", "landlord", "tenant", "unassigned"] },
+  { to: "/admin/transactions", value: "transactions", group: "platform", label: "Transactions", icon: <Payment24Regular />, personas: ["platform_admin"] },
   { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "workspace-setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
@@ -60,6 +63,10 @@ export function getNavigationItems(user) {
 }
 
 export const pageMeta = {
+  "/messages": ["Messages", "Send tenant notices and track requests."],
+  "/admin/messages": ["Messages", "Platform message requests and delivery status."],
+  "/settings": ["Settings", "Account, workspace and preferences."],
+  "/admin/transactions": ["Transactions", "Tenant collections, landlord payouts and gateway responses."],
   "/admin/settings": ["Platform settings", "Manage platform-wide features."],
   "/admin/outreach": ["Outreach", "Personal partnerships and early tester invitations."],
   "/admin/audit-log": ["Audit log", "Account and workspace actions with support context."],
@@ -98,6 +105,7 @@ export function getPageMeta(pathname, user) {
 }
 
 export function canAccessPath(pathname, user) {
+  if (pathname === "/admin/settings") return getUserAccess(user).persona === "platform_admin";
   if (["/profile", "/security", "/dashboard", "/"].includes(pathname)) return true;
   return getNavigationItems(user).some((item) => pathname.startsWith(item.to));
 }

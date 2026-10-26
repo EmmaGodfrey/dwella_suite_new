@@ -168,15 +168,15 @@ function SettingsForm({ settings }) {
     </form>
   );
 }
-export default function Settings() {
+export default function Settings({ embedded = false }) {
   const query = useOutreachList("settings");
   return (
     <div className="admin-screen outreach-screen">
-      <AdminHeader
+      {!embedded && <AdminHeader
         title="Outreach settings"
         description="Set the sender identity, signature and sending limits."
-      />
-      <OutreachTabs />
+      />}
+      {!embedded && <OutreachTabs />}
       <AdminState query={query}>
         {query.data && (
           <SettingsForm

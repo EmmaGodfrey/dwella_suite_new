@@ -1,6 +1,6 @@
 import React from "react";
 import { Avatar, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
-import { MoreHorizontal20Regular, Person24Regular, Shield24Regular, SignOut24Regular } from "@fluentui/react-icons";
+import { MoreHorizontal20Regular, Settings24Regular, SignOut24Regular } from "@fluentui/react-icons";
 import { useNavigate } from "react-router-dom";
 
 import { resolveMediaUrl } from "../../Services/apiClient";
@@ -41,8 +41,7 @@ export const UserMenu = ({ user, onLogout, compact = false }) => {
           <small>{accessLabel(user)}</small>
         </div>
         <MenuList>
-          <MenuItem icon={<Person24Regular />} onClick={() => navigate("/profile")}>Profile</MenuItem>
-          <MenuItem icon={<Shield24Regular />} onClick={() => navigate("/security")}>Security</MenuItem>
+          <MenuItem icon={<Settings24Regular />} onClick={() => navigate("/settings")}>Settings</MenuItem>
           <MenuItem icon={<SignOut24Regular />} onClick={onLogout}>Log out</MenuItem>
         </MenuList>
       </MenuPopover>

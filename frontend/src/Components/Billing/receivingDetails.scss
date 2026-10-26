@@ -1,34 +1,3 @@
-.dwella-receiving-page {
-  display: grid;
-  gap: 1.25rem;
-  min-width: 0;
-  h1 { margin-bottom: 0.375rem; }
-}
-
-.dwella-receiving-account {
-  padding: 1.5rem;
-  background: var(--dwella-paper);
-  border: 1px solid var(--dwella-line-soft);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.dwella-receiving-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  h2 { margin: 0; font-size: 1rem; }
-}
-
-.dwella-receiving-summary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem;
-  margin: 1.5rem 0 0;
-  dt { color: var(--dwella-muted); font-size: 0.8125rem; margin-bottom: 0.375rem; }
-  dd { color: var(--dwella-ink); margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-}
-
 .dwella-receiving-fields { display: grid; gap: 1.25rem; min-width: 0; }
 .dwella-receiving-note { color: var(--dwella-muted); font-size: 0.8125rem; line-height: 1.6; margin: 0; overflow-wrap: anywhere; }
 .dwella-receiving-timing {
@@ -36,9 +5,4 @@
   padding-top: 1.25rem;
   h3 { font-size: 0.875rem; margin: 0 0 0.5rem; }
   p { color: var(--dwella-muted); font-size: 0.8125rem; margin: 0; line-height: 1.6; }
-}
-
-@media (max-width: 600px) {
-  .dwella-receiving-account { padding: 1rem; }
-  .dwella-receiving-summary { grid-template-columns: 1fr; gap: 1.125rem; }
 }

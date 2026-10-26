@@ -11,6 +11,7 @@ import { SupportAccessProvider, SupportBanner } from "../Components/Platform/Sup
 import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
 import GuidedTour from "../Components/GuidedTour";
+import AccessRemoved from "../Components/Portal/AccessRemoved";
 
 const getCachedUser = () => {
   try {
@@ -29,11 +30,12 @@ const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [actionsSlot, setActionsSlot] = useState(null);
   const persona = getUserAccess(user).persona;
-  const setup = useSetupQuery({ enabled: Boolean(user) && ["landlord", "unassigned"].includes(persona) });
+  const removed = Boolean(getUserAccess(user).tenant_access_removed);
+  const setup = useSetupQuery({ enabled: Boolean(user) && !removed && ["landlord", "unassigned"].includes(persona) });
 
   useEffect(() => {
-    if (setup.data?.needs_setup && location.pathname !== "/setup") navigate("/setup", { replace: true });
-  }, [setup.data?.needs_setup, location.pathname, navigate]);
+    if (!removed && setup.data?.needs_setup && location.pathname !== "/setup") navigate("/setup", { replace: true });
+  }, [removed, setup.data?.needs_setup, location.pathname, navigate]);
 
   useEffect(() => {
     localStorage.setItem("dwella_sidebar_collapsed", String(collapsed));
@@ -52,7 +54,7 @@ const AppLayout = () => {
   const meta = getPageMeta(location.pathname, user);
   // The dashboard leads with the organization's name instead, and detail pages
   // (`/leases/<id>`) carry their own title with a back link.
-  const showHeader = location.pathname !== "/dashboard" && location.pathname.split("/").filter(Boolean).length < 2;
+  const showHeader = !["/dashboard", "/settings", "/messages"].includes(location.pathname) && location.pathname.split("/").filter(Boolean).length < 2;
   const selectedNavValue = getSelectedNavValue(location.pathname, user);
   const shellClass = useMemo(
     () => ["dwella-app-shell", collapsed ? "is-collapsed" : "", mobileOpen ? "nav-open" : ""].filter(Boolean).join(" "),
@@ -68,6 +70,8 @@ const AppLayout = () => {
       navigate("/login", { replace: true });
     } catch (error) { toast.error(`Couldn’t sign out: ${error.message}. Try again.`); }
   };
+
+  if (removed) return <AccessRemoved onLogout={handleLogout} />;
 
   return (
     <SupportAccessProvider user={user}><div className={shellClass}>
