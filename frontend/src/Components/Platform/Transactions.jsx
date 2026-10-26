@@ -33,6 +33,7 @@ const labels = {
   failed: "Failed",
   review: "Needs reconciliation",
   expired: "Expired",
+  cancelled: "Cancelled",
 };
 const currency = (value, code = "ZMW") =>
   value === null || value === undefined
@@ -147,10 +148,70 @@ function Exchanges({ id }) {
   );
 }
 
+function WithdrawalDetails({ row }) {
+  const account = row.destination;
+  return (
+    <>
+      <p className="transaction-reference">
+        {row.reference}
+        <br />
+        {row.workspace}
+      </p>
+      <SettingsSection title="Withdrawal summary">
+        <SettingsRow label="Environment">
+          <StatusBadge color="informative">{row.environment}</StatusBadge>
+        </SettingsRow>
+        <SettingsRow label="Status">
+          <State value={row.status} />
+        </SettingsRow>
+        {[
+          ["Landlord receives", row.amount],
+          ["Fee reserved", row.fee_reserved],
+          ["Fee reported by Lenco", row.fee],
+          ["Fee charged to landlord", row.fee_charged],
+        ].map(([label, value]) => (
+          <SettingsRow key={label} label={label}>
+            {currency(value)}
+          </SettingsRow>
+        ))}
+        {account && (
+          <SettingsRow label="Receiving account">
+            {account.account_name} ·{" "}
+            {account.kind === "bank-account"
+              ? `${account.bank_name} ending ${account.account_suffix}`
+              : `${account.operator} · ${account.phone}`}
+            {account.checked_with_lenco ? " · checked with Lenco" : ""}
+          </SettingsRow>
+        )}
+        <SettingsRow label="Requested">{when(row.created_at)}</SettingsRow>
+        <SettingsRow label="Submitted">
+          {row.submitted_at ? when(row.submitted_at) : "Not yet"}
+        </SettingsRow>
+        <SettingsRow label="Confirmed">
+          {row.confirmed_at ? when(row.confirmed_at) : "Not yet"}
+        </SettingsRow>
+      </SettingsSection>
+      {row.issue && (
+        <p className="dwella-alert" role="status">
+          {row.issue.replaceAll("_", " ")}
+        </p>
+      )}
+      <p className="settings-note">
+        A withdrawal is sent once. An unconfirmed one is only ever checked by
+        its reference, never sent again.
+      </p>
+      <Exchanges id={row.id} />
+    </>
+  );
+}
+
 function TransactionDrawer({ selection, onClose }) {
   useRestoreFocus();
   const ledger = selection.kind === "ledger";
-  const query = usePaymentRecord(ledger ? "" : `collections/${selection.id}/`);
+  const withdrawal = selection.kind === "withdrawals";
+  const query = usePaymentRecord(
+    ledger ? "" : withdrawal ? `withdrawals/${selection.id}/` : `collections/${selection.id}/`,
+  );
   const row = query.data;
   return (
     <OverlayDrawer
@@ -171,7 +232,7 @@ function TransactionDrawer({ selection, onClose }) {
             />
           }
         >
-          {ledger ? "Gateway record" : "Transaction details"}
+          {ledger ? "Gateway record" : withdrawal ? "Withdrawal details" : "Transaction details"}
         </DrawerHeaderTitle>
       </DrawerHeader>
       <DrawerBody>
@@ -183,6 +244,10 @@ function TransactionDrawer({ selection, onClose }) {
             </p>
             <GatewayBody id={selection.id} />
           </>
+        ) : withdrawal ? (
+          <AdminState query={query}>
+            {row && <WithdrawalDetails row={row} />}
+          </AdminState>
         ) : (
           <AdminState query={query}>
             {row && (
@@ -219,7 +284,7 @@ function TransactionDrawer({ selection, onClose }) {
                     {row.settled ? "Yes" : "No"}
                   </SettingsRow>
                   <SettingsRow label="Fee payer">Unknown</SettingsRow>
-                  {row.destination && (
+                  {row.payout && row.destination && (
                     <SettingsRow label="Receiving account">
                       {row.destination.account_name} ·{" "}
                       {row.destination.operator} · {row.destination.phone}
@@ -298,7 +363,7 @@ function Balance() {
 
 export default function Transactions() {
   const [params, setParams] = useSearchParams();
-  const kind = ["collections", "payouts", "ledger"].includes(params.get("view"))
+  const kind = ["collections", "payouts", "withdrawals", "ledger"].includes(params.get("view"))
     ? params.get("view")
     : "collections";
   const [search, setSearch] = useState("");
@@ -364,7 +429,14 @@ export default function Transactions() {
             key: "linked",
             label: "Dwella record",
             render: (r) =>
-              r.collection_id || r.payout_collection_id ? (
+              r.withdrawal_id ? (
+                <Button
+                  appearance="subtle"
+                  onClick={() => setSelection({ kind: "withdrawals", id: r.withdrawal_id })}
+                >
+                  Linked withdrawal
+                </Button>
+              ) : r.collection_id || r.payout_collection_id ? (
                 <Button
                   appearance="subtle"
                   onClick={() =>
@@ -396,12 +468,15 @@ export default function Transactions() {
           ...common,
           {
             key: "fee",
-            label: kind === "collections" ? "Collection fee" : "Payout fee",
-            render: (r) => currency(r.fee, r.currency),
+            label: kind === "collections" ? "Collection fee" : kind === "withdrawals" ? "Fee charged" : "Payout fee",
+            render: (r) =>
+              kind === "withdrawals" && r.fee_charged === null
+                ? `${currency(r.fee_reserved)} reserved`
+                : currency(kind === "withdrawals" ? r.fee_charged : r.fee, r.currency),
           },
           {
             key: "status",
-            label: kind === "collections" ? "Collection" : "Payout",
+            label: kind === "collections" ? "Collection" : kind === "withdrawals" ? "Withdrawal" : "Payout",
             render: (r) => (
               <State value={r.status} collection={kind === "collections"} />
             ),
@@ -434,7 +509,7 @@ export default function Transactions() {
     <div className="admin-screen transaction-screen">
       <AdminHeader
         title="Transactions"
-        description="Tenant collections, landlord payouts and saved gateway responses across all workspaces."
+        description="Tenant collections, landlord withdrawals and saved gateway responses across all workspaces."
       />
       <TabList
         aria-label="Transaction type"
@@ -447,7 +522,8 @@ export default function Transactions() {
       >
         {[
           ["collections", "Collections"],
-          ["payouts", "Payouts"],
+          ["withdrawals", "Withdrawals"],
+          ["payouts", "Automatic payouts"],
           ["ledger", "Gateway ledger"],
         ].map(([value, label]) => (
           <Tab key={value} value={value}>
@@ -487,6 +563,7 @@ export default function Transactions() {
                     "successful",
                     "failed",
                     "review",
+                    ...(kind === "withdrawals" ? ["cancelled"] : []),
                   ]
             ).map((value) => (
               <option key={value} value={value}>
