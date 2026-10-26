@@ -209,7 +209,7 @@ class PlatformPaymentConfiguration(PrivateView):
                 "payouts_enabled": settings.LENCO_PAYOUTS_ENABLED,
                 "api_configured": bool(settings.LENCO_PUBLIC_KEY and settings.LENCO_SECRET_KEY),
                 "account_configured": bool(settings.LENCO_DEBIT_ACCOUNT_ID),
-                "last_webhook_at": latest.order_by("-created_at")
+                "last_webhook_at": latest.order_by("-id")
                 .values_list("created_at", flat=True)
                 .first(),
             }

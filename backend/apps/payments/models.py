@@ -155,7 +155,13 @@ class Payout(UUIDModel, TimeStampedModel):
                 fields=["next_check_at"],
                 condition=Q(next_check_at__isnull=False),
                 name="payments_payout_due",
-            )
+            ),
+            # The gateway ledger matches provider records to payouts by this ID.
+            models.Index(
+                fields=["provider_id"],
+                condition=~Q(provider_id=""),
+                name="payments_payout_provider",
+            ),
         ]
 
 
