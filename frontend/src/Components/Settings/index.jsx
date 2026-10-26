@@ -322,7 +322,7 @@ function NotificationForm({ persona, personal, reminders }) {
         </SettingsSection>
         <SettingsSection
           title={persona === "tenant" ? "Rent reminders" : "Delivery channels"}
-          note="Choose your delivery preferences. Unconnected channels remain held."
+          note="Choose your delivery preferences. Messages on a channel start once it is connected."
         >
           <ChannelRows
             draft={draft.personal}
