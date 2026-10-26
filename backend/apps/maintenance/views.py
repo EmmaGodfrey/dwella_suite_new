@@ -61,7 +61,7 @@ class MaintenanceFilter(filters.FilterSet):
 
     def filter_open(self, queryset, name, value):
         is_open = Q(status__in=MaintenanceRequest.OPEN_STATUSES)
-        return queryset.filter(is_open) if value else queryset.exclude(is_open)
+        return queryset.filter(is_open, is_active=True) if value else queryset.exclude(is_open)
 
     def filter_board(self, queryset, name, value):
         if not value:

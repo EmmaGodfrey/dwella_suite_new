@@ -11,6 +11,7 @@ from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.common.workspaces import resolve_workspace
 from apps.imports.importers import UnitImporter
 from apps.imports.views import ImportActionsMixin
+from apps.maintenance.models import MaintenanceRequest
 from apps.organizations.models import Organization, OrganizationMembership
 
 from .models import Property, Unit
@@ -53,12 +54,16 @@ class PropertyDashboardSummaryView(APIView):
             properties = Property.objects.all()
             units = Unit.objects.all()
             organization_data = {
-                "id": None, "name": "Dwella Suite", "display_name": "Platform overview"
+                "id": None,
+                "name": "Dwella Suite",
+                "display_name": "Platform overview",
             }
             platform_data = {
                 "organizations": Organization.objects.count(),
                 "landlords": OrganizationMembership.objects.filter(is_active=True, role="landlord")
-                .values("user_id").distinct().count(),
+                .values("user_id")
+                .distinct()
+                .count(),
             }
         else:
             properties = Property.objects.for_organization(organization)
@@ -100,6 +105,17 @@ class PropertyDashboardSummaryView(APIView):
             for item in units.values("occupancy_status").annotate(total=Count("id"))
         }
         occupied_units = unit_status_counts.get(Unit.OccupancyStatus.OCCUPIED, 0)
+        repairs = MaintenanceRequest.objects.filter(
+            is_active=True,
+            status__in=MaintenanceRequest.OPEN_STATUSES,
+        )
+        if organization is not None:
+            repairs = repairs.filter(organization=organization)
+        repair_totals = repairs.aggregate(
+            open=Count("pk"),
+            urgent=Count("pk", filter=Q(priority=MaintenanceRequest.Priority.URGENT)),
+            unassigned=Count("pk", filter=Q(vendor__isnull=True)),
+        )
         vacant_units = unit_status_counts.get(Unit.OccupancyStatus.VACANT, 0)
         maintenance_units = unit_status_counts.get(Unit.OccupancyStatus.MAINTENANCE, 0)
         reserved_units = unit_status_counts.get(Unit.OccupancyStatus.RESERVED, 0)
@@ -120,7 +136,8 @@ class PropertyDashboardSummaryView(APIView):
                 if property_obj.cover_image
                 else None,
             }
-            for property_obj in (properties if organization else properties.none()).annotate(
+            for property_obj in (properties if organization else properties.none())
+            .annotate(
                 units_count=Count("units"),
                 occupied_units=Count(
                     "units", filter=Q(units__occupancy_status=Unit.OccupancyStatus.OCCUPIED)
@@ -132,7 +149,10 @@ class PropertyDashboardSummaryView(APIView):
 
         towns = sorted(
             (properties if organization else properties.none())
-            .exclude(town="").order_by().values_list("town", flat=True).distinct()
+            .exclude(town="")
+            .order_by()
+            .values_list("town", flat=True)
+            .distinct()
         )
 
         top_units = [
@@ -151,6 +171,7 @@ class PropertyDashboardSummaryView(APIView):
                 "access": access,
                 "organization": organization_data,
                 "platform": platform_data,
+                "repairs": repair_totals,
                 "properties": {
                     "total": property_total,
                     "active": property_totals["active"],
