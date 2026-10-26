@@ -198,3 +198,107 @@ class WhatsAppWebhookView(APIView):
         except (ValueError, TypeError, KeyError, AttributeError):
             return Response({"detail": "Invalid callback."}, status=400)
         return Response({"received": True})
+
+
+class SMSWebhookView(APIView):
+    """AT callbacks use a high-entropy callback URL token over HTTPS.
+
+    This is a bearer credential, not a provider body signature. Proxy and Gunicorn
+    access logging omit query strings so the token is not written to access logs.
+    """
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [CallbackThrottle]
+    kind = "delivery"
+
+    def post(self, request):
+        token = settings.AFRICASTALKING_CALLBACK_TOKEN
+        if len(token) < 32 or not hmac.compare_digest(
+            token.encode(),
+            request.query_params.get("token", "").encode(),
+        ):
+            return Response({"detail": "Invalid callback credentials."}, status=403)
+        if len(request.body) > MAX_BODY:
+            return Response({"detail": "Callback too large."}, status=413)
+        data = request.data
+        if not isinstance(data, dict):
+            return Response({"detail": "Invalid callback."}, status=400)
+        if self.kind in {"opt-out", "incoming"}:
+            return self.opt_out(data)
+        provider_id, status = data.get("id"), data.get("status")
+        if not isinstance(provider_id, str) or not provider_id or len(provider_id) > 160:
+            return Response({"detail": "Invalid message ID."}, status=400)
+        statuses = {
+            "Success": "delivered",
+            "Failed": "failed",
+            "Rejected": "failed",
+            "Submitted": "sent",
+            "Buffered": "sent",
+            "Sent": "sent",
+        }
+        if status not in statuses:
+            return Response({"detail": "Invalid status."}, status=400)
+        with transaction.atomic():
+            row = (
+                MessageDelivery.objects.select_for_update()
+                .filter(
+                    provider="africastalking",
+                    provider_id=provider_id,
+                    channel="sms",
+                )
+                .first()
+            )
+            if not row:
+                # AT can report delivery before the HTTP send response reaches us.
+                # Ask it to retry while a sending claim is still awaiting its ID.
+                sending = MessageDelivery.objects.filter(
+                    channel="sms",
+                    status="sending",
+                    claimed_at__gte=timezone.now() - timedelta(minutes=10),
+                ).exists()
+                return Response({"received": not sending}, status=503 if sending else 200)
+            supplied_phone = data.get("phoneNumber")
+            if supplied_phone and normalize_phone(supplied_phone) != normalize_phone(row.recipient):
+                return Response({"detail": "Recipient mismatch."}, status=400)
+            target = statuses[status]
+            ranks = {"sending": 0, "review": 0, "sent": 1, "failed": 2, "delivered": 3}
+            if ranks[target] >= ranks.get(row.status, 99):
+                fields = {
+                    "status": target,
+                    "provider_updated_at": timezone.now(),
+                    "reason": "provider_" + target,
+                }
+                if target == "delivered":
+                    fields["delivered_at"] = row.delivered_at or timezone.now()
+                    fields["failure_code"] = ""
+                elif target == "failed":
+                    fields["failure_code"] = "at_" + status.lower()
+                MessageDelivery.objects.filter(pk=row.pk).update(**fields)
+        return Response({"received": True})
+
+    def opt_out(self, data):
+        phone = normalize_phone(
+            data.get("phoneNumber") if self.kind == "opt-out" else (data.get("from"))
+        )
+        sender = data.get("senderId") if self.kind == "opt-out" else data.get("to")
+        if not phone or sender != settings.AFRICASTALKING_SENDER_ID:
+            return Response({"detail": "Invalid opt-out."}, status=400)
+        if self.kind == "incoming":
+            text = data.get("text", "")
+            if not isinstance(text, str):
+                return Response({"detail": "Invalid message."}, status=400)
+            if text.strip().casefold() not in STOP_WORDS:
+                return Response({"received": True})
+        with transaction.atomic():
+            PhoneMessagingConsent.objects.update_or_create(
+                channel="sms",
+                phone=phone,
+                defaults={"allowed": False, "source": "sms_opt_out", "revoked_at": timezone.now()},
+            )
+            MessageDelivery.objects.filter(
+                channel="sms",
+                recipient__in=phone_variants(phone),
+                status__in=["held", "queued"],
+            ).update(status="cancelled", reason="recipient_opted_out")
+        return Response({"received": True})
