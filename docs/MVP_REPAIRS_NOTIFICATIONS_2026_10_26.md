@@ -68,3 +68,23 @@ the existing popover opening transition to finish. Evidence is ignored under
 Figma references: dashboard 259:106, tenant feed 259:112, mobile empty 259:122.
 
 This feature is local only; no push, deployment or external send was performed.
+
+## Test release verified — 2026-10-26
+
+The preceding paragraph describes the implementation stage. At the user's request,
+the reviewed additions and Claude's follow-up fixes are now pushed through
+`3232d87` and deployed as `test-v2026.10.26.3`. Release
+[CI 40370478057](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/40370478057)
+passed backend, PostgreSQL, frontend and test-deployment gates; production deploy
+was skipped. Local frontend build and 25 Node checks also passed after review.
+
+Live read-only checks verified current migrations, private message tables,
+protected admin APIs, a real linked tenant's scoped feed and the manager repair
+summary. The deployed UI passed the repair filter/reset and tenant notice
+read/unread, linking, preference, error and mobile/dark flows with intercepted
+synthetic API traffic. New outbound delivery remains disabled, production
+containers are unchanged, and no message/charge/transfer was initiated by checks.
+
+Claude's follow-up makes the combined repair row count once in Needs attention,
+polls tenant notices every five minutes, clarifies channel preferences and shares
+the Maintenance URL-filter helper. These were included in the reviewed release.
