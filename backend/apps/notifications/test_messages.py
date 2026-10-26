@@ -5,13 +5,16 @@ from unittest.mock import patch
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.mail import EmailMessage, get_connection
 from django.db import connection
+from django.db.models import Q
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.assistant.test_actions import JWT_SETTINGS
 from apps.assistant.test_actions import client_for as handy_client
+from apps.billing.models import Invoice
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.payments.testing import client_for, home  # noqa: F401
 from apps.tenants.models import Tenant
@@ -163,28 +166,64 @@ def test_throttled_preview(home):
         assert client.post(BASE + "message-previews/", body, format="json").status_code == 429
 
 
-def test_scheduler_dedupes_and_stops_paid_invoices(home):
-    now = timezone.now().replace(hour=12)
+def enable_email(settings):
+    settings.MESSAGING_EMAIL_ENABLED = True
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+
+def due_today(home, now):
     invoice = home["invoice"]
     invoice.due_date = now.date()
+    invoice.tenant.email = "rent@example.com"
+    invoice.tenant.save()
     invoice.save()
-    ReminderPreferences.objects.create(
+    return invoice
+
+
+def test_scheduler_runs_once_a_day_and_stops_paid_invoices(home, settings):
+    enable_email(settings)
+    now = timezone.now().replace(hour=12)
+    invoice = due_today(home, now)
+    pref = ReminderPreferences.objects.create(
         organization=home["org"], email_enabled=True, sms_enabled=True, whatsapp_enabled=True
     )
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
-    assert schedule_reminders(now=now) == 3
-    schedule_reminders(now=now)  # End of scan resets cursor.
+    # SMS and WhatsApp are not connected, so only email is scheduled.
+    assert schedule_reminders(now=now) == 1
     assert schedule_reminders(now=now) == 0
-    assert MessageDelivery.objects.count() == 3
+    assert MessageDelivery.objects.get().channel == "email"
     MessageDelivery.objects.all().delete()
+    ReminderPreferences.objects.filter(pk=pref.pk).update(run_date=None, next_run_at=None)
     invoice.status = "paid"
     invoice.amount_paid = invoice.total
     invoice.save()
     assert schedule_reminders(now=now) == 0
 
 
+def test_unconnected_channels_schedule_nothing(home):
+    now = timezone.now().replace(hour=12)
+    due_today(home, now)
+    ReminderPreferences.objects.create(
+        organization=home["org"], email_enabled=True, sms_enabled=True, whatsapp_enabled=True
+    )
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == 0
+    assert not MessageDelivery.objects.exists()
+
+
+def test_scheduler_waits_for_the_workspace_reminder_hour(home, settings):
+    enable_email(settings)
+    now = timezone.now().replace(hour=12)
+    due_today(home, now)
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True, due_hour=23)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == 0
+    assert ReminderPreferences.objects.get().run_date is None
+
+
 @pytest.mark.parametrize("days,expected", [(-3, 1), (-2, 0), (0, 1), (3, 1), (9, 1), (12, 0)])
-def test_before_due_and_overdue_schedule(home, days, expected):
+def test_before_due_and_overdue_schedule(home, settings, days, expected):
+    enable_email(settings)
     now = timezone.now().replace(hour=12)
     invoice = home["invoice"]
     invoice.due_date = now.date() - timedelta(days=days)
@@ -272,6 +311,18 @@ def test_quiet_hours_defer_without_starving_other_requests(home, settings, mailo
     assert len(mailoutbox) == 1
 
 
+@pytest.mark.parametrize("late_days,status", [(1, "sent"), (2, "cancelled")])
+def test_reminder_may_go_one_day_late(home, settings, mailoutbox, late_days, status):
+    enable_email(settings)
+    now = timezone.now().replace(hour=12)
+    due_today(home, now)
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == 1
+    dispatch_messages(now=now + timedelta(days=late_days))
+    assert MessageDelivery.objects.get().status == status
+
+
 def test_reminder_paid_between_schedule_and_send_is_cancelled(home, settings, mailoutbox):
     settings.MESSAGING_EMAIL_ENABLED = True
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
@@ -290,6 +341,188 @@ def test_reminder_paid_between_schedule_and_send_is_cancelled(home, settings, ma
     row = MessageDelivery.objects.get()
     assert row.status == "cancelled" and row.reason == "invoice_no_longer_due"
     assert not mailoutbox
+
+
+def queue_emails(home, settings, count):
+    enable_email(settings)
+    start = Tenant.objects.count()
+    tenants = [
+        Tenant.objects.create(
+            organization=home["org"],
+            full_name=f"Notice {i}",
+            phone_number=f"+26097555{i:04}",
+            email=f"notice{i}@example.com",
+        )
+        for i in range(start, start + count)
+    ]
+    body = {**compose_data(home), "tenants": [str(t.public_id) for t in tenants]}
+    value = client_for(home["manager"]).post(BASE + "message-previews/", body, format="json")
+    assert confirm_preview(home, value.json()["response_data"]).status_code == 200
+
+
+def test_daily_email_limit_leaves_the_rest_queued(home, settings, mailoutbox):
+    queue_emails(home, settings, 3)
+    settings.MESSAGING_EMAIL_DAILY_LIMIT = 2
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    assert dispatch_messages(now=now) == 2
+    assert dispatch_messages(now=now) == 0
+    assert MessageDelivery.objects.filter(status="queued").count() == 1
+    assert dispatch_messages(now=now + timedelta(hours=25)) == 1
+
+
+def test_one_mail_connection_and_bounded_queries_per_batch(home, settings, mailoutbox):
+    queue_emails(home, settings, 2)
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    with patch("apps.notifications.messaging.get_connection", wraps=get_connection) as opened:
+        with CaptureQueriesContext(connection) as two:
+            assert dispatch_messages(now=now) == 2
+    assert opened.call_count == 1
+    MessageDelivery.objects.all().delete()
+    queue_emails(home, settings, 6)
+    with CaptureQueriesContext(connection) as six:
+        assert dispatch_messages(now=now) == 6
+    # Authority is re-checked for every message, so cost grows by a fixed amount per message.
+    assert len(six) - len(two) <= 4 * 12
+
+
+def test_failed_mail_connection_claims_nothing(home, settings):
+    queue_emails(home, settings, 2)
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    with patch("django.core.mail.backends.locmem.EmailBackend.open", side_effect=OSError):
+        assert dispatch_messages(now=now) == 0
+    assert MessageDelivery.objects.filter(status="queued").count() == 2
+
+
+def test_notice_to_all_tenants_reports_who_is_left_out(home):
+    Tenant.objects.create(organization=home["org"], full_name="No email", phone_number="+260970001")
+    body = {**compose_data(home), "tenants": [], "all_tenants": True}
+    client = client_for(home["manager"])
+    response = client.post(BASE + "message-previews/", body, format="json")
+    assert response.status_code == 201, response.content
+    value = response.json()["response_data"]
+    assert len(value["recipients"]) == 1 and value["skipped"] == 1
+    both = {**compose_data(home), "all_tenants": True}
+    neither = {**compose_data(home), "tenants": []}
+    for bad in [both, neither]:
+        assert client.post(BASE + "message-previews/", bad, format="json").status_code == 400
+
+
+def test_reading_message_detail_is_not_throttled(home):
+    from .message_views import MessageWriteThrottle
+
+    confirm_preview(home, make_preview(home))
+    row = MessageDelivery.objects.get()
+    client = client_for(home["manager"])
+    with patch.object(MessageWriteThrottle, "rate", "1/hour"):
+        for _ in range(3):
+            assert client.get(BASE + f"messages/{row.public_id}/").status_code == 200
+
+
+def test_scheduling_is_bounded_and_resumes(home, settings):
+    from apps.billing.services import generate_rent_invoices
+    from apps.billing.tests import THIS_MONTH, make_lease
+
+    enable_email(settings)
+    for unit, phone in [("3B", "+260974123382"), ("4C", "+260974123383")]:
+        make_lease(home["org"], unit_name=unit, phone=phone)
+    generate_rent_invoices(home["org"], THIS_MONTH)
+    now = timezone.now().replace(hour=12)
+    invoices = Invoice.objects.filter(organization=home["org"])
+    assert invoices.count() == 3
+    invoices.update(due_date=now.date())
+    Tenant.objects.filter(organization=home["org"]).update(email="rent@example.com")
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    # A limit of 3 covers the workspace itself plus two invoices.
+    assert schedule_reminders(now=now, limit=3) == 2
+    assert ReminderPreferences.objects.get().run_after_id is not None
+    assert schedule_reminders(now=now, limit=3) == 1
+    assert ReminderPreferences.objects.get().run_after_id is None
+    assert schedule_reminders(now=now, limit=3) == 0
+    assert MessageDelivery.objects.count() == 3
+
+
+def test_scheduler_pages_workspaces_and_skips_finished_ones(home, settings):
+    enable_email(settings)
+    now = timezone.now().replace(hour=12)
+    # No invoices fall due, so each workspace costs one unit of the limit.
+    Invoice.objects.update(due_date=now.date() + timedelta(days=60))
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    for i in range(5):
+        org = Organization.objects.create(name=f"Reminder workspace {i}")
+        ReminderPreferences.objects.create(organization=org, email_enabled=True)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    waiting = ReminderPreferences.objects.filter(
+        Q(next_run_at__isnull=True) | Q(next_run_at__lte=now)
+    )
+    for remaining in [4, 2, 0]:
+        schedule_reminders(now=now, limit=2)
+        assert waiting.count() == remaining
+    # Finished workspaces are not loaded: one empty query whatever their number.
+    with CaptureQueriesContext(connection) as queries:
+        assert schedule_reminders(now=now, limit=2) == 0
+    loads = [q for q in queries if "notifications_reminderpreferences" in q["sql"]]
+    assert len(loads) == 1
+    assert schedule_reminders(now=now + timedelta(days=1), limit=10) == 0
+    assert (
+        ReminderPreferences.objects.filter(run_date=(now + timedelta(days=1)).date()).count() == 6
+    )
+
+
+def test_changing_the_schedule_recalculates_the_next_run(home):
+    pref = ReminderPreferences.objects.create(
+        organization=home["org"], email_enabled=True, next_run_at=timezone.now()
+    )
+    client = client_for(home["manager"])
+    assert client.patch(BASE + "reminders/", {"due_hour": 15}, format="json").status_code == 200
+    pref.refresh_from_db()
+    assert pref.next_run_at is None
+
+
+def test_revoked_access_stops_the_rest_of_the_batch(home, settings, mailoutbox):
+    queue_emails(home, settings, 2)
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    real_send = EmailMessage.send
+
+    def send_then_revoke(message, *args, **kwargs):
+        sent = real_send(message, *args, **kwargs)
+        OrganizationMembership.objects.filter(user=home["manager"]).update(is_active=False)
+        return sent
+
+    with patch.object(EmailMessage, "send", send_then_revoke):
+        assert dispatch_messages(now=now) == 1
+    assert len(mailoutbox) == 1
+    assert MessageDelivery.objects.filter(reason="permission_removed").count() == 1
+
+
+def test_allowance_is_rechecked_when_claiming(home, settings, mailoutbox):
+    queue_emails(home, settings, 2)
+    settings.MESSAGING_EMAIL_DAILY_LIMIT = 1
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    from . import messaging
+
+    real_block = messaging.dispatch_block
+
+    def other_worker_sends_first(row, *args):
+        # Another run claims the other message after this run sized its batch.
+        MessageDelivery.objects.exclude(pk=row.pk).update(status="sent", claimed_at=now)
+        return real_block(row, *args)
+
+    with patch.object(messaging, "dispatch_block", other_worker_sends_first):
+        assert dispatch_messages(now=now) == 0
+    assert not mailoutbox
+    assert MessageDelivery.objects.filter(status="queued").count() == 1
+
+
+def test_tenant_without_saved_preferences_gets_the_displayed_defaults(home, settings):
+    shown = client_for(home["tenant"]).get(BASE + "preferences/").json()["response_data"]
+    from .messaging import tenant_accepts
+
+    for channel in ["email", "sms", "whatsapp"]:
+        assert tenant_accepts(home["tenant"], channel) == shown["preferences"][f"{channel}_enabled"]
+    client_for(home["tenant"]).patch(BASE + "preferences/", {"email_enabled": False}, format="json")
+    home["tenant"].refresh_from_db()
+    assert not tenant_accepts(home["tenant"], "email")
 
 
 def test_foreign_history_and_detail_are_hidden(home):
@@ -401,12 +634,8 @@ def test_postgres_message_tables_default_deny_external_readers():
         pytest.skip("Requires PostgreSQL row security")
     with connection.cursor() as cursor:
         cursor.execute(
-            "SELECT relname, relrowsecurity FROM pg_class WHERE relname IN (%s, %s, %s)",
-            [
-                "notifications_messagerequest",
-                "notifications_messagedelivery",
-                "notifications_reminderscan",
-            ],
+            "SELECT relname, relrowsecurity FROM pg_class WHERE relname IN (%s, %s)",
+            ["notifications_messagerequest", "notifications_messagedelivery"],
         )
         rows = cursor.fetchall()
-    assert len(rows) == 3 and all(row[1] for row in rows)
+    assert len(rows) == 2 and all(row[1] for row in rows)

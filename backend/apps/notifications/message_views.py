@@ -22,7 +22,10 @@ class MessageWriteThrottle(UserRateThrottle):
 
 class ComposeSerializer(serializers.Serializer):
     channel = serializers.ChoiceField(choices=["email", "sms", "whatsapp"])
-    tenants = serializers.ListField(child=serializers.UUIDField(), min_length=1, max_length=100)
+    tenants = serializers.ListField(
+        child=serializers.UUIDField(), max_length=100, required=False, default=list
+    )
+    all_tenants = serializers.BooleanField(required=False, default=False)
     subject = serializers.CharField(max_length=160)
     body = serializers.CharField(max_length=2000)
 
@@ -33,6 +36,10 @@ class ComposeSerializer(serializers.Serializer):
             raise serializers.ValidationError({"subject": "Use a single-line subject."})
         if len(set(attrs["tenants"])) != len(attrs["tenants"]):
             raise serializers.ValidationError({"tenants": "Select each tenant once."})
+        if attrs["all_tenants"] == bool(attrs["tenants"]):
+            raise serializers.ValidationError(
+                {"tenants": "Select 1–100 tenants, or choose all active tenants."}
+            )
         return attrs
 
 
@@ -51,6 +58,7 @@ class PreviewResponseSerializer(serializers.Serializer):
     subject = serializers.CharField()
     body = serializers.CharField()
     recipients = serializers.ListField(child=serializers.DictField())
+    skipped = serializers.IntegerField(help_text="Active tenants left out for missing contact")
     expires_at = serializers.DateTimeField()
     confirmed_at = serializers.DateTimeField(allow_null=True)
     channels = serializers.DictField(child=serializers.BooleanField())
@@ -64,6 +72,7 @@ def request_data(message):
         "subject": message.subject,
         "body": message.body,
         "recipients": message.recipients,
+        "skipped": getattr(message, "skipped", 0),
         "expires_at": message.expires_at,
         "confirmed_at": message.confirmed_at,
         "channels": channel_readiness(),
@@ -194,6 +203,10 @@ class PlatformMessagesView(MessagesView):
 
 
 class MessageDetailView(PreviewView):
+    def get_throttles(self):
+        # Reading a message must not use up the sending allowance.
+        return [] if self.request.method == "GET" else super().get_throttles()
+
     def get(self, request, public_id):
         row = get_object_or_404(
             MessageDelivery.objects.select_related("tenant", "organization"),

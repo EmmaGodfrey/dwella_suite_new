@@ -11,8 +11,10 @@ class NotificationPreferences(models.Model):
     in_app_payout = models.BooleanField(default=True)
     in_app_lease = models.BooleanField(default=True)
     in_app_maintenance = models.BooleanField(default=True)
-    email_enabled = models.BooleanField(default=False)
-    sms_enabled = models.BooleanField(default=False)
+    # What a tenant receives until they choose otherwise. Settings shows these same
+    # defaults. WhatsApp stays off: business-initiated messages need explicit opt-in.
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=True)
     whatsapp_enabled = models.BooleanField(default=False)
 
     def __str__(self):
@@ -28,6 +30,15 @@ class ReminderPreferences(models.Model):
     due_hour = models.PositiveSmallIntegerField(default=9)
     overdue_every_days = models.PositiveSmallIntegerField(default=3)
     overdue_repeats = models.PositiveSmallIntegerField(default=3)
+    # Today's resumable reminder run: its local date and the last invoice handled.
+    # A null run_after_id with today's run_date means today's run is finished.
+    run_date = models.DateField(null=True, editable=False)
+    run_after_id = models.BigIntegerField(null=True, editable=False)
+    # When the scheduler should next look at this workspace. Null means "work it out".
+    next_run_at = models.DateTimeField(null=True, editable=False)
+
+    class Meta:
+        indexes = [models.Index(fields=["next_run_at"], name="notifications_reminder_due")]
 
     def __str__(self):
         return f"Reminder preferences for workspace {self.organization_id}"
@@ -36,8 +47,6 @@ class ReminderPreferences(models.Model):
 class MessagingSettings(models.Model):
     quiet_from = models.TimeField(default="20:00")
     quiet_until = models.TimeField(default="07:00")
-    daily_cap = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    sms_fallback = models.BooleanField(default=False)
     reminders_enabled = models.BooleanField(default=False)
 
     def __str__(self):
@@ -109,11 +118,9 @@ class MessageDelivery(OrganizationScopedModel):
         indexes = [
             models.Index(fields=["organization", "created_at"]),
             models.Index(fields=["status", "created_at"]),
+            models.Index(
+                fields=["channel", "claimed_at"],
+                condition=models.Q(claimed_at__isnull=False),
+                name="notifications_delivery_sent",
+            ),
         ]
-
-
-class ReminderScan(models.Model):
-    last_invoice_id = models.BigIntegerField(default=0)
-
-    def __str__(self):
-        return "Reminder scan cursor"

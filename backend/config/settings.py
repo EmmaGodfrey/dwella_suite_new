@@ -241,6 +241,9 @@ BETA_REGISTRATION_OPEN = (
 # catches up any welcome emails that were missed.
 BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
 MESSAGING_EMAIL_ENABLED = env_bool("APP_MESSAGING_EMAIL_ENABLED", False)
+# Rolling 24-hour ceiling for notices and reminders. Gmail allows about 500 a day,
+# shared with sign-in and signing mail, so stay under it until a mail service is chosen.
+MESSAGING_EMAIL_DAILY_LIMIT = int(__import__("os").getenv("APP_MESSAGING_EMAIL_DAILY_LIMIT", "400"))
 BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
 BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
 MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")

@@ -1,6 +1,5 @@
 """Persist preferences without claiming an unconfigured delivery service can send."""
 
-from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db import transaction
@@ -34,9 +33,6 @@ class StrictSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({key: "Unknown setting." for key in unknown})
         return super().to_internal_value(data)
 
-    def validate(self, attrs):
-        return attrs
-
 
 class PersonalSerializer(StrictSerializer):
     class Meta:
@@ -47,7 +43,7 @@ class PersonalSerializer(StrictSerializer):
 class ReminderSerializer(StrictSerializer):
     class Meta:
         model = ReminderPreferences
-        exclude = ["id", "organization"]
+        exclude = ["id", "organization", "run_date", "run_after_id", "next_run_at"]
         extra_kwargs = {
             "before_due_days": {"min_value": 0, "max_value": 30},
             "due_hour": {"min_value": 0, "max_value": 23},
@@ -55,16 +51,18 @@ class ReminderSerializer(StrictSerializer):
             "overdue_repeats": {"min_value": 0, "max_value": 3},
         }
 
+    def update(self, instance, validated_data):
+        # The scheduler works out the next run from the new schedule.
+        instance.next_run_at = None
+        return super().update(instance, validated_data)
+
 
 class MessagingSerializer(StrictSerializer):
     class Meta:
         model = MessagingSettings
         exclude = ["id"]
-        extra_kwargs = {"daily_cap": {"min_value": Decimal("0.01")}}
 
     def validate(self, attrs):
-        if attrs.get("sms_fallback"):
-            raise serializers.ValidationError("Connect SMS delivery before enabling fallback.")
         start = attrs.get("quiet_from", self.instance.quiet_from)
         end = attrs.get("quiet_until", self.instance.quiet_until)
         if start == end:
@@ -95,6 +93,11 @@ class WorkspaceSerializer(StrictSerializer):
             raise serializers.ValidationError("Choose a valid time zone.") from None
         return value
 
+    def update(self, instance, validated_data):
+        if validated_data.get("timezone", instance.timezone) != instance.timezone:
+            ReminderPreferences.objects.filter(organization=instance).update(next_run_at=None)
+        return super().update(instance, validated_data)
+
     def validate_phone_number(self, value):
         import re
 
@@ -114,6 +117,12 @@ class PreferenceView(APIView):
             return get_object_or_404(self.model, **lookup)
         return self.model.objects.get_or_create(**lookup)[0]
 
+    def read_row(self, lookup):
+        # Reading never writes: show defaults until the first save.
+        if not self.create_missing:
+            return get_object_or_404(self.model, **lookup)
+        return self.model.objects.filter(**lookup).first() or self.model(**lookup)
+
     def get_throttles(self):
         return (
             [SettingsWriteThrottle()] if self.request.method == "PATCH" else super().get_throttles()
@@ -127,7 +136,7 @@ class PreferenceView(APIView):
         return {"preferences": self.serializer_class(value).data, "channels": channel_readiness()}
 
     def get(self, request):
-        value = self.get_row(self.lookup(request))
+        value = self.read_row(self.lookup(request))
         return Response(self.payload(value))
 
     def patch(self, request):

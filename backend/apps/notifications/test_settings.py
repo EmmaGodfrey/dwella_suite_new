@@ -32,7 +32,8 @@ def test_personal_preferences_are_private_and_changes_are_audited(home):
     assert not response.json()["response_data"]["preferences"]["in_app_payment"]
     other = client_for(home["tenant"]).get(BASE + "preferences/").json()["response_data"]
     assert other["preferences"]["in_app_payment"]
-    assert NotificationPreferences.objects.count() == 2
+    # Reading shows defaults without creating a row.
+    assert NotificationPreferences.objects.count() == 1
     assert AuditEvent.objects.filter(action="settings.preferences_updated").count() == 1
     assert (
         client.patch(BASE + "preferences/", {"user": home["tenant"].pk}, format="json").status_code
@@ -103,8 +104,7 @@ def test_platform_limits_cannot_activate_sending_and_reject_bad_input(home):
     url = BASE + "platform-settings/"
     assert client.get(url).status_code == 200
     for body in [
-        {"daily_cap": "-1"},
-        {"daily_cap": "nan"},
+        {"daily_cap": "25.00"},
         {"quiet_from": "bad"},
         {"sms_fallback": True},
         {"secret_key": "not-a-real-secret"},
@@ -112,12 +112,16 @@ def test_platform_limits_cannot_activate_sending_and_reject_bad_input(home):
     ]:
         assert client.patch(url, body, format="json").status_code == 400
     assert client.patch(url, ["bad"], format="json").status_code == 400
-    assert (
-        client.patch(url, {"daily_cap": "25.00", "quiet_from": "21:00"}, format="json").status_code
-        == 200
-    )
+    assert client.patch(url, {"quiet_from": "21:00"}, format="json").status_code == 200
     value = MessagingSettings.objects.get(pk=1)
-    assert str(value.daily_cap) == "25.00" and not value.reminders_enabled
+    assert str(value.quiet_from) == "21:00:00" and not value.reminders_enabled
+
+
+def test_reading_settings_creates_nothing(home):
+    for role, path in [("manager", "reminders/"), ("admin", "platform-settings/")]:
+        assert client_for(home[role]).get(BASE + path).status_code == 200
+    assert not ReminderPreferences.objects.exists()
+    assert not MessagingSettings.objects.exists()
 
 
 def test_settings_write_throttle(home):
