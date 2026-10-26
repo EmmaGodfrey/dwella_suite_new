@@ -11,7 +11,7 @@ from rest_framework.test import APIClient
 from apps.audit.models import AuditEvent
 
 from .evidence import record_exchange
-from .models import Collection, Payout, ProviderAccount, ProviderTransaction
+from .models import Collection, Payout, ProviderAccount, ProviderTransaction, Withdrawal
 from .testing import ACCOUNT, SECRET, checkout, client_for
 
 pytestmark = pytest.mark.django_db
@@ -83,7 +83,7 @@ def test_metadata_lists_do_not_load_encrypted_bodies_and_evidence_is_audited(hom
     assert AuditEvent.objects.filter(action="payment.evidence_viewed").exists()
 
 
-@pytest.mark.parametrize("kind", ["collections", "payouts", "ledger"])
+@pytest.mark.parametrize("kind", ["collections", "payouts", "withdrawals", "ledger"])
 def test_query_count_does_not_grow_with_page_size(home, kind):
     for index in range(12):
         row = Collection.objects.create(
@@ -99,6 +99,17 @@ def test_query_count_does_not_grow_with_page_size(home, kind):
             provider_id=f"collection-{index}",
         )
         Payout.objects.create(collection=row, amount="90", provider_id=f"payout-{index}")
+        Withdrawal.objects.create(
+            organization=home["org"],
+            destination=home["destination"],
+            requested_by=home["manager"],
+            environment="sandbox",
+            debit_account_id=ACCOUNT,
+            idempotency_key=uuid.uuid4(),
+            amount="40",
+            fee_reserved="12",
+            provider_id=f"withdrawal-{index}",
+        )
         exchange = record_exchange(environment="sandbox", operation="ledger_page", body=b"{}")
         ProviderTransaction.objects.create(
             account=ProviderAccount.objects.get(),

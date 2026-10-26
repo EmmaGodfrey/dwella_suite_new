@@ -41,6 +41,8 @@ def configuration(settings):
     settings.LENCO_SECRET_KEY = SECRET
     settings.LENCO_PAYMENTS_ENABLED = True
     settings.LENCO_PAYOUTS_ENABLED = True
+    # Legacy per-collection payout tests; withdrawal tests switch this off.
+    settings.LENCO_AUTOMATIC_PAYOUTS = True
     settings.LENCO_DEBIT_ACCOUNT_ID = ACCOUNT
     cache.clear()
 
