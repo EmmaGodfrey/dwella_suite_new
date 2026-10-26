@@ -17,6 +17,7 @@ class Job:
 
 
 JOBS = {
+    "messages": Job(command="run_messages", every=timedelta(minutes=5)),
     "beta_emails": Job(command="send_beta_emails", every=timedelta(minutes=15)),
     # Before billing, so a renewal that starts today is the lease that gets billed.
     "renewals": Job(command="start_renewals", daily_at=time(5, 30)),

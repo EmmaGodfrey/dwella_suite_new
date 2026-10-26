@@ -1,0 +1,412 @@
+# ruff: noqa: F811
+from datetime import timedelta
+from unittest.mock import patch
+
+import pytest
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
+from rest_framework.test import APIClient
+
+from apps.assistant.test_actions import JWT_SETTINGS
+from apps.assistant.test_actions import client_for as handy_client
+from apps.organizations.models import Organization, OrganizationMembership
+from apps.payments.testing import client_for, home  # noqa: F401
+from apps.tenants.models import Tenant
+
+from .messaging import dispatch_messages, schedule_reminders
+from .models import (
+    MessageDelivery,
+    MessageRequest,
+    MessagingSettings,
+    NotificationPreferences,
+    ReminderPreferences,
+)
+
+pytestmark = pytest.mark.django_db
+BASE = "/api/v1/notifications/"
+
+
+@pytest.fixture(autouse=True)
+def reset_cache():
+    cache.clear()
+
+
+def compose_data(home, channel="email"):
+    tenant = home["invoice"].tenant
+    tenant.email = "tenant@example.com"
+    tenant.save(update_fields=["email"])
+    return {
+        "channel": channel,
+        "tenants": [str(tenant.public_id)],
+        "subject": "Water notice",
+        "body": "Water supply maintenance tomorrow.",
+    }
+
+
+def make_preview(home, channel="email"):
+    response = client_for(home["manager"]).post(
+        BASE + "message-previews/", compose_data(home, channel), format="json"
+    )
+    assert response.status_code == 201, response.content
+    return response.json()["response_data"]
+
+
+def confirm_preview(home, value):
+    return client_for(home["manager"]).post(
+        BASE + f"message-previews/{value['id']}/confirm/", {"confirmed": True}, format="json"
+    )
+
+
+@pytest.mark.parametrize("path", ["messages/", "message-recipients/", "platform-messages/"])
+def test_lists_require_authentication(path):
+    assert APIClient().get(BASE + path).status_code in {401, 403}
+
+
+@pytest.mark.parametrize("channel", ["email", "sms", "whatsapp"])
+def test_preview_confirm_once_unconnected_is_held(home, channel, mailoutbox):
+    value = make_preview(home, channel)
+    assert not MessageDelivery.objects.exists()
+    assert confirm_preview(home, value).status_code == 200
+    assert confirm_preview(home, value).status_code == 200
+    row = MessageDelivery.objects.get()
+    assert row.status == "held" and row.reason == "delivery_not_connected"
+    assert dispatch_messages() == 0 and not mailoutbox
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"channel": "fax"},
+        {"tenants": []},
+        {"tenants": ["bad"]},
+        {"body": ""},
+        {"body": "x" * 2001},
+        {"subject": "bad\r\nBcc: other@example.com"},
+        {"recipient": "external@example.com"},
+    ],
+)
+def test_malformed_notice_rejected(home, bad):
+    body = {**compose_data(home), **bad}
+    assert (
+        client_for(home["manager"])
+        .post(BASE + "message-previews/", body, format="json")
+        .status_code
+        == 400
+    )
+    assert not MessageRequest.objects.exists()
+
+
+def test_tenant_foreign_workspace_and_suspension(home):
+    body = compose_data(home)
+    assert (
+        client_for(home["tenant"]).post(BASE + "message-previews/", body, format="json").status_code
+        == 403
+    )
+    foreign = Organization.objects.create(name="Foreign messages")
+    target = Tenant.objects.create(
+        organization=foreign,
+        full_name="Private",
+        phone_number="+260970000999",
+        email="private@example.com",
+    )
+    body["tenants"] = [str(target.public_id)]
+    assert (
+        client_for(home["manager"])
+        .post(BASE + "message-previews/", body, format="json")
+        .status_code
+        == 400
+    )
+    home["org"].is_active = False
+    home["org"].save()
+    assert client_for(home["manager"]).get(BASE + "messages/").status_code == 403
+
+
+def test_expired_changed_and_unconfirmed_preview(home):
+    value = make_preview(home)
+    url = BASE + f"message-previews/{value['id']}/confirm/"
+    client = client_for(home["manager"])
+    assert client.post(url, {"confirmed": False}, format="json").status_code == 400
+    assert (
+        client.post(url, {"confirmed": True, "body": "Changed"}, format="json").status_code == 400
+    )
+    tenant = home["invoice"].tenant
+    tenant.email = "changed@example.com"
+    tenant.save()
+    assert confirm_preview(home, value).status_code == 400
+    MessageRequest.objects.update(expires_at=timezone.now() - timedelta(seconds=1))
+    assert confirm_preview(home, value).status_code == 400
+    assert not MessageDelivery.objects.exists()
+
+
+def test_other_manager_cannot_confirm_preview(home):
+    value = make_preview(home)
+    user = get_user_model().objects.create_user(username="second-manager")
+    OrganizationMembership.objects.create(organization=home["org"], user=user, role="landlord")
+    assert (
+        client_for(user)
+        .post(BASE + f"message-previews/{value['id']}/confirm/", {"confirmed": True}, format="json")
+        .status_code
+        == 404
+    )
+
+
+def test_throttled_preview(home):
+    from .message_views import MessageWriteThrottle
+
+    with patch.object(MessageWriteThrottle, "rate", "1/hour"):
+        body = compose_data(home)
+        client = client_for(home["manager"])
+        assert client.post(BASE + "message-previews/", body, format="json").status_code == 201
+        assert client.post(BASE + "message-previews/", body, format="json").status_code == 429
+
+
+def test_scheduler_dedupes_and_stops_paid_invoices(home):
+    now = timezone.now().replace(hour=12)
+    invoice = home["invoice"]
+    invoice.due_date = now.date()
+    invoice.save()
+    ReminderPreferences.objects.create(
+        organization=home["org"], email_enabled=True, sms_enabled=True, whatsapp_enabled=True
+    )
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == 3
+    schedule_reminders(now=now)  # End of scan resets cursor.
+    assert schedule_reminders(now=now) == 0
+    assert MessageDelivery.objects.count() == 3
+    MessageDelivery.objects.all().delete()
+    invoice.status = "paid"
+    invoice.amount_paid = invoice.total
+    invoice.save()
+    assert schedule_reminders(now=now) == 0
+
+
+@pytest.mark.parametrize("days,expected", [(-3, 1), (-2, 0), (0, 1), (3, 1), (9, 1), (12, 0)])
+def test_before_due_and_overdue_schedule(home, days, expected):
+    now = timezone.now().replace(hour=12)
+    invoice = home["invoice"]
+    invoice.due_date = now.date() - timedelta(days=days)
+    invoice.tenant.email = "rent@example.com"
+    invoice.tenant.save()
+    invoice.save()
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == expected
+
+
+def queued_email(home, settings):
+    settings.MESSAGING_EMAIL_ENABLED = True
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    value = make_preview(home)
+    assert confirm_preview(home, value).status_code == 200
+    return MessageDelivery.objects.get()
+
+
+def test_dispatch_once_and_no_smtp_inside_transaction(home, settings, mailoutbox):
+    row = queued_email(home, settings)
+    now = timezone.now().replace(hour=12)
+    row.available_at = now - timedelta(seconds=1)
+    row.save()
+    assert dispatch_messages(now=now) == 1
+    assert dispatch_messages(now=now) == 0
+    assert len(mailoutbox) == 1
+    row.refresh_from_db()
+    assert row.status == "sent" and row.reason == "smtp_accepted"
+
+
+@pytest.mark.parametrize(
+    "change,reason",
+    [
+        ("membership", "permission_removed"),
+        ("contact", "recipient_changed"),
+        ("workspace", "permission_removed"),
+    ],
+)
+def test_dispatch_rechecks_authority(home, settings, mailoutbox, change, reason):
+    row = queued_email(home, settings)
+    if change == "membership":
+        OrganizationMembership.objects.filter(user=home["manager"]).update(is_active=False)
+    elif change == "contact":
+        Tenant.objects.filter(pk=row.tenant_id).update(email="changed@example.com")
+    else:
+        Organization.objects.filter(pk=home["org"].pk).update(is_active=False)
+    dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
+    row.refresh_from_db()
+    assert row.reason == reason and not mailoutbox
+
+
+def test_uncertain_send_never_retries(home, settings):
+    row = queued_email(home, settings)
+    with patch("apps.notifications.messaging.EmailMessage.send", side_effect=TimeoutError) as send:
+        dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
+        dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
+    row.refresh_from_db()
+    assert row.status == "review" and send.call_count == 1
+
+
+def test_enabling_delivery_does_not_release_old_holds(home, settings, mailoutbox):
+    confirm_preview(home, make_preview(home))
+    settings.MESSAGING_EMAIL_ENABLED = True
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    assert dispatch_messages() == 0 and not mailoutbox
+
+
+def test_recipient_opt_out_is_respected(home, settings, mailoutbox):
+    row = queued_email(home, settings)
+    NotificationPreferences.objects.create(user=home["tenant"], email_enabled=False)
+    dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
+    row.refresh_from_db()
+    assert row.status == "held" and row.reason == "recipient_opted_out"
+    assert not mailoutbox
+
+
+def test_quiet_hours_defer_without_starving_other_requests(home, settings, mailoutbox):
+    row = queued_email(home, settings)
+    now = timezone.now().replace(hour=22) + timedelta(days=1)
+    assert dispatch_messages(now=now) == 0
+    row.refresh_from_db()
+    assert row.status == "queued" and row.available_at > now
+    assert dispatch_messages(now=row.available_at + timedelta(minutes=1)) == 1
+    assert len(mailoutbox) == 1
+
+
+def test_reminder_paid_between_schedule_and_send_is_cancelled(home, settings, mailoutbox):
+    settings.MESSAGING_EMAIL_ENABLED = True
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    now = timezone.now().replace(hour=12) + timedelta(days=1)
+    invoice = home["invoice"]
+    invoice.due_date = now.date()
+    invoice.tenant.email = "rent@example.com"
+    invoice.tenant.save()
+    invoice.save()
+    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
+    assert schedule_reminders(now=now) == 1
+    invoice.status, invoice.amount_paid = "paid", invoice.total
+    invoice.save()
+    dispatch_messages(now=now + timedelta(minutes=1))
+    row = MessageDelivery.objects.get()
+    assert row.status == "cancelled" and row.reason == "invoice_no_longer_due"
+    assert not mailoutbox
+
+
+def test_foreign_history_and_detail_are_hidden(home):
+    confirm_preview(home, make_preview(home))
+    row = MessageDelivery.objects.get()
+    user = get_user_model().objects.create_user(username="foreign-manager")
+    org = Organization.objects.create(name="Other company messages")
+    OrganizationMembership.objects.create(organization=org, user=user, role="landlord")
+    client = client_for(user)
+    assert client.get(BASE + "messages/").json()["response_data"] == []
+    assert client.get(BASE + f"messages/{row.public_id}/").status_code == 404
+    assert (
+        client.post(
+            BASE + f"messages/{row.public_id}/", {"confirmed": True}, format="json"
+        ).status_code
+        == 404
+    )
+    assert client.get(BASE + "platform-messages/").status_code == 403
+
+
+@pytest.mark.django_db(transaction=True)
+def test_real_dispatch_boundary_has_no_database_transaction(home, settings):
+    queued_email(home, settings)
+
+    def send(*args, **kwargs):
+        assert not connection.in_atomic_block
+        return 1
+
+    with patch("apps.notifications.messaging.EmailMessage.send", side_effect=send):
+        assert dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1)) == 1
+
+
+def test_history_and_preview_query_counts_are_bounded(home):
+    body = compose_data(home)
+    client = client_for(home["manager"])
+    with CaptureQueriesContext(connection) as small:
+        assert client.post(BASE + "message-previews/", body, format="json").status_code == 201
+    tenants = [
+        Tenant.objects.create(
+            organization=home["org"],
+            full_name=f"Tenant {i}",
+            phone_number=f"+26097123{i:04}",
+            email=f"tenant{i}@example.com",
+        )
+        for i in range(25)
+    ]
+    body["tenants"] = [str(t.public_id) for t in tenants]
+    with CaptureQueriesContext(connection) as full:
+        response = client.post(BASE + "message-previews/", body, format="json")
+        assert response.status_code == 201
+    assert len(full) <= len(small) + 1
+    confirm_preview(home, response.json()["response_data"])
+    with CaptureQueriesContext(connection) as small:
+        assert client.get(BASE + "messages/?page_size=1").status_code == 200
+    with CaptureQueriesContext(connection) as full:
+        assert client.get(BASE + "messages/?page_size=25").status_code == 200
+    assert len(full) == len(small)
+
+
+@JWT_SETTINGS
+def test_handy_preview_and_explicit_confirm(home):
+    from apps.audit.models import PlatformSettings
+
+    PlatformSettings.objects.update_or_create(pk=1, defaults={"handy_agent_enabled": True})
+    client = handy_client(home["manager"], home["org"])
+    response = client.post("/api/v1/assistant/message-previews/", compose_data(home), format="json")
+    assert response.status_code == 201, response.content
+    value = response.json()["response_data"]
+    assert not MessageDelivery.objects.exists()
+    url = f"/api/v1/assistant/message-previews/{value['id']}/confirm/"
+    assert client.post(url, {"confirmed": False}, format="json").status_code == 400
+    assert client.post(url, {"confirmed": True}, format="json").status_code == 201
+    assert client.post(url, {"confirmed": True}, format="json").status_code == 201
+    assert MessageDelivery.objects.count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_postgres_competing_confirmation_creates_one_delivery(home):
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL row locks")
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    from django.db import close_old_connections
+
+    from .messaging import confirm
+
+    value = make_preview(home)
+    message = MessageRequest.objects.get(public_id=value["id"])
+    barrier = Barrier(2)
+
+    def run():
+        close_old_connections()
+        try:
+            barrier.wait(timeout=10)
+            confirm(message=message, actor=home["manager"])
+        finally:
+            close_old_connections()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(run) for _ in range(2)]
+        for future in futures:
+            future.result(timeout=20)
+    assert MessageDelivery.objects.count() == 1
+
+
+def test_postgres_message_tables_default_deny_external_readers():
+    if connection.vendor != "postgresql":
+        pytest.skip("Requires PostgreSQL row security")
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT relname, relrowsecurity FROM pg_class WHERE relname IN (%s, %s, %s)",
+            [
+                "notifications_messagerequest",
+                "notifications_messagedelivery",
+                "notifications_reminderscan",
+            ],
+        )
+        rows = cursor.fetchall()
+    assert len(rows) == 3 and all(row[1] for row in rows)

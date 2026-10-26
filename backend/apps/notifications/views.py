@@ -14,7 +14,7 @@ from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
 from apps.payments.models import Payout
 
-from .models import NotificationRead
+from .models import NotificationPreferences, NotificationRead
 
 
 def live_alerts(org):
@@ -44,9 +44,7 @@ def live_alerts(org):
         .filter(status=Lease.Status.ACTIVE, end_date__lte=today + timedelta(days=30))
         # A renewal in progress already answers "this lease ends soon".
         .exclude(
-            Exists(
-                Lease.objects.filter(renewal_of=OuterRef("pk"), status__in=Lease.OPEN_STATUSES)
-            )
+            Exists(Lease.objects.filter(renewal_of=OuterRef("pk"), status__in=Lease.OPEN_STATUSES))
         )
         .select_related("tenant", "unit")
         .order_by("end_date", "pk")[:100]
@@ -116,16 +114,26 @@ def live_alerts(org):
                 "date": timezone.localtime(payment.created_at).date().isoformat(),
             }
         )
-    for payout in Payout.objects.filter(
-        collection__organization=org, status__in=["failed", "review"],
-    ).select_related("collection__invoice").order_by("-updated_at")[:100]:
-        alerts.append({
-            "id": f"payout:{payout.public_id}:{payout.status}", "kind": "payment",
-            "title": "Landlord payout needs attention",
-            "body": f"{payout.collection.invoice.reference} · The rent payment remains recorded.",
-            "path": f"/billing/invoices/{payout.collection.invoice.public_id}",
-            "date": timezone.localtime(payout.updated_at).date().isoformat(),
-        })
+    for payout in (
+        Payout.objects.filter(
+            collection__organization=org,
+            status__in=["failed", "review"],
+        )
+        .select_related("collection__invoice")
+        .order_by("-updated_at")[:100]
+    ):
+        alerts.append(
+            {
+                "id": f"payout:{payout.public_id}:{payout.status}",
+                "kind": "payment",
+                "title": "Landlord payout needs attention",
+                "body": (
+                    f"{payout.collection.invoice.reference} · The rent payment remains recorded."
+                ),
+                "path": f"/billing/invoices/{payout.collection.invoice.public_id}",
+                "date": timezone.localtime(payout.updated_at).date().isoformat(),
+            }
+        )
     return sorted(alerts, key=lambda alert: (alert["date"], alert["id"]))
 
 
@@ -144,6 +152,24 @@ class NotificationsView(APIView):
     def get(self, request):
         org = self.organization()
         alerts = live_alerts(org) if org else []
+        preferences = NotificationPreferences.objects.filter(user=request.user).first()
+        if preferences:
+            categories = {
+                "payment": "payment",
+                "payout": "payout",
+                "lease": "lease",
+                "renewal": "lease",
+                "repair": "maintenance",
+            }
+            alerts = [
+                alert
+                for alert in alerts
+                if getattr(
+                    preferences,
+                    f"in_app_{categories.get(alert['id'].split(':')[0], 'required')}",
+                    True,
+                )
+            ]
         read = set(
             NotificationRead.objects.filter(organization=org, user=request.user).values_list(
                 "key", flat=True

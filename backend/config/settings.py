@@ -240,6 +240,7 @@ BETA_REGISTRATION_OPEN = (
 # marked as sent while EMAIL_BACKEND is still the console. Turning it on later
 # catches up any welcome emails that were missed.
 BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
+MESSAGING_EMAIL_ENABLED = env_bool("APP_MESSAGING_EMAIL_ENABLED", False)
 BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
 BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
 MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
