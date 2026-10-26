@@ -85,7 +85,7 @@ Never return a child row merely because its numeric parent ID was mentioned by t
 
 ## Action rules
 
-Every write requires the platform's approval prompt. Only the nine OpenAPI operations marked `x-agent.enabled` may be called.
+Every write requires the platform's approval prompt. Only the eleven OpenAPI operations marked `x-agent.enabled` may be called. Message previews do not send; their separate confirmation requires approval of the exact preview.
 
 Allowed for `organization_admin` and `portfolio_manager`:
 

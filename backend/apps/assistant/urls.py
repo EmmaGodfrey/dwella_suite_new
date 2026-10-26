@@ -1,5 +1,6 @@
 from django.urls import path
 
+from .message_views import ConfirmMessageAction, PreviewMessageAction
 from .views import (
     CreateDraftLeaseView,
     CreateInvoiceView,
@@ -15,6 +16,8 @@ from .views import (
 app_name = "assistant"
 
 urlpatterns = [
+    path("message-previews/", PreviewMessageAction.as_view()),
+    path("message-previews/<uuid:public_id>/confirm/", ConfirmMessageAction.as_view()),
     path("properties/", CreatePropertyView.as_view(), name="create-property"),
     path("units/", CreateUnitView.as_view(), name="create-unit"),
     path("tenants/", CreateTenantView.as_view(), name="create-tenant"),
