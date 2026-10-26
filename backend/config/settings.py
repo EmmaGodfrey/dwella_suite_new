@@ -97,6 +97,9 @@ DATABASES = {
         conn_max_age=60,
     )
 }
+# A separate connection to the same PostgreSQL database commits mail reservations
+# even when a legacy synchronous account-mail caller rolls its own transaction back.
+DATABASES["email_quota"] = {**DATABASES["default"], "TEST": {"MIRROR": "default"}}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -132,6 +135,9 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
+from .messaging import messaging_settings  # noqa: E402
+
+globals().update(messaging_settings(EMAIL_BACKEND))
 # Staging/demo guard: when set, email only reaches these addresses or @domains.
 OUTBOUND_EMAIL_ALLOWLIST = env_list("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
 TEST_EMAIL_REDIRECT_TO = __import__("os").getenv("TEST_EMAIL_REDIRECT_TO", "").strip()

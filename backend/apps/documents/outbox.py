@@ -15,6 +15,7 @@ from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from rest_framework.exceptions import ValidationError
 
+from apps.common.email_router import EmailDeliveryUnknown
 from apps.common.mail import delivery_configured, recipient_allowed
 
 from .models import DocumentVersion, SigningEmail
@@ -172,6 +173,9 @@ def deliver_pending(*, limit=20):
                 raise RuntimeError("delivery_unavailable")
             if message.send(fail_silently=False) != 1:
                 raise RuntimeError("delivery_unavailable")
+        except EmailDeliveryUnknown:
+            finish(row, SigningEmail.Status.FAILED, failure="send_outcome_unknown")
+            continue
         except Exception:
             retry = row.attempts < MAX_ATTEMPTS and row.expires_at > timezone.now()
             finish(row, SigningEmail.Status.PENDING if retry else SigningEmail.Status.FAILED,
