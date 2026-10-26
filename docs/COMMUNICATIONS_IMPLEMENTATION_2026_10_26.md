@@ -126,3 +126,17 @@ No real message, payment or transfer was initiated by these checks. The read-onl
 verification script initially needed its quoting and HTTPS request setup corrected;
 the deployed application checks now pass. Research/subscription proposal documents
 were excluded from this application release.
+
+## Review fixes (Claude, 26 October 2026)
+
+These supersede the cursor, cap and 100-recipient descriptions above.
+
+- **Reminders run once per workspace per local day**, after its reminder hour, in bounded slices that resume. Each scheduler run touches at most 500 workspaces and invoices combined: every workspace costs one, plus one per invoice. `ReminderPreferences.next_run_at` (indexed) means only due workspaces are loaded, never finished ones. `run_date` and `run_after_id` record today's progress. Changing the reminder schedule or the workspace time zone clears `next_run_at`, so it is recalculated. These fields replace the `ReminderScan` cursor table (migration `0006_daily_reminder_runs`). Only connected channels get reminder records. An unconnected channel creates nothing, rather than held rows that would never be released. Tenants without a contact address still get a visible `missing_contact` record.
+- **Reminders may go one day late.** One held back by quiet hours or the daily allowance is still sent the next day, and cancelled after that.
+- **Daily email allowance:** `APP_MESSAGING_EMAIL_DAILY_LIMIT` (default 400, rolling 24 hours). It counts every claimed send, including uncertain ones, and keeps Gmail's roughly 500-a-day limit free for sign-in and signing mail. Messages over the allowance stay queued. Move to a transactional mail service before large workspaces rely on reminders.
+- **Dispatch uses one mail connection per batch.** Authority is still re-checked before every message, with nothing cached across messages: feature access, the confirming manager's membership and verification, and reminder preferences. The allowance check and the claim happen together under a lock on the platform settings row, so overlapping runs cannot exceed the limit. If the mail connection can't open, nothing is claimed and the batch waits.
+- **Tenant preference defaults:** email and SMS on, WhatsApp off. WhatsApp needs explicit opt-in. A tenant who never saved preferences is treated exactly as Settings displays. Rows created earlier by simply opening Settings keep whatever values they were saved with.
+- **Notices can go to all active tenants** (`all_tenants: true`, up to 2,000). Tenants without a contact for the channel are left out, and the preview reports them as `skipped`. Explicit selection is still limited to 100.
+- **Reading a message no longer counts against the send rate limit.** Reading settings no longer creates rows.
+- **Removed:** the unenforced platform `daily_cap` and the always-off `sms_fallback` (fields, API and UI). Re-add them when SMS delivery exists.
+- **New index:** payout `provider_id`, for gateway-ledger matching (`payments` migration `0010_index_payout_provider`).
