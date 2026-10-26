@@ -302,5 +302,14 @@ LENCO_ALLOW_UNVERIFIED_DESTINATIONS = env_bool("LENCO_ALLOW_UNVERIFIED_DESTINATI
 LENCO_DEBIT_ACCOUNT_ID = __import__("os").getenv("LENCO_DEBIT_ACCOUNT_ID", "")
 LENCO_PUBLIC_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_PUBLIC_KEY", "")
 LENCO_SECRET_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_SECRET_KEY", "")
+# Legacy: pay each settled collection out on its own. Landlords now withdraw.
+LENCO_AUTOMATIC_PAYOUTS = env_bool("LENCO_AUTOMATIC_PAYOUTS", False)
+# Highest public Lenco transfer fee per amount band (upper bound, fee), reserved
+# on top of each withdrawal; Lenco's reported fee is charged up to this.
+LENCO_WITHDRAWAL_FEES = {
+    "mobile-money": [("1000.00", "12.00"), ("50000.00", "25.00")],
+    "bank-account": [("1000.00", "10.00"), ("50000.00", "25.00")],
+}
+LENCO_WITHDRAWAL_MINIMUM = __import__("os").getenv("LENCO_WITHDRAWAL_MINIMUM", "10.00")
 LENCO_EVIDENCE_KEY = __import__("os").getenv("LENCO_EVIDENCE_KEY", "")
 LENCO_EVIDENCE_KEY_FALLBACKS = env_list("LENCO_EVIDENCE_KEY_FALLBACKS", "")
