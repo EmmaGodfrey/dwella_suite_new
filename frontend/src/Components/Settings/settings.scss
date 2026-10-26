@@ -1,0 +1,122 @@
+.dwella-settings {
+  gap: 1.5rem;
+  min-width: 0;
+}
+.settings-tabs {
+  border-bottom: 1px solid var(--dwella-line);
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+.settings-tabs > button {
+  flex-shrink: 0;
+}
+.settings-content,
+.settings-stack,
+.settings-fields {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+}
+.settings-content > form {
+  display: grid;
+  gap: 1.5rem;
+}
+.settings-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+.settings-section {
+  background: var(--dwella-paper);
+  border: 1px solid var(--dwella-line-soft);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: 1.25rem 1.5rem;
+  min-width: 0;
+}
+.settings-section > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.settings-section h2 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+.settings-section p,
+.settings-note {
+  color: var(--dwella-muted);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  margin: 0.25rem 0;
+}
+.settings-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 17.5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.875rem 0;
+  border-top: 1px solid var(--dwella-line-soft);
+  font-size: 0.8125rem;
+}
+.settings-row strong {
+  font-weight: 600;
+}
+.settings-row small {
+  display: block;
+  color: var(--dwella-muted);
+  margin-top: 0.2rem;
+  line-height: 1.5;
+}
+.settings-row > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.settings-inline-note {
+  margin-left: 0.5rem;
+  color: var(--dwella-muted);
+}
+.settings-save {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+.settings-save > span {
+  margin-right: auto;
+  color: var(--dwella-muted);
+  font-size: 0.75rem;
+}
+.settings-content .outreach-settings {
+  margin-top: 0;
+}
+.settings-content .dwella-profile-screen,
+.settings-content .dwella-security-screen {
+  padding: 0;
+}
+@media (max-width: 640px) {
+  .settings-section {
+    padding: 1rem;
+  }
+  .settings-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .settings-section > header {
+    flex-wrap: wrap;
+  }
+  .settings-save {
+    flex-wrap: wrap;
+  }
+  .settings-save > span {
+    flex-basis: 100%;
+  }
+  .settings-inline-note {
+    display: block;
+    margin: 0.375rem 0 0;
+  }
+}

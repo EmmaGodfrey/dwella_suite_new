@@ -1,8 +1,21 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./apiClient";
 import { queryClient } from "./queryClient";
+import { toSearchParams } from "./queries";
 
 const keys = (...parts) => ["onlinePayments", ...parts];
+
+export function usePlatformTransactions(filters) {
+  return useQuery({ queryKey: keys("platform", filters),
+    queryFn: ({ signal }) => api.get(`/payments/platform/transactions/${toSearchParams(filters)}`, { signal }),
+    retry: false });
+}
+
+export function usePaymentRecord(path, options = {}) {
+  return useQuery({ queryKey: keys("record", path),
+    queryFn: ({ signal }) => api.get(`/payments/platform/${path}`, { signal }),
+    enabled: Boolean(path), retry: false, refetchOnWindowFocus: false, gcTime: 0, ...options });
+}
 
 export const useReceivingDetails = (options = {}) => useQuery({
   queryKey: keys("destination"),
