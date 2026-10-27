@@ -5,6 +5,7 @@ import { useRegistrationQuery } from "../Services/queries";
 import { useRegisterMutation } from "../Services/mutations";
 import { useFormErrors } from "../shared/useFormErrors";
 import AuthTour from "./AuthTour";
+import { formatBetaDate } from "../Services/runtimeSettings";
 
 const names = ["first_name", "last_name", "email", "password", "confirm"];
 export default function Signup() {
@@ -88,7 +89,7 @@ export default function Signup() {
             </div>
           ) : !registration.data.open ? (
             <p>
-              The beta opens 18 November 2026.{" "}
+              The beta opens {formatBetaDate(registration.data.beta_open_date)}.{" "}
               <a href="https://dwella.properties/#beta">Join the beta list</a>{" "}
               for launch updates.
             </p>

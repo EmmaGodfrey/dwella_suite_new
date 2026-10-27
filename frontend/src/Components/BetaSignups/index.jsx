@@ -45,7 +45,7 @@ const shortDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "sho
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Mirrors the backend sequence in apps/marketing/emails.py.
-function emailSteps(betaOpenDate) {
+function emailSteps(betaOpenDate, offsets = [14, 7, 1]) {
   const opens = betaOpenDate ? new Date(`${betaOpenDate}T08:00:00`) : null;
   const daysBefore = (days) => {
     if (!opens) return null;
@@ -55,9 +55,9 @@ function emailSteps(betaOpenDate) {
   };
   return [
     { kind: "welcome", label: "Welcome", planned: null },
-    { kind: "two_weeks", label: "Two weeks to go", planned: daysBefore(14) },
-    { kind: "one_week", label: "One week to go", planned: daysBefore(7) },
-    { kind: "eve", label: "Beta tomorrow", planned: daysBefore(1) },
+    { kind: "two_weeks", label: `${offsets[0]} days to go`, planned: daysBefore(offsets[0]) },
+    { kind: "one_week", label: `${offsets[1]} days to go`, planned: daysBefore(offsets[1]) },
+    { kind: "eve", label: `${offsets[2]} ${offsets[2] === 1 ? "day" : "days"} to go`, planned: daysBefore(offsets[2]) },
     { kind: "access", label: "Sign-in details", planned: opens },
   ];
 }
@@ -77,7 +77,7 @@ function EmailTimeline({ application, settings }) {
     <section className="dwella-beta-emails" aria-label="Beta emails">
       <h3>Beta emails</h3>
       <ol>
-        {emailSteps(settings?.beta_open_date).map((step) => {
+        {emailSteps(settings?.beta_open_date, settings?.countdown_days).map((step) => {
           const email = sent[step.kind];
           let when = "On signup";
           if (email) when = `Sent ${dateTime.format(new Date(email.sent_at))}`;
