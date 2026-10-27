@@ -7,10 +7,12 @@ from apps.accounts.security import is_disposable_email, normalize_email
 from .models import BetaApplication, BetaEmail
 
 PHONE_PATTERN = re.compile(r"^\+?[\d\s-]{9,16}$")
-VALID_ROLES = {"Landlord", "Agent", "Property manager"}
 
 
 class BetaApplicationSerializer(serializers.ModelSerializer):
+    # Older clients may still submit their occupation; it never chooses a role.
+    role = serializers.CharField(read_only=True)
+
     class Meta:
         model = BetaApplication
         fields = ["name", "phone", "email", "role", "units", "town"]
@@ -37,11 +39,6 @@ class BetaApplicationSerializer(serializers.ModelSerializer):
         value = normalize_email(value)
         if is_disposable_email(value):
             raise serializers.ValidationError("Use a permanent email address.")
-        return value
-
-    def validate_role(self, value):
-        if value not in VALID_ROLES:
-            raise serializers.ValidationError("Choose a valid role.")
         return value
 
 

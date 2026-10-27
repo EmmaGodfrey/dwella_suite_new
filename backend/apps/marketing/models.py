@@ -3,6 +3,8 @@ from django.db import models
 
 
 class BetaApplication(models.Model):
+    ROLE = "Property manager"
+
     class Status(models.TextChoices):
         NEW = "new", "New"
         CONTACTED = "contacted", "Contacted"
@@ -16,7 +18,7 @@ class BetaApplication(models.Model):
     name = models.CharField(max_length=150)
     phone = models.CharField(max_length=32, db_index=True)
     email = models.EmailField(blank=True, db_index=True)
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=50, choices=[(ROLE, ROLE)], default=ROLE)
     units = models.CharField(max_length=50)
     town = models.CharField(max_length=120, blank=True)
     status = models.CharField(
@@ -41,6 +43,11 @@ class BetaApplication(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(role="Property manager"), name="beta_property_manager_only"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.phone})"

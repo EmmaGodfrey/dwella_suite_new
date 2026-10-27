@@ -49,10 +49,6 @@ def give_early_access(contact, request):
             email=contact.email,
             phone=contact.phone,
             town=contact.town,
-            role={"agent": "Agent", "property_manager": "Property manager"}.get(
-                contact.segment,
-                "Landlord",
-            ),
             units="",
             source="admin",
         )

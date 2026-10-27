@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import { useSendBetaAccessMutation, useUpdateBetaApplicationMutation } from "../../Services/mutations";
 import { useBetaApplicationsQuery, useBetaEmailSettingsQuery } from "../../Services/queries";
 import { EmptyState, PageActions, SegmentedFilter, StatusBadge } from "../../shared/components";
-import AddSignupDrawer, { roles } from "./AddSignupDrawer";
+import AddSignupDrawer from "./AddSignupDrawer";
 import "../../shared/records.scss";
 import "./betaSignups.scss";
 
@@ -231,7 +231,6 @@ export default function BetaSignups() {
   const [filters, setFilters] = useState({
     search: "",
     status: "",
-    role: "",
     page: 1,
     page_size: PAGE_SIZE,
     ordering: "-created_at",
@@ -251,11 +250,11 @@ export default function BetaSignups() {
     ? selectedId
     : applications[0]?.id;
   const selected = applications.find((item) => item.id === activeId);
-  const filtered = Boolean(filters.search || filters.status || filters.role || filters.early_access);
+  const filtered = Boolean(filters.search || filters.status || filters.early_access);
   const clearFilters = () => {
     setSearch("");
     setSelectedId(null);
-    setFilters((current) => ({ ...current, search: "", status: "", role: "", early_access: "", page: 1 }));
+    setFilters((current) => ({ ...current, search: "", status: "", early_access: "", page: 1 }));
   };
 
   return (
@@ -270,19 +269,6 @@ export default function BetaSignups() {
             setFilters((current) => ({ ...current, status: value === "all" ? "" : value, page: 1 }));
           }}
         />
-        <Dropdown
-          className="dwella-beta-role-filter"
-          aria-label="Filter by applicant role"
-          value={filters.role || "All roles"}
-          selectedOptions={[filters.role]}
-          onOptionSelect={(_, data) => {
-            setSelectedId(null);
-            setFilters((current) => ({ ...current, role: data.optionValue, page: 1 }));
-          }}
-        >
-          <Option value="">All roles</Option>
-          {roles.map((role) => <Option key={role} value={role}>{role}</Option>)}
-        </Dropdown>
         <Switch label="Early access only" checked={filters.early_access === "true"} onChange={(_, data) => {
           setSelectedId(null); setFilters(current => ({...current, early_access: data.checked ? "true" : "", page: 1}));
         }} />
@@ -321,7 +307,7 @@ export default function BetaSignups() {
         <EmptyState
           icon={<FormMultiple24Regular />}
           title={filtered ? "No matching signups" : "No beta signups yet"}
-          description={filtered ? "Try another status, role, or search." : "Applications from the Dwella website will appear here."}
+          description={filtered ? "Try another status or search." : "Applications from the Dwella website will appear here."}
           actionLabel={filtered ? "Clear filters" : undefined}
           onAction={filtered ? clearFilters : undefined}
         />

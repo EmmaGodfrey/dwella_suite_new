@@ -18,12 +18,11 @@ import { toast } from "react-toastify";
 import { useCreateBetaApplicationMutation } from "../../Services/mutations";
 import { useFormErrors } from "../../shared/useFormErrors";
 
-// Same choices and phone rule as the dwella.properties form.
-export const roles = ["Landlord", "Agent", "Property manager"];
+// Same unit choices and phone rule as the dwella.properties form.
 export const unitRanges = ["1–5", "6–20", "21–50", "51–200", "More than 200"];
 const PHONE_PATTERN = /^\+?[\d\s-]{9,16}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const empty = { name: "", phone: "", email: "", role: "Property manager", units: "", town: "" };
+const empty = { name: "", phone: "", email: "", units: "", town: "" };
 
 // Sign someone up on their behalf, e.g. after a call or a DM. They then get the
 // same emails as a website signup, including sign-in details on beta day.
@@ -97,11 +96,6 @@ export default function AddSignupDrawer({ emailsEnabled, onClose, onSaved }) {
                 </Field>
                 <Field label="Town" {...fieldProps("town")}>
                   <Input maxLength={120} placeholder="Lusaka" value={values.town} onChange={set("town")} />
-                </Field>
-                <Field label="Role" required {...fieldProps("role")}>
-                  <Dropdown selectedOptions={[values.role]} value={values.role} onOptionSelect={set("role")}>
-                    {roles.map((role) => <Option key={role} value={role}>{role}</Option>)}
-                  </Dropdown>
                 </Field>
                 <Field label="Units" required {...fieldProps("units")}>
                   <Dropdown

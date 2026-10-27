@@ -23,7 +23,7 @@ class BetaApplicationAdmin(admin.ModelAdmin):
         "source",
         "created_at",
     ]
-    list_filter = ["status", "source", "role", "units", "town"]
+    list_filter = ["status", "source", "units", "town"]
     search_fields = ["name", "phone", "email", "town"]
-    readonly_fields = ["account", "unsubscribed_at", "created_at", "updated_at"]
+    readonly_fields = ["role", "account", "unsubscribed_at", "created_at", "updated_at"]
     inlines = [BetaEmailInline]
