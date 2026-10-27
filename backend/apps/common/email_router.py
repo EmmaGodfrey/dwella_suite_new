@@ -22,7 +22,7 @@ class EmailDeliveryUnknown(Exception):
     """A send may have succeeded. Callers must not automatically resend it."""
 
 
-def reserve_provider(recipients, now=None):
+def reserve_provider(recipients, now=None, *, allow_fallback=True):
     """Reserve before I/O. Hour buckets conservatively retain up to 25 hours of usage.
 
     Count recipients rather than SMTP messages. Failed/uncertain attempts retain their
@@ -39,6 +39,9 @@ def reserve_provider(recipients, now=None):
     locks.get_or_create(pk=1)
     with transaction.atomic(using=alias):
         locks.select_for_update().get(pk=1)
+        from apps.audit.runtime_settings import runtime_settings
+
+        limit = min(settings.EMAIL_GOOGLE_LIMIT, runtime_settings(alias=alias)["email_daily_limit"])
         recent = hour - timedelta(hours=24)
         used = dict(
             buckets.filter(hour__gte=recent)
@@ -47,7 +50,9 @@ def reserve_provider(recipients, now=None):
             .values_list("provider", "total")
         )
         provider = "google"
-        if used.get("google", 0) + recipients > settings.EMAIL_GOOGLE_LIMIT:
+        if used.get("google", 0) + recipients > limit:
+            if not allow_fallback:
+                raise EmailQuotaExceeded("Email allowance reached; messages must wait.")
             if not settings.RESEND_API_KEY or not settings.RESEND_FROM_EMAIL:
                 raise EmailQuotaExceeded("Email quota reached; Resend is not configured.")
             month = hour.replace(day=1, hour=0)

@@ -138,6 +138,11 @@ DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwe
 from .messaging import messaging_settings  # noqa: E402
 
 globals().update(messaging_settings(EMAIL_BACKEND))
+if EMAIL_BACKEND in (
+    "django.core.mail.backends.smtp.EmailBackend", "apps.common.email_router.EmailBackend"
+):
+    RUNTIME_MAIL_INNER_BACKEND = EMAIL_BACKEND
+    EMAIL_BACKEND = "apps.common.runtime_mail.RuntimeEmailBackend"
 # Staging/demo guard: when set, email only reaches these addresses or @domains.
 OUTBOUND_EMAIL_ALLOWLIST = env_list("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
 TEST_EMAIL_REDIRECT_TO = __import__("os").getenv("TEST_EMAIL_REDIRECT_TO", "").strip()

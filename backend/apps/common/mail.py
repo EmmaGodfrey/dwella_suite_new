@@ -25,9 +25,12 @@ LOCAL_ONLY_BACKENDS = {
 
 def delivery_backend():
     """The backend that actually delivers, looking through the allowlist guard."""
-    if settings.EMAIL_BACKEND == ALLOWLIST_BACKEND:
-        return settings.OUTBOUND_INNER_EMAIL_BACKEND
-    return settings.EMAIL_BACKEND
+    backend = settings.EMAIL_BACKEND
+    if backend == ALLOWLIST_BACKEND:
+        backend = settings.OUTBOUND_INNER_EMAIL_BACKEND
+    if backend == "apps.common.runtime_mail.RuntimeEmailBackend":
+        backend = settings.RUNTIME_MAIL_INNER_BACKEND
+    return backend
 
 
 def delivery_configured():

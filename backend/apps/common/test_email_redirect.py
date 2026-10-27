@@ -73,11 +73,13 @@ def test_settings_wrap_smtp_even_without_an_allowlist(monkeypatch):
     monkeypatch.setenv("TEST_EMAIL_REDIRECT_TO", "sink@example.com")
     monkeypatch.setenv("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
     monkeypatch.setenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+    monkeypatch.setenv("APP_EMAIL_ROUTING_ENABLED", "false")
     spec = importlib.util.find_spec("config.settings")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.EMAIL_BACKEND == ALLOWLIST_BACKEND
-    assert module.OUTBOUND_INNER_EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+    assert module.OUTBOUND_INNER_EMAIL_BACKEND == "apps.common.runtime_mail.RuntimeEmailBackend"
+    assert module.RUNTIME_MAIL_INNER_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
 
 
 def test_production_settings_reject_a_catch_all(monkeypatch):
