@@ -7,10 +7,6 @@
   margin-bottom: 0;
 }
 
-.dwella-beta-role-filter {
-  min-width: 10.5rem;
-}
-
 .dwella-beta-count {
   color: var(--dwella-subtle);
   font-size: var(--fs-small);
@@ -98,8 +94,7 @@
 }
 
 @media (max-width: 680px) {
-  .dwella-beta-page .dwella-toolbar-search,
-  .dwella-beta-role-filter {
+  .dwella-beta-page .dwella-toolbar-search {
     width: 100%;
     margin-left: 0;
   }
