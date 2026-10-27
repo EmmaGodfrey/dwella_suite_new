@@ -23,7 +23,7 @@ def test_platform_dashboard_aggregates_and_month_boundaries(context):
     other.is_active = False
     other.save()
     IdentityVerification.objects.create(user=admin, status="pending")
-    BetaApplication.objects.create(name="Synthetic applicant", phone="000", role="agent", units="1")
+    BetaApplication.objects.create(name="Synthetic applicant", phone="000", units="1")
     for ended, expires in [(None, now + timedelta(hours=1)), (now, now + timedelta(hours=1)),
                            (None, now - timedelta(seconds=1))]:
         SupportSession.objects.create(admin=admin, organization=org, reason="Dashboard check",

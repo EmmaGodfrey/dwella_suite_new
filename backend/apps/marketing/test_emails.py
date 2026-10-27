@@ -44,7 +44,7 @@ def applicant(**overrides):
         "name": "Bwalya Mulenga",
         "phone": "097 123 4567",
         "email": "bwalya@example.com",
-        "role": "Landlord",
+        "role": "Property manager",
         "units": "6-20",
     }
     data.update(overrides)
