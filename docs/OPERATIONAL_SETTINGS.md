@@ -1,8 +1,40 @@
 # Operational settings
 
-Implemented locally across 2026-10-27/28 following approval of the editable-settings
-shortlist, excluding Resend. No provider credentials, live sending switches,
-deployed test/production databases or deployed applications were changed by this task.
+Implemented across 2026-10-27/28 following approval of the editable-settings
+shortlist, excluding Resend. Released to test only on 2026-10-28. Production and
+the live marketing site remain unchanged; no provider credentials or live
+message-delivery activation changed.
+
+## Test release, 2026-10-28
+
+Release `test-v2026.10.28.1` at `a05ce15` passed SQLite backend, PostgreSQL backend,
+frontend and test deployment in CI run
+[40594011628](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/40594011628).
+Production deployment was skipped. Nine test services are healthy/running,
+migrations are current, deployed source matches the tagged Git blobs, and beta
+application/email fingerprints are unchanged. Production container identities
+were captured before and after and match.
+
+The test system-admin API saved `https://dwella.agents.handyagent.chat/agent`,
+verified its token-free HTTPS identity endpoint and restored the previously
+enabled availability flag. This used audited application endpoints. Other
+runtime values and existing email/SMS/WhatsApp/beta-email activation are preserved;
+those message channels remain off. The catch-all email guard remains outermost,
+with the runtime SMTP layer underneath. Runtime-settings RLS is enabled, the
+provisioning and actor database roles cannot SELECT that table, and anonymous/
+non-admin API access is denied. Public configuration is restricted and no-store.
+
+The deployed Settings assets passed synthetic desktop/mobile/light/dark browser
+checks with zero page errors, no horizontal overflow and no live writes. Real
+frontend/API health and the exact Handy CSP origin passed separately. No live
+message, authenticated agent chat, charge or transfer was used for validation.
+
+Refreshed knowledge documents, the eleven-action OpenAPI extract and the
+eleven-table column snapshot are prepared separately from the tagged code.
+[Handy test synchronization](HANDY_TEST_SYNC.md) describes the provider-side
+upload/refresh still required. No Handy administration connector is available;
+provider synchronization is not claimed. The marketing consumer remains local
+on its separate develop branch until a later production release is authorized.
 
 ## Settings surface
 
