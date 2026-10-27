@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -7,6 +6,7 @@ from rest_framework.views import APIView
 from apps.common.permissions import IsPlatformSuperuser
 
 from .models import PlatformSettings
+from .runtime_settings import assistant_configured, runtime_settings
 from .services import record_event
 
 
@@ -14,7 +14,7 @@ class PlatformSettingsSerializer(serializers.ModelSerializer):
     handy_agent_configured = serializers.SerializerMethodField()
 
     def get_handy_agent_configured(self, obj):
-        return bool(settings.HANDY_AGENT_URL and len(settings.HANDY_AGENT_SIGNING_SECRET) >= 32)
+        return assistant_configured(runtime_settings(instance=obj))
 
     def validate_handy_agent_enabled(self, value):
         if value and not self.get_handy_agent_configured(self.instance):

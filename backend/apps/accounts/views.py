@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 
-from .handy_agent import handy_agent_enabled, issue_handy_agent_token
+from .handy_agent import issue_handy_agent_token
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
@@ -45,7 +45,19 @@ class HandyAgentConfigView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({"enabled": handy_agent_enabled()})
+        from rest_framework.exceptions import PermissionDenied
+
+        from apps.audit.runtime_settings import assistant_payload
+
+        from .access_state import require_verified_access
+        from .handy_agent import token_access
+
+        try:
+            require_verified_access(request.user, request)
+            token_access(request.user, request)
+        except PermissionDenied:
+            return Response({"enabled": False}, headers={"Cache-Control": "private, no-store"})
+        return Response(assistant_payload(), headers={"Cache-Control": "private, no-store"})
 
 
 class HandyAgentTokenView(APIView):
