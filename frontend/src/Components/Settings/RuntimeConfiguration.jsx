@@ -369,7 +369,7 @@ function ConfigurationForm({ section, data }) {
           }
           placeholder={
             key === "assistant_url"
-              ? "https://dwella.agents.handyagent.chat"
+              ? "https://dwella.agents.handyagent.chat/agent"
               : undefined
           }
           maxLength={length}

@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import socket
 import ssl
 from http.client import HTTPSConnection
@@ -108,9 +109,20 @@ def verify_assistant_connection(url):
         opener = build_opener(
             ProxyHandler({}), NoRedirect(), PinnedHTTPSHandler(addresses[0][4][0])
         )
-        with opener.open(Request(url, headers={"Accept": "application/json"}), timeout=5) as reply:
+        endpoint = url.rstrip("/") + "/me/"
+        with opener.open(
+            Request(endpoint, headers={"Accept": "application/json"}), timeout=5
+        ) as reply:
             if reply.status != 200:
                 raise ValueError("Unavailable")
+            body = reply.read(4097)
+            if len(body) > 4096:
+                raise ValueError("Unexpected response")
+            identity = json.loads(body)
+            if not isinstance(identity, dict) or not all(
+                isinstance(identity.get(key), bool) for key in ("thinker", "actor", "ledger")
+            ):
+                raise ValueError("Not a Handy identity endpoint")
     except HTTPError as error:
         # Authentication is expected; the HTTPS handshake still proves the host.
         if error.code not in (401, 403):

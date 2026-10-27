@@ -69,7 +69,7 @@ services:
       APP_CACHE_URL: redis://redis:6379/1
       # Staging email only reaches these test inboxes; add testers comma-separated.
       APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
-      VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.handyagents.wazabanda.dev/agent}
+      VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.agents.handyagent.chat/agent}
     depends_on:
       postgres:
         condition: service_healthy
@@ -175,7 +175,7 @@ services:
         VITE_BASE_PATH: /test/
         VITE_API_BASE_URL: https://app.dwella.properties/test/api/v1
         VITE_HANDY_AGENT_ENABLED: "true"
-        VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.handyagents.wazabanda.dev/agent}
+        VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.agents.handyagent.chat/agent}
     restart: unless-stopped
     depends_on:
       backend:
