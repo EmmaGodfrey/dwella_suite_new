@@ -6,7 +6,7 @@ fails, so the scheduler can run as often as it likes without sending twice.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -69,9 +69,12 @@ def due_steps(application, now=None, config=None):
     working_hours = now.hour >= config["beta_send_hour"]
     changed = config.get("beta_schedule_changed_at")
     changed = datetime.fromisoformat(changed) if changed else None
+    def step_time(day):
+        return datetime.combine(day, time(config["beta_send_hour"]), tzinfo=now.tzinfo)
 
     if today >= beta_open_date(config):
-        if changed and timezone.localtime(changed).date() > beta_open_date(config):
+        if (changed and application.created_at < changed
+                and changed > step_time(beta_open_date(config))):
             return []
         return [Kind.ACCESS] if working_hours and Kind.ACCESS not in sent else []
     if Kind.WELCOME not in sent:
@@ -82,7 +85,7 @@ def due_steps(application, now=None, config=None):
         return []
     welcomed_on = timezone.localtime(sent[Kind.WELCOME].sent_at).date()
     for kind, start, end in countdown_windows(config):
-        if changed and timezone.localtime(changed).date() > start:
+        if changed and changed > step_time(start):
             continue
         # Someone welcomed on or after a step's date already has that news.
         if start <= today < end and kind not in sent and welcomed_on < start:

@@ -1,6 +1,6 @@
 import socket
 import ssl
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.accounts.handy_agent import handy_agent_enabled
 from apps.marketing.emails import beta_open_date, countdown_windows, due_steps
-from apps.marketing.models import BetaApplication
+from apps.marketing.models import BetaApplication, BetaEmail
 
 from .models import AuditEvent, PlatformSettings
 from .runtime_settings import runtime_settings
@@ -197,6 +197,7 @@ def test_check_rejects_an_address_changed_during_network_io(admin):
 def test_connection_verifier_does_not_send_auth_or_follow_redirects():
     address = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
     response = Mock(status=200)
+    response.read.return_value = b'{"thinker":false,"actor":false,"ledger":false}'
     response.__enter__ = Mock(return_value=response)
     response.__exit__ = Mock(return_value=False)
     opener = Mock()
@@ -207,6 +208,7 @@ def test_connection_verifier_does_not_send_auth_or_follow_redirects():
     ):
         verify_assistant_connection(NEW)
         request = opener.open.call_args.args[0]
+        assert request.full_url == NEW + "/me/"
         assert not request.has_header("Authorization")
         assert not request.has_header("Cookie")
         for error in (
@@ -320,3 +322,57 @@ def test_runtime_configuration_table_is_private_on_postgres():
                 "SELECT has_table_privilege('handy_agent', 'audit_platformsettings', 'SELECT')"
             )
             assert not cursor.fetchone()[0]
+
+
+def test_beta_resume_after_opening_hour_only_releases_new_signups():
+    from zoneinfo import ZoneInfo
+
+    zone = ZoneInfo("Africa/Lusaka")
+    resumed = datetime(2026, 11, 18, 15, tzinfo=zone)
+    config = {
+        **runtime_settings(),
+        "beta_open_date": "2026-11-18",
+        "beta_send_hour": 8,
+        "beta_schedule_changed_at": resumed.isoformat(),
+    }
+    application = BetaApplication.objects.create(
+        name="Synthetic", phone="000", units="1", email="beta-resume@example.com"
+    )
+    application.created_at = resumed - timedelta(days=1)
+    assert due_steps(application, resumed + timedelta(minutes=1), config) == []
+    application.created_at = resumed + timedelta(seconds=1)
+    assert due_steps(application, resumed + timedelta(minutes=1), config) == [BetaEmail.Kind.ACCESS]
+
+
+def test_reschedule_does_not_backfill_a_countdown_earlier_today():
+    from zoneinfo import ZoneInfo
+
+    zone = ZoneInfo("Africa/Lusaka")
+    changed = datetime(2026, 11, 4, 15, tzinfo=zone)
+    config = {
+        **runtime_settings(),
+        "beta_open_date": "2026-11-18",
+        "beta_send_hour": 8,
+        "beta_countdown_days": [14, 7, 1],
+        "beta_schedule_changed_at": changed.isoformat(),
+    }
+    application = BetaApplication.objects.create(
+        name="Synthetic", phone="000", units="1", email="beta-schedule@example.com"
+    )
+    BetaEmail.objects.create(
+        application=application, kind="welcome", sent_at=changed - timedelta(days=3)
+    )
+    assert due_steps(application, changed + timedelta(minutes=1), config) == []
+
+
+def test_removed_assistant_origin_revokes_saved_connection(settings):
+    settings.HANDY_AGENT_URL = "https://dwella.handyagents.wazabanda.dev/agent"
+    settings.HANDY_AGENT_SIGNING_SECRET = "x" * 32
+    PlatformSettings.objects.create(
+        pk=1,
+        handy_agent_enabled=True,
+        runtime_config={"assistant_url": NEW, "assistant_verified_url": NEW},
+    )
+    assert handy_agent_enabled()
+    settings.HANDY_AGENT_ALLOWED_ORIGINS = []
+    assert not handy_agent_enabled()

@@ -7,6 +7,7 @@ from email.utils import formataddr, parseaddr
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from .models import PlatformSettings
 
@@ -90,7 +91,7 @@ def assistant_verified(config):
         url
         and (
             url == settings.HANDY_AGENT_URL.rstrip("/")
-            or config.get("assistant_verified_url") == url
+            or (safe_assistant_url(url) and config.get("assistant_verified_url") == url)
         )
     )
 
@@ -135,6 +136,8 @@ def public_settings(config=None):
 
 def sender_identity(config=None):
     config = runtime_settings() if config is None else config
+    if config["email_from_address"].lower() not in approved_senders():
+        raise ImproperlyConfigured("The saved sender is no longer approved for this environment.")
     return formataddr((config["email_sender_name"], config["email_from_address"]))
 
 

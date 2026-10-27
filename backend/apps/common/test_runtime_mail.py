@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import EmailMessage, get_connection
 from django.db import connections
 
@@ -24,6 +25,7 @@ def runtime_mail(settings):
     settings.EMAIL_BACKEND = "apps.common.runtime_mail.RuntimeEmailBackend"
     settings.RUNTIME_MAIL_INNER_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     settings.DEFAULT_FROM_EMAIL = "original@example.com"
+    settings.APPROVED_EMAIL_SENDERS = ["approved@example.com"]
     settings.EMAIL_GOOGLE_LIMIT = 400
     PlatformSettings.objects.create(
         pk=1,
@@ -98,3 +100,11 @@ def test_uncertain_smtp_is_not_retryable_and_keeps_reservation(runtime_mail):
             ).send()
     assert send.call_count == 1
     assert EmailUsageBucket.objects.get(provider="google").recipients == 1
+
+
+def test_revoked_sender_stops_before_quota_or_delivery(runtime_mail):
+    runtime_mail.APPROVED_EMAIL_SENDERS = []
+    with pytest.raises(ImproperlyConfigured):
+        EmailMessage("Blocked", "Body", runtime_mail.DEFAULT_FROM_EMAIL, ["one@example.com"]).send()
+    assert not EmailUsageBucket.objects.exists()
+    assert not mail.outbox

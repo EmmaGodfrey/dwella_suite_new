@@ -173,6 +173,7 @@ class RuntimeSettingsSerializer(serializers.Serializer):
             or validated_data.get("beta_open_date", old["beta_open_date"]) != old["beta_open_date"]
             or validated_data.get("beta_countdown_days", old["beta_countdown_days"])
             != old["beta_countdown_days"]
+            or validated_data.get("beta_send_hour", old["beta_send_hour"]) != old["beta_send_hour"]
         ):
             values["beta_schedule_changed_at"] = timezone.now().isoformat()
         instance.runtime_config = values
