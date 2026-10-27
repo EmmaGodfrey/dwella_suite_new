@@ -6,6 +6,11 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from apps.audit.runtime_settings import (
+    approved_sms_senders,
+    approved_whatsapp_templates,
+    runtime_settings,
+)
 from apps.common.provider_http import ProviderRejected, post_form, post_json
 from apps.tenants.models import Tenant
 
@@ -21,9 +26,10 @@ def normalize_phone(value):
     return value if re.fullmatch(r"\+[1-9]\d{7,14}", value) else ""
 
 
-def whatsapp_ready():
+def whatsapp_ready(config=None):
+    config = runtime_settings() if config is None else config
     return bool(
-        settings.WHATSAPP_ENABLED
+        config["whatsapp_enabled"]
         and settings.WHATSAPP_ACCESS_TOKEN
         and settings.WHATSAPP_PHONE_NUMBER_ID
         and settings.WHATSAPP_BUSINESS_ACCOUNT_ID
@@ -32,12 +38,14 @@ def whatsapp_ready():
     )
 
 
-def sms_ready():
+def sms_ready(config=None):
+    config = runtime_settings() if config is None else config
     return bool(
-        settings.SMS_ENABLED
+        config["sms_enabled"]
         and settings.AFRICASTALKING_USERNAME
         and settings.AFRICASTALKING_API_KEY
-        and settings.AFRICASTALKING_SENDER_ID
+        and config["sms_sender_id"]
+        and config["sms_sender_id"] in approved_sms_senders()
         and len(settings.AFRICASTALKING_CALLBACK_TOKEN) >= 32
     )
 
@@ -53,7 +61,8 @@ def sms_body(row):
     return f"Dwella: {row.subject}\n{row.body}\nOpt out: Dwella Settings > Notifications."
 
 
-def send_sms(row):
+def send_sms(row, config=None):
+    config = runtime_settings() if config is None else config
     host = (
         "api.sandbox.africastalking.com"
         if settings.AFRICASTALKING_SANDBOX
@@ -65,7 +74,7 @@ def send_sms(row):
             "username": settings.AFRICASTALKING_USERNAME,
             "to": normalize_phone(row.recipient),
             "message": sms_body(row),
-            "from": settings.AFRICASTALKING_SENDER_ID,
+            "from": config["sms_sender_id"],
         },
         {"apiKey": settings.AFRICASTALKING_API_KEY, "Accept": "application/json"},
     )
@@ -136,7 +145,8 @@ def personal_phone_preferences(user, values):
     return values
 
 
-def phone_block(row, now):
+def phone_block(row, now, config=None):
+    config = runtime_settings() if config is None else config
     phone = normalize_phone(row.recipient)
     if not phone:
         return "invalid_phone"
@@ -145,9 +155,16 @@ def phone_block(row, now):
     consent = PhoneMessagingConsent.objects.filter(channel=row.channel, phone=phone).first()
     if not consent or not consent.allowed:
         return "recipient_opted_out"
+    if row.channel == "sms" and not sms_ready(config):
+        return "channel_unavailable"
+    if row.channel == "whatsapp" and not whatsapp_ready(config):
+        return "channel_unavailable"
     if row.channel == "whatsapp":
         if row.invoice_id:
-            if not settings.WHATSAPP_RENT_TEMPLATE:
+            if not config["whatsapp_template"]:
+                return "whatsapp_template_required"
+            if (f"{config['whatsapp_template']}:{config['whatsapp_language']}"
+                    not in approved_whatsapp_templates()):
                 return "whatsapp_template_required"
         elif not consent.last_inbound_at or consent.last_inbound_at <= now - timedelta(hours=24):
             return "whatsapp_reply_window_closed"
@@ -173,7 +190,8 @@ def whatsapp_rent_body(invoice):
     )
 
 
-def send_whatsapp(row):
+def send_whatsapp(row, config=None):
+    config = runtime_settings() if config is None else config
     payload = {
         "messaging_product": "whatsapp",
         "to": normalize_phone(row.recipient)[1:],
@@ -183,8 +201,8 @@ def send_whatsapp(row):
         payload.update(
             type="template",
             template={
-                "name": settings.WHATSAPP_RENT_TEMPLATE,
-                "language": {"code": settings.WHATSAPP_TEMPLATE_LANGUAGE},
+                "name": config["whatsapp_template"],
+                "language": {"code": config["whatsapp_language"]},
                 "components": [
                     {
                         "type": "body",

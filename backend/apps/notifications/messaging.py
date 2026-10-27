@@ -12,6 +12,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.access_state import email_status
+from apps.audit.runtime_settings import runtime_settings
 from apps.billing.models import Invoice
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
@@ -41,13 +42,14 @@ CHANNELS = ("email", "sms", "whatsapp")
 ALL_TENANTS_LIMIT = 2000
 
 
-def channel_readiness():
+def channel_readiness(config=None):
+    config = runtime_settings() if config is None else config
     return {
         "email": bool(
-            getattr(settings, "MESSAGING_EMAIL_ENABLED", False) and delivery_configured()
+            config["messaging_email_enabled"] and delivery_configured()
         ),
-        "sms": sms_ready(),
-        "whatsapp": whatsapp_ready(),
+        "sms": sms_ready(config),
+        "whatsapp": whatsapp_ready(config),
     }
 
 
@@ -119,13 +121,13 @@ def confirm(*, message, actor):
         )
     }
     rows = []
+    ready = channel_readiness()[message.channel]
     for recipient in message.recipients:
         tenant = tenants.get(recipient["id"])
         if not tenant or address(tenant, message.channel) != recipient["address"]:
             raise ValidationError("Recipient details changed. Preview the message again.")
         # All requests start held. An explicit worker enable may send NEW email
         # intents; connecting a future API never silently releases old holds.
-        ready = channel_readiness()[message.channel]
         rows.append(
             MessageDelivery(
                 organization=message.organization,
@@ -178,9 +180,10 @@ def schedule_reminders(*, now=None, limit=500):
     """
     now = now or timezone.now()
     config, _ = MessagingSettings.objects.get_or_create(pk=1)
+    provider_config = runtime_settings()
     ready = [
-        channel for channel, ok in channel_readiness().items()
-        if ok and (channel != "whatsapp" or settings.WHATSAPP_RENT_TEMPLATE)
+        channel for channel, ok in channel_readiness(provider_config).items()
+        if ok and (channel != "whatsapp" or provider_config["whatsapp_template"])
     ]
     if not config.reminders_enabled or not ready:
         return 0
@@ -380,7 +383,8 @@ def dispatch_messages(*, now=None, limit=50):
             if not claimed:
                 continue
             if row.channel in {"sms", "whatsapp"}:
-                reason = phone_block(row, now)
+                provider_config = runtime_settings()
+                reason = phone_block(row, now, provider_config)
                 if reason:
                     MessageDelivery.objects.filter(pk=pk, status="sending").update(
                         status="cancelled", reason=reason,
@@ -389,10 +393,10 @@ def dispatch_messages(*, now=None, limit=50):
             try:
                 provider, provider_id = "smtp", ""
                 if row.channel == "whatsapp":
-                    provider, provider_id = "whatsapp", send_whatsapp(row)
+                    provider, provider_id = "whatsapp", send_whatsapp(row, provider_config)
                     sent = 1
                 elif row.channel == "sms":
-                    provider, provider_id = "africastalking", send_sms(row)
+                    provider, provider_id = "africastalking", send_sms(row, provider_config)
                     sent = 1
                 else:
                     email = EmailMessage(
@@ -497,11 +501,12 @@ def dispatch_block(row, config, now):
         MessageDelivery.objects.filter(pk=row.pk, status="queued").update(body=row.body)
     if row.tenant.user_id and not tenant_accepts(row.tenant.user, row.channel, effective=False):
         return "recipient_opted_out"
+    provider_config = runtime_settings()
     if row.channel in {"sms", "whatsapp"}:
-        reason = phone_block(row, now)
+        reason = phone_block(row, now, provider_config)
         if reason:
             return reason
-    if not channel_readiness()[row.channel]:
+    if not channel_readiness(provider_config)[row.channel]:
         return "delivery_not_connected"
     if row.channel == "email" and not recipient_allowed(row.recipient):
         return "recipient_restricted"

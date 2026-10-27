@@ -606,7 +606,7 @@ def test_postgres_competing_confirmation_creates_one_delivery(home):
     from concurrent.futures import ThreadPoolExecutor
     from threading import Barrier
 
-    from django.db import close_old_connections
+    from django.db import close_old_connections, connections
 
     from .messaging import confirm
 
@@ -620,7 +620,7 @@ def test_postgres_competing_confirmation_creates_one_delivery(home):
             barrier.wait(timeout=10)
             confirm(message=message, actor=home["manager"])
         finally:
-            close_old_connections()
+            connections.close_all()
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(run) for _ in range(2)]
@@ -639,3 +639,23 @@ def test_postgres_message_tables_default_deny_external_readers():
         )
         rows = cursor.fetchall()
     assert len(rows) == 2 and all(row[1] for row in rows)
+
+
+def test_confirmation_queries_do_not_grow_with_recipient_count(home):
+    from .messaging import confirm, preview
+
+    tenants = [Tenant.objects.create(
+        organization=home["org"], full_name=f"Synthetic recipient {index}",
+        phone_number=f"097000{index:04d}", email=f"recipient-{index}@example.com",
+    ) for index in range(25)]
+    counts = []
+    for count in (1, 25):
+        message = preview(organization=home["org"], actor=home["manager"], data={
+            "channel": "email", "tenants": [str(t.public_id) for t in tenants[:count]],
+            "subject": "Synthetic notice", "body": "Synthetic content",
+        })
+        with CaptureQueriesContext(connection) as queries:
+            confirm(message=message, actor=home["manager"])
+        counts.append(len(queries))
+    print(f"Message confirmation queries (1/25 recipients): {counts}")
+    assert counts[0] == counts[1]

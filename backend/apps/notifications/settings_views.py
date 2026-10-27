@@ -12,6 +12,7 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.access_state import require_verified_access
+from apps.audit.runtime_settings import runtime_settings
 from apps.audit.services import record_event
 from apps.common.permissions import CanManageOrganization, IsPlatformSuperuser
 from apps.common.workspaces import resolve_workspace
@@ -192,12 +193,13 @@ class PlatformMessagingView(PreferenceView):
         return {"pk": 1}
 
     def payload(self, value):
+        config = runtime_settings()
         return {
             **super().payload(value),
             "providers": {
                 "email": {
                     "routing_enabled": settings.EMAIL_ROUTING_ENABLED,
-                    "google_limit": settings.EMAIL_GOOGLE_LIMIT,
+                    "google_limit": config["email_daily_limit"],
                     "resend_configured": bool(
                         settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL
                     ),
@@ -205,7 +207,7 @@ class PlatformMessagingView(PreferenceView):
                     "resend_monthly_limit": settings.RESEND_MONTHLY_LIMIT,
                 },
                 "sms": {"sandbox": settings.AFRICASTALKING_SANDBOX},
-                "whatsapp": {"rent_template_configured": bool(settings.WHATSAPP_RENT_TEMPLATE)},
+                "whatsapp": {"rent_template_configured": bool(config["whatsapp_template"])},
             },
         }
 
