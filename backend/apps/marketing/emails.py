@@ -6,7 +6,7 @@ fails, so the scheduler can run as often as it likes without sending twice.
 
 import logging
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import datetime, timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -21,6 +21,8 @@ from django.utils.html import escape
 from django.utils.http import urlsafe_base64_encode
 
 from apps.accounts.security import frontend_reset_url
+from apps.audit.runtime_settings import beta_open_date as configured_beta_date
+from apps.audit.runtime_settings import runtime_settings
 
 from .models import BetaApplication, BetaEmail
 
@@ -39,18 +41,23 @@ class BetaEmailError(Exception):
     pass
 
 
-def beta_open_date():
-    return date.fromisoformat(settings.BETA_OPEN_DATE)
+def beta_open_date(config=None):
+    return configured_beta_date(config)
 
 
-def countdown_windows():
-    opens = beta_open_date()
-    starts = [(kind, opens - timedelta(days=days)) for kind, days in COUNTDOWN]
+def countdown_windows(config=None):
+    config = runtime_settings() if config is None else config
+    opens = beta_open_date(config)
+    starts = [
+        (kind, opens - timedelta(days=days))
+        for (kind, _), days in zip(COUNTDOWN, config["beta_countdown_days"], strict=True)
+    ]
     ends = [start for _, start in starts[1:]] + [opens]
     return [(kind, start, end) for (kind, start), end in zip(starts, ends, strict=False)]
 
 
-def due_steps(application, now=None):
+def due_steps(application, now=None, config=None):
+    config = runtime_settings() if config is None else config
     now = timezone.localtime(now or timezone.now())
     today = now.date()
     if not application.email or application.status == BetaApplication.Status.DECLINED:
@@ -59,16 +66,24 @@ def due_steps(application, now=None):
     # Early access already delivered the sign-in details; the countdown would only confuse.
     if Kind.ACCESS in sent:
         return []
-    working_hours = now.hour >= SEND_FROM_HOUR
+    working_hours = now.hour >= config["beta_send_hour"]
+    changed = config.get("beta_schedule_changed_at")
+    changed = datetime.fromisoformat(changed) if changed else None
 
-    if today >= beta_open_date():
+    if today >= beta_open_date(config):
+        if changed and timezone.localtime(changed).date() > beta_open_date(config):
+            return []
         return [Kind.ACCESS] if working_hours and Kind.ACCESS not in sent else []
     if Kind.WELCOME not in sent:
+        if changed and application.created_at < changed:
+            return []
         return [Kind.WELCOME]
     if application.unsubscribed_at or not working_hours:
         return []
     welcomed_on = timezone.localtime(sent[Kind.WELCOME].sent_at).date()
-    for kind, start, end in countdown_windows():
+    for kind, start, end in countdown_windows(config):
+        if changed and timezone.localtime(changed).date() > start:
+            continue
         # Someone welcomed on or after a step's date already has that news.
         if start <= today < end and kind not in sent and welcomed_on < start:
             return [kind]
@@ -130,7 +145,10 @@ class Message:
 
 
 def build_message(application, kind, now=None):
-    opens = f"{beta_open_date():%A} {beta_open_date().day} {beta_open_date():%B}"
+    config = runtime_settings()
+    opening = beta_open_date(config)
+    opens = f"{opening:%A} {opening.day} {opening:%B}"
+    offsets = dict(zip((item[0] for item in COUNTDOWN), config["beta_countdown_days"], strict=True))
     # Paragraphs are trusted HTML, so anything the applicant typed is escaped here.
     first_name = escape(application.name.strip().split(" ")[0])
     site = settings.MARKETING_SITE_URL.rstrip("/")
@@ -157,10 +175,11 @@ def build_message(application, kind, now=None):
         )
     if kind == Kind.TWO_WEEKS:
         return Message(
-            subject="Two weeks until the Dwella beta",
+            subject=("Two weeks until the Dwella beta" if offsets[kind] == 14
+                     else f"{offsets[kind]} days until the Dwella beta"),
             preheader="A head start: what to have ready for day one.",
             paragraphs=[
-                f"Hi {first_name}, the Dwella beta opens in two weeks, on {opens}.",
+                f"Hi {first_name}, the Dwella beta opens on {opens}.",
                 "Setting up takes about ten minutes when the details are to hand. "
                 "If you'd like a head start, gather these:",
             ],
@@ -173,10 +192,11 @@ def build_message(application, kind, now=None):
         )
     if kind == Kind.ONE_WEEK:
         return Message(
-            subject="One week to go: your first ten minutes on Dwella",
+            subject=("One week to go: your first ten minutes on Dwella" if offsets[kind] == 7
+                     else f"{offsets[kind]} days to go: your first ten minutes on Dwella"),
             preheader="What happens after you sign in.",
             paragraphs=[
-                f"Hi {first_name}, one week until the beta opens on {opens}. "
+                f"Hi {first_name}, the beta opens on {opens}. "
                 "Here's what your first ten minutes will look like:",
             ],
             checklist=(
@@ -189,18 +209,19 @@ def build_message(application, kind, now=None):
         )
     if kind == Kind.EVE:
         return Message(
-            subject="The Dwella beta opens tomorrow",
-            preheader="Watch your inbox tomorrow morning.",
+            subject=("The Dwella beta opens tomorrow" if offsets[kind] == 1
+                     else f"The Dwella beta opens in {offsets[kind]} days"),
+            preheader="Watch your inbox for sign-in details on opening day.",
             paragraphs=[
-                f"Hi {first_name}, the beta opens tomorrow.",
-                "In the morning we'll send your sign-in details to "
+                f"Hi {first_name}, the beta opens on {opens}.",
+                "On opening day we'll send your sign-in details to "
                 f"<strong>{escape(application.email)}</strong>. If you don't see them, "
                 "check your spam or promotions folder.",
             ],
         )
 
     user = application.account
-    early = timezone.localdate(now or timezone.now()) < beta_open_date()
+    early = timezone.localdate(now or timezone.now()) < opening
     if user.has_usable_password():
         return Message(
             subject="You're in early" if early else "The Dwella beta is open",
@@ -280,10 +301,13 @@ def send_message(application, message):
     email.send(fail_silently=False)
 
 
-def deliver(application, kind, *, resend=False, now=None):
+def deliver(application, kind, *, resend=False, now=None, scheduled=False):
     """Send one step. Returns False if it was already sent and resend is off."""
-    if not settings.BETA_EMAILS_ENABLED:
-        raise BetaEmailError("Beta emails are turned off (APP_BETA_EMAILS_ENABLED).")
+    config = runtime_settings()
+    if not config["beta_emails_enabled"]:
+        raise BetaEmailError("Beta emails are paused in platform settings.")
+    if scheduled and kind not in due_steps(application, now, config):
+        return False
     if not application.email:
         raise BetaEmailError("This applicant has no email address.")
     try:
@@ -311,7 +335,8 @@ def deliver(application, kind, *, resend=False, now=None):
 
 def send_due_emails(applications=None, now=None):
     """Send whatever is due. Returns (sent, failed) counts."""
-    if not settings.BETA_EMAILS_ENABLED:
+    config = runtime_settings()
+    if not config["beta_emails_enabled"]:
         return 0, 0
     if applications is None:
         applications = (
@@ -322,9 +347,9 @@ def send_due_emails(applications=None, now=None):
         )
     sent = failed = 0
     for application in applications:
-        for kind in due_steps(application, now):
+        for kind in due_steps(application, now, config):
             try:
-                sent += deliver(application, kind, now=now)
+                sent += deliver(application, kind, now=now, scheduled=True)
             except Exception:
                 failed += 1
                 logger.exception("Beta email %s to application %s failed", kind, application.pk)

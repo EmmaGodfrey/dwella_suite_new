@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -7,6 +6,8 @@ from rest_framework import serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from apps.audit.runtime_settings import runtime_settings
 
 from .security import is_disposable_email, normalize_email
 from .views import issue_auth_response
@@ -53,12 +54,16 @@ class RegistrationView(APIView):
         return super().get_throttles()
 
     def get(self, request):
-        return Response({"open": settings.BETA_REGISTRATION_OPEN})
+        config = runtime_settings()
+        return Response({
+            "open": config["beta_registration_open"], "beta_open_date": config["beta_open_date"],
+        }, headers={"Cache-Control": "no-store"})
 
     def post(self, request):
-        if not settings.BETA_REGISTRATION_OPEN:
+        config = runtime_settings()
+        if not config["beta_registration_open"]:
             return Response(
-                {"detail": "Registration is not open yet. Beta opens 18 November 2026."}, status=403
+                {"detail": "Registration is not open yet."}, status=403
             )
         serializer = RegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

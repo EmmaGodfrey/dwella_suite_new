@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.runtime_settings import beta_open_date, runtime_settings
+
 from .emails import BetaEmailError, application_from_token, deliver, send_due_emails
 from .models import BetaApplication, BetaEmail
 from .serializers import (
@@ -76,7 +78,6 @@ class BetaApplicationAdminViewSet(
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        from datetime import date
 
         from django.db.models import Exists, OuterRef
 
@@ -88,7 +89,7 @@ class BetaApplicationAdminViewSet(
             access = BetaEmail.objects.filter(
                 application_id=OuterRef("pk"),
                 kind="access",
-                sent_at__date__lt=date.fromisoformat(settings.BETA_OPEN_DATE),
+                sent_at__date__lt=beta_open_date(),
             )
             query = query.annotate(has_early_access=Exists(access)).filter(
                 has_early_access=early == "true",
@@ -138,10 +139,13 @@ class BetaApplicationAdminViewSet(
 
     @action(detail=False, methods=["get"], url_path="email-settings")
     def email_settings(self, request):
+        config = runtime_settings()
         return Response(
             {
-                "enabled": settings.BETA_EMAILS_ENABLED,
-                "beta_open_date": settings.BETA_OPEN_DATE,
+                "enabled": config["beta_emails_enabled"],
+                "beta_open_date": config["beta_open_date"],
+                "countdown_days": config["beta_countdown_days"],
+                "send_hour": config["beta_send_hour"],
             }
         )
 
