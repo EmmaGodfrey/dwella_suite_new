@@ -238,6 +238,14 @@ export function useBetaEmailSettingsQuery(options = {}) {
   });
 }
 
+export function useBetaAccessPendingQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.betaAccessPending,
+    queryFn: () => apiRequest("/marketing/admin/beta-applications/send-access-all/"),
+    ...options,
+  });
+}
+
 export function useBetaApplicationsQuery(filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.betaApplications(filters),

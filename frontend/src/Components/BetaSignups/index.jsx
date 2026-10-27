@@ -12,9 +12,14 @@ import {
 } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
-import { useSendBetaAccessMutation, useUpdateBetaApplicationMutation } from "../../Services/mutations";
-import { useBetaApplicationsQuery, useBetaEmailSettingsQuery } from "../../Services/queries";
+import {
+  useSendBetaAccessMutation,
+  useSendBetaAccessToAllMutation,
+  useUpdateBetaApplicationMutation,
+} from "../../Services/mutations";
+import { useBetaAccessPendingQuery, useBetaApplicationsQuery, useBetaEmailSettingsQuery } from "../../Services/queries";
 import { EmptyState, PageActions, SegmentedFilter, StatusBadge } from "../../shared/components";
+import { ConfirmAction } from "../Platform/AdminUI";
 import AddSignupDrawer from "./AddSignupDrawer";
 import "../../shared/records.scss";
 import "./betaSignups.scss";
@@ -64,9 +69,10 @@ function emailSteps(betaOpenDate, offsets = [14, 7, 1]) {
 
 function EmailTimeline({ application, settings }) {
   const sent = Object.fromEntries((application.emails || []).map((email) => [email.kind, email]));
+  const [confirming, setConfirming] = useState(false);
+  // Errors show in the confirmation dialog, so only success needs a toast.
   const sendAccess = useSendBetaAccessMutation({
     onSuccess: (data) => toast.success(`Sign-in details sent to ${data.email}.`),
-    onError: (error) => toast.error(error.message || "Could not send the sign-in details."),
   });
   let blocked = "";
   if (!application.email) blocked = "Add an email address to send beta emails.";
@@ -99,10 +105,24 @@ function EmailTimeline({ application, settings }) {
       <Button
         icon={<KeyMultiple20Regular />}
         disabled={Boolean(blocked) || sendAccess.isPending}
-        onClick={() => sendAccess.mutate(application.id)}
+        onClick={() => setConfirming(true)}
       >
         {sendAccess.isPending ? "Sending…" : sent.access ? "Resend sign-in link" : "Send sign-in details now"}
       </Button>
+      {confirming ? (
+        <ConfirmAction
+          title={sent.access ? `Send ${application.name} a new sign-in link?` : `Give ${application.name} access now?`}
+          description={sent.access
+            ? `${application.email} gets a fresh link to set their password.`
+            : `Dwella creates their property manager account and emails ${application.email} a link to set a password. They can start using Dwella straight away, before beta day.`}
+          label={sent.access ? "Send new link" : "Send sign-in details"}
+          onConfirm={async () => {
+            await sendAccess.mutateAsync(application.id);
+            setConfirming(false);
+          }}
+          onClose={() => setConfirming(false)}
+        />
+      ) : null}
     </section>
   );
 }
@@ -212,6 +232,52 @@ function SignupDetail({ application, settings }) {
   );
 }
 
+// The server sends a batch at a time; keep going until nobody is waiting or a
+// batch makes no progress (every remaining send failed).
+function SendAccessToAll({ emailsEnabled }) {
+  const [confirming, setConfirming] = useState(false);
+  const pendingQuery = useBetaAccessPendingQuery();
+  const sendAll = useSendBetaAccessToAllMutation();
+  const pending = pendingQuery.data?.pending ?? 0;
+
+  const run = async () => {
+    let sent = 0;
+    let failed = 0;
+    for (let batch = 0; batch < 40; batch += 1) {
+      const result = await sendAll.mutateAsync();
+      sent += result.sent;
+      failed = result.failed;
+      if (!result.pending || !result.sent) break;
+    }
+    setConfirming(false);
+    if (failed) toast.warning(`Sign-in details sent to ${sent}. ${failed} could not be sent; check the email settings and try again.`);
+    else toast.success(`Sign-in details sent to ${sent} ${sent === 1 ? "signup" : "signups"}.`);
+  };
+
+  return (
+    <>
+      <Button
+        icon={<KeyMultiple20Regular />}
+        disabled={!emailsEnabled || !pending || sendAll.isPending}
+        title={emailsEnabled ? undefined : "Beta emails are turned off on this server."}
+        onClick={() => setConfirming(true)}
+      >
+        {sendAll.isPending ? "Sending…" : `Send access to all${pending ? ` (${pending})` : ""}`}
+      </Button>
+      {confirming ? (
+        <ConfirmAction
+          title={`Give ${pending} ${pending === 1 ? "signup" : "signups"} access now?`}
+          description="Everyone who hasn't had sign-in details yet gets a property manager account and an email with a link to set their password, before beta day. Declined signups, signups without an email and unsubscribed or blocked addresses are skipped. Emails can't be recalled once sent."
+          confirmation="SEND"
+          label="Send to all"
+          onConfirm={run}
+          onClose={() => setConfirming(false)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 function TableSkeleton() {
   return [0, 1, 2, 3, 4].map((row) => (
     <tr key={row} className="is-loading" aria-hidden="true">
@@ -287,6 +353,7 @@ export default function BetaSignups() {
           <strong>{pagination?.count ?? applications.length}</strong> signups
         </span>
         <PageActions>
+          <SendAccessToAll emailsEnabled={Boolean(settingsQuery.data?.enabled)} />
           <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setAdding(true)}>Add signup</Button>
         </PageActions>
       </div>

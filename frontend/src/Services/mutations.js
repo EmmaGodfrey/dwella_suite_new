@@ -361,6 +361,16 @@ export function useSendBetaAccessMutation(options = {}) {
   });
 }
 
+// Sends one batch; the caller repeats while signups are still waiting.
+export function useSendBetaAccessToAllMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["sendBetaAccessToAll"],
+    mutationFn: () => api.post("/marketing/admin/beta-applications/send-access-all/"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["marketing", "betaApplications"] }),
+    ...options,
+  });
+}
+
 // A job closing can bill the tenant, so maintenance writes refresh billing too.
 const maintenanceMutation = (mutationKey, mutationFn) => (options = {}) =>
   useMutation({
