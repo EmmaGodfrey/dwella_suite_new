@@ -44,3 +44,17 @@ A valid payment:
 
 The assistant may create an invoice and record a payment only after explicit approval. It may not void invoices, reverse payments, generate monthly invoices in bulk, or submit fiscal records to ZRA.
 
+## Online collections and payouts
+
+An initiated, pending, failed or expired checkout is not a recorded payment.
+Count only confirmed, non-reversed `billing_payment` records as collections.
+Do not manually record an online payment to make a pending checkout appear paid;
+that can duplicate a later confirmed receipt.
+
+An invoice payment, provider settlement and withdrawal to a manager are separate
+events. A paid invoice does not prove funds reached the manager's account. The
+assistant cannot initiate checkout, transfers or withdrawals, inspect bank
+details, approve receiving accounts or reconcile provider funds. Direct the user
+to the application payment screen for current status. Do not query private
+provider tables or invent settlement/withdrawal balances.
+

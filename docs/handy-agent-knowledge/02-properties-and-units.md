@@ -1,6 +1,8 @@
 # Properties and units
 
-Properties have no separate owner record. The landlord whose workspace holds the property owns it, so never ask for or record a property owner.
+Properties have no separate owner record. They belong to the property manager's
+workspace in Dwella; this does not establish legal ownership. Never ask for or
+record a property owner through the assistant.
 
 ## `properties_property`
 

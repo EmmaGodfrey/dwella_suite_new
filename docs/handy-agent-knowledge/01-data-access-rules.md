@@ -48,7 +48,7 @@ profiles:
 
 ## Groups
 
-Landlords receive `organization_admin`, `portfolio_manager`, and `portfolio_viewer` together. Tenants do not receive assistant tokens.
+Property managers receive `organization_admin`, `portfolio_manager`, and `portfolio_viewer` together. The internal role key remains `landlord`. Tenants do not receive assistant tokens.
 
 - `organization_admin` and `portfolio_manager`: may read the approved business tables for an authorized organization and may use approved actions.
 - `portfolio_viewer`: may read the approved business tables for an authorized organization but, on its own, may not use actions.
@@ -79,6 +79,12 @@ Never return a child row merely because its numeric parent ID was mentioned by t
 ## Sensitive data
 
 - Authentication, password, token, 2FA, identity-document, password-reset, audit, and assistant bookkeeping tables are not part of the knowledge base.
+- Platform/runtime configuration, notification/delivery/consent records,
+  payment-provider attempts, reconciliation evidence, withdrawals, bank receiving
+  details, signing payloads and subscription internals are also excluded.
+  Schema discovery is not permission to read or grant newly discovered tables.
+  The eleven listed business tables are the complete direct-read allowlist;
+  every other table remains denied.
 - Never reveal password hashes, secrets, signing keys, reset tokens, identity-document images, or security metadata.
 - Tenant contact, national ID, TPIN, access notes, and vendor contact information are personal or operational data. Return only fields needed to answer the authorized user's question.
 - Do not include personal identifiers in broad summaries or portfolio comparisons.
@@ -92,6 +98,8 @@ Allowed for `organization_admin` and `portfolio_manager`:
 - Create a property, unit, tenant, or draft lease.
 - Create an invoice or record a payment against an existing invoice.
 - Create a vendor, maintenance request, or maintenance comment.
+- Preview a tenant notice and, after separate explicit approval of the exact
+  preview, confirm it through the two approved message actions.
 
 Not allowed:
 
@@ -101,4 +109,6 @@ Not allowed:
 - Generate invoices in bulk or send records to ZRA.
 - Assign, start, complete, or cancel maintenance work.
 - Change users, roles, organizations, passwords, 2FA, or integration credentials.
+- Change operational settings, enable delivery channels, initiate online
+  collections or withdrawals, approve receiving details, or issue refunds.
 
