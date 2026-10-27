@@ -71,7 +71,7 @@ class BetaApplicationAdminViewSet(
     serializer_class = BetaApplicationAdminSerializer
     permission_classes = [IsAdminUser]
     search_fields = ["name", "phone", "email", "town"]
-    filterset_fields = ["status", "role", "source"]
+    filterset_fields = ["status", "source"]
     ordering_fields = ["created_at", "name", "status"]
     ordering = ["-created_at"]
 

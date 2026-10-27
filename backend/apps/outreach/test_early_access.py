@@ -25,6 +25,7 @@ def test_early_access_links_signup_delivers_once_and_stops_countdown(staff):
         response = client.post(path, {}, format="json")
         assert response.status_code == 200, response.content
     application = BetaApplication.objects.get()
+    assert application.role == "Property manager"
     assert application.account_id
     assert Contact.objects.get().beta_application == application
     assert BetaEmail.objects.filter(kind="access").count() == 1

@@ -71,7 +71,7 @@ def test_only_platform_admins_can_list_beta_applications():
     BetaApplication.objects.create(
         name="Bwalya Mulenga",
         phone="097 123 4567",
-        role="Landlord",
+        role="Property manager",
         units="1-5",
     )
     client = APIClient()
@@ -93,7 +93,7 @@ def test_platform_admin_can_update_signup_follow_up():
     application = BetaApplication.objects.create(
         name="Bwalya Mulenga",
         phone="097 123 4567",
-        role="Landlord",
+        role="Property manager",
         units="1-5",
     )
     admin = User.objects.create_superuser(
