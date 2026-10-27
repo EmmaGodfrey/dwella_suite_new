@@ -1536,3 +1536,54 @@ body.dark-only .dwella-auth-compact-brand img {
   color: var(--dwella-violet);
   background: var(--dwella-violet-soft);
 }
+
+// Handy assistant widget. Its own stylesheet pins the launcher bottom-right
+// above every layer of the page, so it covered drawer and dialog buttons, the
+// guided tour and the last rows of a page. `.ha-root` prefixes outrank the
+// widget's single-class rules whichever stylesheet loads last.
+.ha-root {
+  --ha-font: inherit;
+}
+
+.ha-root .ha-fab {
+  bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+// Room under the last row so the launcher never sits on page content.
+body:has(.ha-fab) .dwella-content {
+  padding-bottom: 112px;
+}
+
+// Dwella's own overlays and the mobile menu own the screen while open.
+body:has(.fui-DialogSurface, .fui-OverlayDrawer, .dwella-nav-scrim) .ha-root .ha-fab {
+  display: none;
+}
+
+.ha-root .ha-panel {
+  height: min(42rem, calc(100dvh - 8rem));
+}
+
+.ha-root .ha-panel--wide {
+  height: calc(100dvh - 8rem);
+}
+
+@media (max-width: 639px) {
+  .ha-root .ha-fab {
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 48px;
+    height: 48px;
+  }
+
+  .ha-root .ha-panel,
+  .ha-root .ha-panel--wide {
+    left: 8px;
+    right: 8px;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    height: calc(100dvh - 92px - env(safe-area-inset-bottom));
+  }
+
+  body:has(.ha-fab) .dwella-content {
+    padding-bottom: 88px;
+  }
+}
