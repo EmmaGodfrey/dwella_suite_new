@@ -156,6 +156,13 @@ if OUTBOUND_EMAIL_ALLOWLIST or TEST_EMAIL_REDIRECT_TO:
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 HANDY_AGENT_SIGNING_SECRET = __import__("os").getenv("HANDY_AGENT_SIGNING_SECRET", "")
 HANDY_AGENT_URL = __import__("os").getenv("VITE_HANDY_AGENT_URL", "")
+HANDY_AGENT_ALLOWED_ORIGINS = env_list(
+    "HANDY_AGENT_ALLOWED_ORIGINS",
+    "https://dwella.handyagents.wazabanda.dev,https://dwella.agents.handyagent.chat",
+)
+APPROVED_EMAIL_SENDERS = env_list("APP_APPROVED_EMAIL_SENDERS", "")
+APPROVED_SMS_SENDERS = env_list("APP_APPROVED_SMS_SENDERS", "")
+APPROVED_WHATSAPP_TEMPLATES = env_list("APP_APPROVED_WHATSAPP_TEMPLATES", "")
 HANDY_AGENT_ISSUER = __import__("os").getenv(
     "HANDY_AGENT_ISSUER", "https://api.dwella.properties"
 )
@@ -236,6 +243,7 @@ REST_FRAMEWORK = {
             "THROTTLE_HANDY_AGENT_ACTION_RATE", "120/hour"
         ),
         "beta_application": __import__("os").getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
+        "public_configuration": "120/hour",
     },
 }
 
@@ -253,6 +261,9 @@ MESSAGING_EMAIL_DAILY_LIMIT = int(__import__("os").getenv("APP_MESSAGING_EMAIL_D
 BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
 BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
 MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
+SUPPORT_EMAIL = __import__("os").getenv("APP_SUPPORT_EMAIL", "eglabs.dev@gmail.com")
+SUPPORT_PHONE = __import__("os").getenv("APP_SUPPORT_PHONE", "+260769512818")
+LAUNCH_DATE = __import__("os").getenv("APP_LAUNCH_DATE", "2026-12-18")
 PUBLIC_API_URL = __import__("os").getenv("PUBLIC_API_URL", "http://localhost:8000")
 OPENAPI_SERVER_URL = __import__("os").getenv(
     "OPENAPI_SERVER_URL", PUBLIC_API_URL.removesuffix("/api")
