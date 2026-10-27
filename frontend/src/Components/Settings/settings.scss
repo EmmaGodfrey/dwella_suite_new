@@ -18,6 +18,11 @@
   gap: 1.5rem;
   min-width: 0;
 }
+.runtime-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
+.runtime-form-grid > .runtime-toggle { grid-column: 1 / -1; }
+.runtime-toggle > p { color: var(--dwella-danger); }
+.runtime-check { margin-top: 1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.settings-support { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; font-size: var(--fs-small); }
 .settings-content > form {
   display: grid;
   gap: 1.5rem;
@@ -99,6 +104,7 @@
   padding: 0;
 }
 @media (max-width: 640px) {
+  .runtime-form-grid { grid-template-columns: minmax(0, 1fr); }
   .settings-section {
     padding: 1rem;
   }

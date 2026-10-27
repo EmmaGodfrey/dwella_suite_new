@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -21,6 +21,8 @@ import Security from "../Security";
 import ReceivingDetails from "../Billing/ReceivingDetails";
 import OutreachSettings from "../Outreach/Settings";
 import AssistantSettings from "../Platform/Settings";
+import RuntimeConfiguration from "./RuntimeConfiguration";
+import SupportContacts from "../../shared/components/SupportContacts";
 import "./settings.scss";
 
 export function SettingsSection({ title, note, actions, children }) {
@@ -603,14 +605,21 @@ function PaymentSettings() {
 export default function Settings() {
   const user = useCurrentUserQuery();
   const [params, setParams] = useSearchParams();
+  const tabsRef = useRef(null);
   const persona = getUserAccess(user.data).persona;
   const admin = persona === "platform_admin";
   const tabs = admin
-    ? ["account", "security", "payments", "messaging", "outreach", "assistant"]
+    ? ["account", "security", "payments", "messaging", "outreach", "assistant", "support", "beta"]
     : persona === "landlord"
       ? ["account", "workspace", "billing", "notifications", "security"]
       : ["account", "notifications", "security"];
   const tab = tabs.includes(params.get("tab")) ? params.get("tab") : "account";
+  useEffect(() => {
+    const list = tabsRef.current;
+    if (list && list.scrollWidth > list.clientWidth) {
+      list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [tab, persona]);
   if (user.isPending) return <AdminState query={user} />;
   if (user.isError) return <AdminState query={user} />;
   return (
@@ -624,6 +633,7 @@ export default function Settings() {
         }
       />
       <TabList
+        ref={tabsRef}
         selectedValue={tab}
         onTabSelect={(_, d) => setParams({ tab: d.value })}
         className="settings-tabs"
@@ -647,10 +657,13 @@ export default function Settings() {
       {tab === "billing" && <ReceivingDetails />}
         {tab === "notifications" && <Notifications persona={persona} />}
         {tab === "payments" && <PaymentSettings />}
-        {tab === "messaging" && <Messaging />}
+        {tab === "messaging" && <><RuntimeConfiguration section="messaging" /><Messaging /></>}
         {tab === "outreach" && <OutreachSettings embedded />}
-        {tab === "assistant" && <AssistantSettings embedded />}
+        {tab === "assistant" && <><RuntimeConfiguration section="assistant" /><AssistantSettings embedded /></>}
+        {tab === "support" && <RuntimeConfiguration section="support" />}
+        {tab === "beta" && <RuntimeConfiguration section="beta" />}
       </div>
+      <SupportContacts />
     </div>
   );
 }

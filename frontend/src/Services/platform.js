@@ -54,6 +54,14 @@ export function usePlatformMutation(options = {}) {
     onSuccess: async (data, variables) => {
       await cache.invalidateQueries({ queryKey: ["platform"] });
       await cache.invalidateQueries({ queryKey: queryKeys.currentUser });
+      if (variables.resource.startsWith("runtime-settings")) {
+        await Promise.all([
+          cache.invalidateQueries({ queryKey: ["public-configuration"] }),
+          cache.invalidateQueries({ queryKey: ["settings", "messaging"] }),
+          cache.invalidateQueries({ queryKey: queryKeys.registration }),
+          cache.invalidateQueries({ queryKey: queryKeys.betaEmailSettings }),
+        ]);
+      }
       options.onSuccess?.(data, variables);
     },
   });
