@@ -160,10 +160,10 @@ def build_message(application, kind, now=None):
     if kind == Kind.WELCOME:
         return Message(
             subject="You're on the Dwella beta list",
-            preheader=f"Beta opens {opens}. We'll email your sign-in details that morning.",
+            preheader=f"Beta opens {opens}. We'll email your sign-in details on opening day.",
             paragraphs=[
                 f"Hi {first_name}, thanks for signing up for the Dwella beta.",
-                f"The beta opens on <strong>{opens}</strong>. That morning we'll email you "
+                f"The beta opens on <strong>{opens}</strong>. On opening day we'll email you "
                 "everything you need to sign in. There's nothing else to do until then.",
                 "Dwella keeps your rent, tenants and repairs in one place, and it's free "
                 "for the whole beta. In the beta you can:",
