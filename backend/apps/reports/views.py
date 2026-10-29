@@ -1,7 +1,5 @@
-import csv
 from datetime import timedelta
 from decimal import Decimal
-from io import StringIO
 
 from django.db.models import (
     Count,
@@ -15,34 +13,25 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
-from django.http import StreamingHttpResponse
-from django.utils import timezone
-from rest_framework import serializers
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.billing.models import Invoice
-from apps.common.permissions import CanViewPortfolio
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
-from apps.properties.models import Property, Unit
+from apps.properties.models import Unit
+
+from .common import (
+    ReportView,
+    csv_response,
+    money,
+    organization_today,
+    page_bounds,
+    report_response,
+    validate_scope,
+)
+from .serializers import ReportParameters
 
 
-class ReportParameters(serializers.Serializer):
-    property = serializers.UUIDField(required=False)
-    export = serializers.ChoiceField(choices=["csv"], required=False)
-    page = serializers.IntegerField(min_value=1, required=False, default=1)
-    page_size = serializers.IntegerField(min_value=1, max_value=100, required=False, default=25)
-
-
-def csv_cell(value):
-    text = str(value if value is not None else "")
-    return "'" + text if text.lstrip().startswith(("=", "+", "-", "@", "\t", "\r")) else text
-
-
-class PortfolioReportView(APIView):
-    permission_classes = [IsAuthenticated, CanViewPortfolio]
+class PortfolioReportView(ReportView):
     report = "rent-roll"
 
     def get(self, request):
@@ -51,60 +40,31 @@ class PortfolioReportView(APIView):
         data = params.validated_data
         org = resolve_workspace(request)
         property_id = data.get("property")
-        if (
-            property_id
-            and not Property.objects.for_organization(org).filter(public_id=property_id).exists()
-        ):
-            raise serializers.ValidationError(
-                {"property": ["Select a property in this workspace."]}
-            )
-        today = timezone.localdate()
+        validate_scope(org, data)
+        today = organization_today(org)
         report = self.arrears if self.report == "arrears" else self.rent_roll
         queryset, totals = report(org, property_id, today)
+        metadata = {
+            "as_of": today.isoformat(), "currency": org.currency,
+            "basis": BASES[self.report],
+        }
         if data.get("export") == "csv":
-            response = StreamingHttpResponse(
-                self.csv_lines(queryset, today), content_type="text/csv; charset=utf-8"
+            return csv_response(
+                f"dwella-{self.report}-{today}", HEADERS[self.report],
+                ({**self.row(item, today), **metadata}
+                 for item in queryset.iterator(chunk_size=500)),
+                numeric_columns={"balance", "monthly_rent"} & set(HEADERS[self.report]),
             )
-            response["Content-Disposition"] = (
-                f'attachment; filename="dwella-{self.report}-{today}.csv"'
-            )
-            return response
-        size, page = data["page_size"], data["page"]
         count = totals["invoices" if self.report == "arrears" else "units"]
-        pages = max(1, (count + size - 1) // size)
-        if page > pages:
-            raise serializers.ValidationError({"page": ["This page does not exist."]})
-        rows = queryset[(page - 1) * size : page * size]
-        return Response(
-            {
-                "rows": [self.row(item, today) for item in rows],
-                "totals": totals,
-                "as_of": today,
-                "currency": org.currency if org else "ZMW",
-                "page": page,
-                "total_rows": count,
-                "total_pages": pages,
-            }
-        )
-
-    def csv_lines(self, queryset, today):
-        """Write the export a chunk of rows at a time instead of holding it all."""
-        buffer = StringIO(newline="")
-        writer = csv.writer(buffer)
-        headers = HEADERS[self.report]
-
-        def take():
-            value = buffer.getvalue()
-            buffer.seek(0)
-            buffer.truncate()
-            return value
-
-        writer.writerow(headers)
-        yield "﻿" + take()
-        for item in queryset.iterator(chunk_size=500):
-            row = self.row(item, today)
-            writer.writerow([csv_cell(row.get(key)) for key in headers])
-            yield take()
+        offset, size, _, _ = page_bounds(data, count)
+        rows = queryset[offset:offset + size]
+        return report_response(request, data, count, {
+            "rows": [self.row(item, today) for item in rows],
+            "totals": totals,
+            "as_of": today,
+            "currency": org.currency if org else "ZMW",
+            "basis": BASES[self.report],
+        })
 
     def row(self, item, today):
         return arrears_row(item, today) if self.report == "arrears" else rent_roll_row(item)
@@ -181,20 +141,26 @@ class PortfolioReportView(APIView):
 
 
 ZERO = Value(Decimal(0), output_field=DecimalField(max_digits=12, decimal_places=2))
+BASES = {
+    "rent-roll": (
+        "Current active leases and unit balances. Outstanding includes invoices for current "
+        "and previous tenants; it is not solely the current tenant's debt."
+    ),
+    "arrears": (
+        "Current unpaid invoices past their due date, including rent and other charges. "
+        "Invoices due today are not overdue. This is not a historical snapshot."
+    ),
+}
 HEADERS = {
     "arrears": [
         "invoice", "invoice_id", "tenant", "property", "unit", "due_date", "days_overdue",
-        "balance",
+        "balance", "currency", "as_of", "basis",
     ],
     "rent-roll": [
         "property", "unit", "tenant", "status", "monthly_rent", "balance", "rent_due_day",
-        "lease_id", "lease_end",
+        "lease_id", "lease_end", "currency", "as_of", "basis",
     ],
 }
-
-
-def money(value):
-    return f"{value or Decimal(0):.2f}"
 
 
 def rent_roll_row(unit):
