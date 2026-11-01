@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { Link, Navigate, useSearchParams } from "react-router-dom";
 import {
   Button,
   Field,
   Input,
+  Select,
   Switch,
   Tab,
   TabList,
@@ -611,7 +612,6 @@ function PaymentSettings() {
 export default function Settings() {
   const user = useCurrentUserQuery();
   const [params, setParams] = useSearchParams();
-  const tabsRef = useRef(null);
   const persona = getUserAccess(user.data).persona;
   const admin = persona === "platform_admin";
   const tabs = admin
@@ -620,12 +620,8 @@ export default function Settings() {
       ? ["account", "workspace", "billing", "notifications", "security"]
       : ["account", "notifications", "security"];
   const tab = tabs.includes(params.get("tab")) ? params.get("tab") : "account";
-  useEffect(() => {
-    const list = tabsRef.current;
-    if (list && list.scrollWidth > list.clientWidth) {
-      list.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
-    }
-  }, [tab, persona]);
+  const sectionLabel = (key) => key === "billing" ? "Payments" : key[0].toUpperCase() + key.slice(1);
+  const changeSection = (value) => setParams(current => { const next = new URLSearchParams(current); next.set("tab", value); return next; });
   if (user.isPending) return <AdminState query={user} />;
   if (user.isError) return <AdminState query={user} />;
   return (
@@ -638,16 +634,22 @@ export default function Settings() {
             : "Manage your account, workspace and preferences."
         }
       />
+      <Field className="settings-mobile-section" label="Settings section">
+        <Select value={tab} onChange={(_, data) => changeSection(data.value)}>
+          {tabs.map(key => <option key={key} value={key}>{sectionLabel(key)}</option>)}
+        </Select>
+      </Field>
+      <div className="settings-layout">
       <TabList
-        ref={tabsRef}
+        vertical
         selectedValue={tab}
-        onTabSelect={(_, d) => setParams({ tab: d.value })}
-        className="settings-tabs"
+        onTabSelect={(_, d) => changeSection(d.value)}
+        className="settings-section-nav"
         aria-label="Settings sections"
       >
         {tabs.map((key) => (
           <Tab key={key} value={key}>
-            {key[0].toUpperCase() + key.slice(1)}
+            {sectionLabel(key)}
           </Tab>
         ))}
       </TabList>
@@ -668,6 +670,7 @@ export default function Settings() {
         {tab === "assistant" && <><RuntimeConfiguration section="assistant" /><AssistantSettings embedded /></>}
         {tab === "support" && <RuntimeConfiguration section="support" />}
         {tab === "beta" && <RuntimeConfiguration section="beta" />}
+      </div>
       </div>
       <SupportContacts />
     </div>
