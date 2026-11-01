@@ -71,6 +71,10 @@ def xlsx_csv(raw):
 
         def xml(path):
             content = book.read(path)
+            if b"\x00" in content:
+                raise ValidationError("Use UTF-8 XML parts in the Excel file.")
+            if len(re.findall(rb"<(?![/!?])", content)) > 100_000:
+                raise ValidationError("This Excel file has too many XML elements for an import.")
             if b"<!DOCTYPE" in content.upper() or b"<!ENTITY" in content.upper():
                 raise ValidationError("This Excel file contains unsupported XML declarations.")
             return ET.fromstring(content)

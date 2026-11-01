@@ -274,3 +274,18 @@ def test_excel_rejects_numeric_ids_entities_and_expansion_bombs(portfolio):
     bomb = SimpleUploadedFile("large.xlsx", stream.getvalue())
     response = client.post(BASE + "import-preview/?kind=tenancies", {"file": bomb})
     assert response.status_code == 400 and b"expands" in response.content
+
+
+def test_excel_rejects_encoded_declarations_and_excessive_xml_nodes(portfolio):
+    _, client = portfolio
+    for content, expected in [
+        ('<?xml version="1.0" encoding="utf-16"?><!DOCTYPE x><x/>'.encode("utf-16"), b"UTF-8"),
+        (("<worksheet>" + "<x/>" * 100_001 + "</worksheet>").encode(), b"XML elements"),
+    ]:
+        stream = BytesIO()
+        with ZipFile(stream, "w") as book:
+            book.writestr("xl/workbook.xml", "<workbook/>")
+            book.writestr("xl/worksheets/sheet1.xml", content)
+        upload = SimpleUploadedFile("invalid.xlsx", stream.getvalue())
+        response = client.post(BASE + "import-preview/?kind=tenancies", {"file": upload})
+        assert response.status_code == 400 and expected in response.content
