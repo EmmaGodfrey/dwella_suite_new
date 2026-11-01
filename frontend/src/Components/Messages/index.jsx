@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
@@ -15,13 +15,19 @@ const statusNames = { held: "Held", queued: "Queued", sending: "Sending", sent: 
 const reasonLabel = (reason) => ({ delivery_not_connected: "Delivery is not connected", send_outcome_unknown: "Send outcome needs review", recipient_opted_out: "Recipient opted out", invoice_no_longer_due: "Invoice paid, cancelled or reminder expired", permission_removed: "Access no longer available", missing_contact: "No contact for this channel", smtp_accepted: "Accepted by email server; delivery unconfirmed" }[reason] || reason?.replaceAll("_", " ") || "—");
 
 export default function Messages() {
+  const [params, setParams] = useSearchParams();
+  const view = params.get("view") === "notices" ? "notices" : "operational";
+  const changeView = (value) => setParams(current => { const next = new URLSearchParams(current); next.set("view", value); return next; });
+  return <MessageHistory key={view} operational={view === "operational"} changeView={changeView} />;
+}
+
+function MessageHistory({ operational, changeView }) {
   const user = useCurrentUserQuery();
   const access = getUserAccess(user.data);
   const platform = access.persona === "platform_admin";
   const [filters, setFilters] = useState({ page: 1, channel: "", status: "", search: "" });
   const [compose, setCompose] = useState(false);
   const [detail, setDetail] = useState(null);
-  const [operational, setOperational] = useState(true);
   const query = useMessageHistory(filters, platform, operational);
   const update = (key, value) => setFilters((v) => ({ ...v, [key]: value, page: 1 }));
   return <div className="messages-page">
@@ -31,7 +37,7 @@ export default function Messages() {
     </AdminHeader>
     <p className="settings-note">A held request has not been sent. Provider acceptance does not confirm delivery; delivery reports update the status when available.</p>
     <div className="messages-filters">
-      <Field label="Message type"><Select value={operational ? "operational" : "notices"} onChange={(_, d) => { setOperational(d.value === "operational"); setFilters({ page: 1, channel: "", status: "", search: "" }); }}><option value="operational">Operational updates</option><option value="notices">Notices and optional reminders</option></Select></Field>
+      <Field label="Message type"><Select value={operational ? "operational" : "notices"} onChange={(_, d) => changeView(d.value)}><option value="operational">Operational updates</option><option value="notices">Notices &amp; reminders</option></Select></Field>
       <Field label="Search"><Input value={filters.search} onChange={(_, d) => update("search", d.value)} /></Field>
       <Field label="Channel"><Select value={filters.channel} onChange={(_, d) => update("channel", d.value)}><option value="">All channels</option>{Object.entries(channelNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>
       <Field label="Status"><Select value={filters.status} onChange={(_, d) => update("status", d.value)}><option value="">All statuses</option>{Object.entries(statusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>

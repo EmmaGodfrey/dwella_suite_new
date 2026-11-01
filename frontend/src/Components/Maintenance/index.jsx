@@ -5,7 +5,6 @@ import {
   Add20Regular,
   Board20Regular,
   Location16Regular,
-  PeopleTeam20Regular,
   Search20Regular,
   TextBulletListLtr20Regular,
   Wrench24Regular,
@@ -190,7 +189,13 @@ export default function Maintenance() {
   const [filters, setFilters] = useState({ property: "", priority: "", vendor: "" });
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [drawer, setDrawer] = useState(null); // null | "request" | "vendors"
+  const [drawer, setDrawer] = useState(null); // null | "request"
+  const vendorsOpen = canManage && searchParams.get("panel") === "vendors";
+  const closeVendors = () => setSearchParams(current => {
+    const next = new URLSearchParams(current);
+    next.delete("panel");
+    return next;
+  });
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(search), 300);
@@ -226,7 +231,6 @@ export default function Maintenance() {
     <div className="dwella-maintenance-page">
       {canManage ? (
         <PageActions>
-          <Button icon={<PeopleTeam20Regular />} onClick={() => setDrawer("vendors")}>Vendors</Button>
           <Button appearance="primary" icon={<Add20Regular />} onClick={() => setDrawer("request")}>New request</Button>
         </PageActions>
       ) : null}
@@ -294,7 +298,7 @@ export default function Maintenance() {
       )}
 
       {drawer === "request" ? <RequestDrawer onClose={() => setDrawer(null)} onSaved={(request) => open(request.id)} /> : null}
-      {drawer === "vendors" ? <VendorsDrawer onClose={() => setDrawer(null)} /> : null}
+      {vendorsOpen ? <VendorsDrawer onClose={closeVendors} /> : null}
     </div>
   );
 }

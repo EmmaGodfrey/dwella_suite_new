@@ -366,6 +366,10 @@ export default function Transactions() {
   const kind = ["collections", "payouts", "withdrawals", "ledger"].includes(params.get("view"))
     ? params.get("view")
     : "collections";
+  return <TransactionView key={kind} kind={kind} setParams={setParams} />;
+}
+
+function TransactionView({ kind, setParams }) {
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState({
     page: 1,

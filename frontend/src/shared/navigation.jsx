@@ -14,6 +14,7 @@ import {
 } from "@fluentui/react-icons";
 
 import { getUserAccess } from "./access";
+import { matchesPath, moduleChildren, selectedDestination } from "./navigationState.mjs";
 
 // Sidebar sections, in display order. An item's `group` places it under one of
 // these; a group with no visible items for the persona is not rendered.
@@ -59,6 +60,7 @@ export function getNavigationItems(user) {
       label: access.persona === "tenant" && item.tenantLabel ? item.tenantLabel : item.label,
       // A tenant sees one short list about their own home.
       group: access.persona === "tenant" ? "tenancy" : item.group,
+      children: moduleChildren(item.value, access),
     }));
 }
 
@@ -87,7 +89,7 @@ export const pageMeta = {
   "/security": ["Security", "Two-factor authentication and account protection."],
 };
 
-export function getPageMeta(pathname, user) {
+export function getPageMeta(pathname, user, search = "") {
   const access = getUserAccess(user);
   if (access.persona === "tenant") {
     if (pathname === "/dashboard") return ["Home", "Your tenancy, payments, and maintenance requests."];
@@ -99,6 +101,10 @@ export function getPageMeta(pathname, user) {
   if (access.persona === "platform_admin" && pathname === "/dashboard") {
     return ["Administration", "Property manager activity and platform portfolio oversight."];
   }
+  const selected = selectedDestination(getNavigationItems(user), pathname, search);
+  if (selected && selected.destination !== selected.parent) {
+    return [selected.destination.label, pageMeta[selected.parent.to]?.[1] || ""];
+  }
   // Detail pages (`/leases/<id>`) take their section's title.
   const section = Object.keys(pageMeta).find((path) => pathname.startsWith(`${path}/`));
   return pageMeta[pathname] || pageMeta[section] || ["Dwella Suite", "Property operations workspace."];
@@ -107,9 +113,9 @@ export function getPageMeta(pathname, user) {
 export function canAccessPath(pathname, user) {
   if (pathname === "/admin/settings") return getUserAccess(user).persona === "platform_admin";
   if (["/profile", "/security", "/dashboard", "/"].includes(pathname)) return true;
-  return getNavigationItems(user).some((item) => pathname.startsWith(item.to));
+  return getNavigationItems(user).some((item) => matchesPath(pathname, item.to));
 }
 
-export function getSelectedNavValue(pathname, user) {
-  return getNavigationItems(user).find((item) => pathname.startsWith(item.to))?.value || "";
+export function getSelectedNavValue(pathname, user, search = "") {
+  return selectedDestination(getNavigationItems(user), pathname, search)?.destination.value || "";
 }

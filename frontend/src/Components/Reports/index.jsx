@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button, Field, Select } from "@fluentui/react-components";
 import { ArrowDownload20Regular } from "@fluentui/react-icons";
 import { usePropertiesQuery, useReportQuery } from "../../Services/queries";
@@ -10,9 +10,12 @@ import "../../shared/records.scss";
 import "./reports.scss";
 
 export default function Reports() {
-  const [report, setReport] = useState("rent-roll");
+  const [params, setParams] = useSearchParams();
+  const report = params.get("report") === "arrears" ? "arrears" : "rent-roll";
   const [property, setProperty] = useState("");
-  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ report, page: 1 });
+  const page = pagination.report === report ? pagination.page : 1;
+  const setPage = (page) => setPagination({ report, page });
   const properties = usePropertiesQuery({ page_size: 200 });
   const query = useReportQuery(report, { property, page });
   const download = useExportReportMutation();
@@ -68,7 +71,7 @@ export default function Reports() {
           ]}
           value={report}
           onChange={(value) => {
-            setReport(value);
+            setParams(current => { const next = new URLSearchParams(current); next.set("report", value); return next; });
             setPage(1);
           }}
         />

@@ -51,11 +51,11 @@ const AppLayout = () => {
     }
   }, [location.pathname, navigate, user, userLoading]);
 
-  const meta = getPageMeta(location.pathname, user);
+  const meta = getPageMeta(location.pathname, user, location.search);
   // The dashboard leads with the organization's name instead, and detail pages
   // (`/leases/<id>`) carry their own title with a back link.
   const showHeader = !["/dashboard", "/settings", "/messages"].includes(location.pathname) && location.pathname.split("/").filter(Boolean).length < 2;
-  const selectedNavValue = getSelectedNavValue(location.pathname, user);
+  const selectedNavValue = getSelectedNavValue(location.pathname, user, location.search);
   const shellClass = useMemo(
     () => ["dwella-app-shell", collapsed ? "is-collapsed" : "", mobileOpen ? "nav-open" : ""].filter(Boolean).join(" "),
     [collapsed, mobileOpen]
