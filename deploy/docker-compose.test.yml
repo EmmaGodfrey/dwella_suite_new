@@ -1,7 +1,20 @@
 name: dwella-suite-test
 
+# Bound operational logs and prevent setuid/file-capability privilege gains.
+x-runtime: &runtime
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 256
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
 services:
   postgres:
+    <<: *runtime
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-1024m}
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -28,6 +41,9 @@ services:
       retries: 5
 
   db-gateway:
+    <<: *runtime
+    mem_limit: ${DB_GATEWAY_MEMORY_LIMIT:-128m}
+    cap_drop: [ALL]
     image: haproxy:3.0-alpine
     restart: unless-stopped
     depends_on:
@@ -45,6 +61,8 @@ services:
       retries: 3
 
   redis:
+    <<: *runtime
+    mem_limit: ${REDIS_MEMORY_LIMIT:-256m}
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --appendonly yes
@@ -57,6 +75,10 @@ services:
       retries: 5
 
   backend:
+    <<: *runtime
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-1536m}
+    pids_limit: 512
+    cap_drop: [ALL]
     build:
       context: ..
       dockerfile: backend/Dockerfile
@@ -67,6 +89,7 @@ services:
     environment:
       # Shared by every gunicorn worker: rate limits and rendered document pages.
       APP_CACHE_URL: redis://redis:6379/1
+      APP_TRUSTED_PROXY_COUNT: ${APP_TRUSTED_PROXY_COUNT:-1}
       # Staging email only reaches these test inboxes; add testers comma-separated.
       APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
       VITE_HANDY_AGENT_URL: ${VITE_HANDY_AGENT_URL:-https://dwella.agents.handyagent.chat/agent}
@@ -93,6 +116,9 @@ services:
 
   # Runs the recurring jobs listed in APP_SCHEDULER_JOBS for staging; none by default.
   scheduler:
+    <<: *runtime
+    mem_limit: ${SCHEDULER_MEMORY_LIMIT:-512m}
+    cap_drop: [ALL]
     image: dwella-suite-test-backend:latest
     pull_policy: never
     restart: unless-stopped
@@ -117,6 +143,9 @@ services:
   # Nightly verified database dump and media archive under data/backups.
   # Restore with deploy/restore-backup.sh. Copy data/backups off this server too.
   signing-mailer:
+    <<: *runtime
+    mem_limit: ${SIGNING_MAILER_MEMORY_LIMIT:-256m}
+    cap_drop: [ALL]
     image: dwella-suite-test-backend:latest
     pull_policy: never
     restart: unless-stopped
@@ -133,6 +162,9 @@ services:
   # five minutes. Idle without Lenco settings; money only moves when
   # LENCO_PAYMENTS_ENABLED / LENCO_PAYOUTS_ENABLED are set.
   payments-worker:
+    <<: *runtime
+    mem_limit: ${PAYMENTS_WORKER_MEMORY_LIMIT:-512m}
+    cap_drop: [ALL]
     image: dwella-suite-test-backend:latest
     pull_policy: never
     restart: unless-stopped
@@ -146,6 +178,9 @@ services:
     entrypoint: ["python", "manage.py", "run_payments_worker"]
 
   backup:
+    <<: *runtime
+    mem_limit: ${BACKUP_MEMORY_LIMIT:-512m}
+    cap_drop: [ALL]
     image: postgres:16-alpine
     user: "1000:1000"
     restart: unless-stopped
@@ -165,6 +200,11 @@ services:
     entrypoint: ["sh", "/backup-loop.sh"]
 
   frontend:
+    <<: *runtime
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-128m}
+    cap_drop: [ALL]
+    # The stock root entrypoint/master changes ownership and drops to nginx.
+    cap_add: [CHOWN, SETUID, SETGID, NET_BIND_SERVICE]
     environment:
       MEDIA_CSP_ORIGIN: ${MEDIA_CSP_ORIGIN:-}
     build:

@@ -20,6 +20,7 @@ ln -s "${shared}/data" "${release}/data"
 
 (
   cd "${release}"
+  docker compose --env-file .env.test -f "${compose_file}" config --format json | python3 deploy/check-runtime-policy.py
   docker compose --env-file .env.test -f "${compose_file}" build
 )
 
