@@ -144,3 +144,57 @@ class Payment(OrganizationScopedModel):
 
     def __str__(self):
         return self.receipt_number
+
+
+class PaymentInstruction(OrganizationScopedModel):
+    """How tenants can pay the workspace directly; printed on every invoice.
+
+    Separate from the payout destination: where Dwella sends withdrawals is not
+    automatically where tenants should pay."""
+
+    MAX_PER_WORKSPACE = 3
+
+    class Kind(models.TextChoices):
+        BANK = "bank", "Bank transfer"
+        MOBILE_MONEY = "mobile_money", "Mobile money"
+
+    class Network(models.TextChoices):
+        AIRTEL = "airtel", "Airtel Money"
+        MTN = "mtn", "MTN Mobile Money"
+        ZAMTEL = "zamtel", "Zamtel Money"
+
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    account_name = models.CharField(max_length=120)
+    bank_name = models.CharField(max_length=120, blank=True)
+    branch = models.CharField(max_length=120, blank=True)
+    account_number = models.CharField(max_length=34, blank=True)
+    network = models.CharField(max_length=10, choices=Network.choices, blank=True)
+    phone = models.CharField(max_length=16, blank=True)
+    note = models.CharField(max_length=200, blank=True)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "created_at"]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} · {self.account_name}"
+
+    def as_snapshot(self):
+        if self.kind == self.Kind.BANK:
+            lines = [
+                ("Bank", self.bank_name),
+                ("Branch", self.branch),
+                ("Account name", self.account_name),
+                ("Account number", self.account_number),
+            ]
+        else:
+            lines = [
+                ("Network", self.get_network_display()),
+                ("Number", self.phone),
+                ("Registered name", self.account_name),
+            ]
+        return {
+            "title": self.get_kind_display(),
+            "lines": [[label, value] for label, value in lines if value],
+            "note": self.note,
+        }

@@ -9,6 +9,7 @@ import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
 import { networks } from "../../shared/payouts";
 import { useFormErrors } from "../../shared/useFormErrors";
+import PaymentInstructions from "./PaymentInstructions";
 import "./receivingDetails.scss";
 
 const fields = ["kind", "operator", "phone", "bank_id", "account_number", "account_name", "confirm_details", "password", "code"];
@@ -207,6 +208,7 @@ export default function ReceivingDetails() {
         {!query.data.collection_enabled && <p className="settings-note">Online collection is disabled in this environment.</p>}
       </>}
     </section>
+    <PaymentInstructions />
     <section className="settings-section"><header><div><h2>Billing defaults</h2><p>Used when invoices are created in this workspace.</p></div><Button as={Link} to="/settings?tab=workspace">View workspace settings</Button></header><div className="settings-row"><div><strong>Currency</strong></div><div>{user.data?.memberships?.find(item => item.is_active && item.role === "landlord")?.organization?.currency || "ZMW"}</div></div></section>
     {editing && <ReceivingDrawer destination={destination} onClose={() => setEditing(false)} />}
   </div>;

@@ -125,3 +125,26 @@ export function refreshPaymentRecords() {
     queryClient.invalidateQueries({ queryKey: key });
   }
 }
+
+// Ways tenants pay the workspace directly; printed on every invoice.
+const instructionKey = ["billing", "payment-instructions"];
+
+export const usePaymentInstructions = () => useQuery({
+  queryKey: instructionKey,
+  queryFn: ({ signal }) => api.get("/billing/payment-instructions/", { signal }),
+  retry: false,
+});
+
+export const useSavePaymentInstruction = () => useMutation({
+  mutationFn: ({ id, ...data }) => id
+    ? api.patch(`/billing/payment-instructions/${id}/`, data)
+    : api.post("/billing/payment-instructions/", data),
+  retry: false,
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: instructionKey }),
+});
+
+export const useRemovePaymentInstruction = () => useMutation({
+  mutationFn: (id) => api.delete(`/billing/payment-instructions/${id}/`),
+  retry: false,
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: instructionKey }),
+});

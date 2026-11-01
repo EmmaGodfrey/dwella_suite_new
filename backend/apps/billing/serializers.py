@@ -11,7 +11,7 @@ from apps.leases.models import Lease
 from apps.payments.serializers import CollectionSerializer
 from apps.tenants.models import Tenant
 
-from .models import Invoice, InvoiceLine, Payment
+from .models import Invoice, InvoiceLine, Payment, PaymentInstruction
 from .services import create_invoice
 
 
@@ -282,3 +282,47 @@ class GenerateInvoicesSerializer(serializers.Serializer):
         if months_ahead > 1:
             raise serializers.ValidationError("You can bill this month or next month at most.")
         return period
+
+
+class PaymentInstructionSerializer(OrganizationScopedSerializer):
+    class Meta:
+        model = PaymentInstruction
+        fields = [
+            "id",
+            "kind",
+            "account_name",
+            "bank_name",
+            "branch",
+            "account_number",
+            "network",
+            "phone",
+            "note",
+            "position",
+        ]
+
+    def validate(self, attrs):
+        merged = {
+            field: attrs.get(field, getattr(self.instance, field, ""))
+            for field in self.Meta.fields
+            if field != "id"
+        }
+        errors = {}
+        if not (merged["account_name"] or "").strip():
+            errors["account_name"] = "Enter the name on the account."
+        if merged["kind"] == PaymentInstruction.Kind.BANK:
+            if not (merged["bank_name"] or "").strip():
+                errors["bank_name"] = "Enter the bank."
+            number = re.sub(r"\s", "", merged["account_number"] or "")
+            if not re.fullmatch(r"\d{6,20}", number):
+                errors["account_number"] = "Enter the account number using digits only."
+            attrs.update(network="", phone="", account_number=number)
+        else:
+            if not merged["network"]:
+                errors["network"] = "Choose the mobile network."
+            phone = re.sub(r"[\s()-]", "", merged["phone"] or "")
+            if not re.fullmatch(r"(?:0[79]\d{8}|\+?260[79]\d{8})", phone):
+                errors["phone"] = "Enter a valid Zambian mobile number."
+            attrs.update(bank_name="", branch="", account_number="", phone=phone)
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs

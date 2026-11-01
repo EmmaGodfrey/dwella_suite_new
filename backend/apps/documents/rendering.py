@@ -273,17 +273,37 @@ def invoice_pdf(s):
     flow += [
         table([[payments, totals]], [WIDTH * 0.54, WIDTH * 0.46]),
         rule(),
-        p("Payment instructions", "heading"),
-        p(
-            f"Use the payment details provided by your property manager. Quote {s['reference']} "
-            "so the payment can be matched to this invoice.",
-            "muted",
-        ),
+        *payment_instructions(s),
     ]
     if s.get("tax_reference"):
         flow += [p(f"Issuer TPIN: {s['tax_reference']}", "small")]
     # Internal invoice notes are deliberately not part of the recipient document.
     return build(flow, f"Issued via Dwella · {s['reference']} · Snapshot v{s['version']}")
+
+
+def payment_instructions(s):
+    """How to pay, kept together so it never splits across pages."""
+    options = s.get("payment_instructions") or []
+    flow = [p("How to pay", "heading")]
+    if s.get("online_payment"):
+        flow.append(
+            p("Pay online: sign in to Dwella, open this invoice and choose Pay.", "small")
+        )
+    if options:
+        cells = [
+            [p(item["title"], "strong")]
+            + [p(f"{label}: {value}", "small") for label, value in item["lines"]]
+            + ([p(item["note"], "small")] if item.get("note") else [])
+            for item in options
+        ]
+        width = WIDTH / len(cells)
+        flow.append(table([cells], [width] * len(cells)))
+    elif not s.get("online_payment"):
+        flow.append(p("Use the payment details provided by your property manager.", "muted"))
+    flow.append(
+        p(f"Quote {s['reference']} as the reference so the payment can be matched.", "muted")
+    )
+    return [KeepTogether(flow)]
 
 
 def lease_pdf(s, signatures=()):

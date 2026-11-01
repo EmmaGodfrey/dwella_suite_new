@@ -44,8 +44,24 @@ def lease_source(lease):
     }
 
 
+def payment_options(organization):
+    from django.conf import settings
+
+    from apps.billing.models import PaymentInstruction
+
+    return {
+        # Tenants with a Dwella account can pay online when collections are on.
+        "online_payment": settings.LENCO_PAYMENTS_ENABLED,
+        "payment_instructions": [
+            item.as_snapshot()
+            for item in PaymentInstruction.objects.filter(organization=organization)
+        ],
+    }
+
+
 def invoice_source(invoice):
     return {
+        **payment_options(invoice.organization),
         "reference": invoice.reference,
         "issuer": issuer(invoice.organization),
         "tenant_name": invoice.tenant.full_name,
