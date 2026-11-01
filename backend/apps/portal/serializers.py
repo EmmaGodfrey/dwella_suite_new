@@ -91,6 +91,13 @@ class PaymentSerializer(PublicIdModelSerializer):
 
 
 class ReceiptSerializer(PaymentSerializer):
+    missing_details = serializers.SerializerMethodField()
+
+    def get_missing_details(self, obj):
+        from apps.tenants.details import receipt_missing_details
+
+        return receipt_missing_details(obj)
+
     issuer = serializers.SerializerMethodField()
     tenant_name = serializers.CharField(source="tenant.full_name", read_only=True)
     property_name = serializers.CharField(source="invoice.unit.property.name", default=None)
@@ -106,6 +113,7 @@ class ReceiptSerializer(PaymentSerializer):
         fields = [
             *PaymentSerializer.Meta.fields,
             "issuer",
+            "missing_details",
             "tenant_name",
             "property_name",
             "unit_name",
