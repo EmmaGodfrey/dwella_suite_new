@@ -19,7 +19,8 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-FROM nginx:1.27-alpine
+# Pin the patched runtime as well as the version; rebuild deliberately for updates.
+FROM nginx:1.30.6-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
 
 ENV MEDIA_CSP_ORIGIN=""
 COPY frontend/nginx.conf /etc/nginx/templates/default.conf.template
