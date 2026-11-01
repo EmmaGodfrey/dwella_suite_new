@@ -6,11 +6,12 @@ import sys
 import warnings
 from pathlib import Path
 
-from PIL import Image, ImageChops, UnidentifiedImageError
+from PIL import Image, ImageChops, ImageOps, UnidentifiedImageError
 from rest_framework.exceptions import ValidationError
 
 MAX_SOURCE_BYTES = 4 * 1024**2
 MAX_SIGNATURE_BYTES = 1024**2
+MAX_PHOTO_BYTES = 8 * 1024**2
 
 
 def read_upload(upload, limit=MAX_SOURCE_BYTES):
@@ -45,15 +46,28 @@ def inspect_pdf(raw, *, page=1, render=True):
         ) from error
 
 
-def clean_image(raw, *, signature=False):
+def clean_image(raw, *, signature=False, photo=False):
+    """Re-encode an image so no metadata survives.
+
+    photo=True accepts full phone-camera photos (decoded at reduced size), keeps
+    their orientation, and returns a compact JPEG instead of a PNG."""
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("error", Image.DecompressionBombWarning)
             with Image.open(io.BytesIO(raw)) as source:
                 if source.format not in {"PNG", "JPEG", "WEBP"}:
                     raise ValueError("Unsupported image")
-                if source.width * source.height > 8_000_000 or source.n_frames != 1:
+                max_pixels = 50_000_000 if photo else 8_000_000
+                if source.width * source.height > max_pixels or getattr(source, "n_frames", 1) != 1:
                     raise ValueError("Image too large")
+                if photo:
+                    source.draft("RGB", (1500, 1500))  # JPEG decodes at reduced scale
+                    image = ImageOps.exif_transpose(source).convert("RGB")
+                    image.thumbnail((1500, 1500))
+                    output = io.BytesIO()
+                    image.info.clear()
+                    image.save(output, "JPEG", quality=85, optimize=True)
+                    return output.getvalue()
                 image = source.convert("RGBA")
                 image.thumbnail((1500, 1500))
                 if signature:
