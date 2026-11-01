@@ -89,6 +89,9 @@ def test_tenant_with_lease_is_created_together_and_activated(manager, org):
         {
             "full_name": "Chanda Mwila",
             "phone_number": "0974123381",
+            "national_id": "123456/10/1",
+            "tpin": "0123456789",
+            "billing_address": "Plot 1, Lusaka",
             "lease": {
                 "unit": str(unit.public_id),
                 "start_date": "2026-11-01",
@@ -311,7 +314,8 @@ def test_archive_keeps_history_and_leaves_the_everyday_list():
     assert client.get(f"{url}/").status_code == 200
     # No new lease for an archived tenant until they are restored.
     new_lease = {
-        "tenant": str(tenant.public_id), "unit": str(lease.unit.public_id),
+        "tenant": str(tenant.public_id),
+        "unit": str(lease.unit.public_id),
         "start_date": str(timezone.localdate()),
         "end_date": str(timezone.localdate() + timedelta(days=200)),
     }

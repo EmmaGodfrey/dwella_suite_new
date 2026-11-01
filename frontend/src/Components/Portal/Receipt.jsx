@@ -25,7 +25,7 @@ export default function PortalReceipt() {
         <div><StatusBadge color={receipt.reversed ? "subtle" : "success"}>
           {receipt.reversed ? "Reversed" : "Payment received"}
         </StatusBadge>
-          <Button appearance="primary" icon={<Print20Regular />} onClick={() => window.print()}>Print / Save PDF</Button>
+          <Button appearance="primary" disabled={Boolean(receipt.missing_details?.length)} icon={<Print20Regular />} onClick={() => window.print()}>Print / Save PDF</Button>
         </div>
       </div>
       <PaymentReceipt receipt={receipt} />

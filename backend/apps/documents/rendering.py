@@ -211,6 +211,8 @@ def invoice_pdf(s):
                     [
                         p("BILL TO", "small"),
                         p(s["tenant_name"], "strong"),
+                        p(s.get("tenant_billing_address", ""), "muted"),
+                        p(f"TPIN: {s['tenant_tpin']}" if s.get("tenant_tpin") else "", "muted"),
                         p(s["tenant_email"], "muted"),
                         p(s["tenant_phone"], "muted"),
                     ],

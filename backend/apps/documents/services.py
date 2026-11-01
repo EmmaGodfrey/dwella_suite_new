@@ -76,6 +76,9 @@ def create_invoice_document(request, invoice):
     previous = DocumentVersion.objects.filter(invoice=invoice).order_by("-version").first()
     if previous and previous.source_fingerprint == source_hash:
         return previous
+    from apps.tenants.details import require_document_details
+
+    require_document_details(invoice.tenant)
     version = (previous.version if previous else 0) + 1
     snapshot["version"] = version
     raw, pages = invoice_pdf(snapshot)
@@ -111,6 +114,9 @@ def create_lease_document(request, lease, data):
     )
     if lease.status == "ended" or not lease.is_active or not lease.tenant.is_active:
         raise ValidationError("Use a current lease and tenant before preparing a signing version.")
+    from apps.tenants.details import require_document_details
+
+    require_document_details(lease.tenant)
     signer = data["landlord_signer"]
     if not active_signer(signer, lease.organization):
         raise ValidationError({"landlord_signer": ["Choose an active property-manager account."]})

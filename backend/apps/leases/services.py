@@ -45,6 +45,10 @@ def next_lease_reference(organization):
 def create_lease(*, organization, activate=False, **fields):
     try:
         with transaction.atomic():
+            from apps.organizations.models import Organization
+
+            # Match tenant/combined imports: workspace first, then unit.
+            Organization.objects.select_for_update().get(pk=organization.pk)
             # Serialise new leases per unit; the serializer's check ran unlocked.
             Unit.objects.select_for_update().filter(pk=fields["unit"].pk).first()
             if conflicting_leases(fields["unit"]).exists():
@@ -101,6 +105,9 @@ def create_renewal(lease, *, end_date, **terms):
 @transaction.atomic
 def activate_lease(lease):
     lease = Lease.objects.select_for_update().get(pk=lease.pk)
+    from apps.tenants.details import require_document_details
+
+    require_document_details(lease.tenant)
     if lease.status not in (Lease.Status.DRAFT, Lease.Status.PENDING_SIGNATURE):
         raise ValidationError({"status": ["Only a draft or unsigned lease can be activated."]})
     if lease.renewal_of_id:

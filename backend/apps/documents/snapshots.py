@@ -65,6 +65,8 @@ def invoice_source(invoice):
         "reference": invoice.reference,
         "issuer": issuer(invoice.organization),
         "tenant_name": invoice.tenant.full_name,
+        "tenant_tpin": invoice.tenant.tpin,
+        "tenant_billing_address": invoice.tenant.billing_address,
         "tenant_email": invoice.tenant.email,
         "tenant_phone": invoice.tenant.phone_number,
         "premises": f"{invoice.unit.property.name} · {invoice.unit.name}" if invoice.unit else "—",

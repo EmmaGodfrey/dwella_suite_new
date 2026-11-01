@@ -75,6 +75,7 @@ export default function Receipt() {
           <Button
             appearance="primary"
             icon={<Print20Regular />}
+            disabled={Boolean(receipt.missing_details?.length)}
             onClick={() => window.print()}
           >
             Print / Save PDF

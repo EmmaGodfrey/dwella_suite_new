@@ -50,7 +50,12 @@ def make_lease(
         organization=org, property=property_obj, name=unit_name, rent_amount=rent
     )
     tenant = Tenant.objects.create(
-        organization=org, full_name=f"Tenant {unit_name}", phone_number=phone
+        organization=org,
+        full_name=f"Tenant {unit_name}",
+        phone_number=phone,
+        national_id="123456/10/1",
+        tpin="0123456789",
+        billing_address="Plot 1, Lusaka",
     )
     return create_lease(
         organization=org,
