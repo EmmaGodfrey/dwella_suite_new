@@ -154,3 +154,75 @@ class PhoneMessagingConsent(models.Model):
 
     def __str__(self):
         return f"{self.channel} consent {self.pk}"
+
+
+class OperationalDelivery(OrganizationScopedModel):
+    """Private transactional outbox; email is independent of outreach preferences."""
+
+    identity = models.CharField(max_length=240, unique=True)
+    event = models.CharField(max_length=60)
+    target_model = models.CharField(max_length=60)
+    target_id = models.PositiveBigIntegerField()
+    target_state = models.CharField(max_length=40, blank=True)
+    recipient_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+    )
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.SET_NULL, null=True)
+    audience = models.CharField(
+        max_length=8, choices=[("manager", "Manager"), ("tenant", "Tenant")]
+    )
+    channel = models.CharField(
+        max_length=12, choices=[(c, c) for c in ("email", "sms", "whatsapp")]
+    )
+    recipient = models.CharField(max_length=254, blank=True)
+    status = models.CharField(
+        max_length=12, default="queued", choices=MessageDelivery.Status.choices
+    )
+    reason = models.CharField(max_length=80, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    claimed_at = models.DateTimeField(null=True)
+    claim_token = models.UUIDField(null=True)
+    sent_at = models.DateTimeField(null=True)
+    provider_id = models.CharField(max_length=160, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["status", "available_at", "id"], name="operational_due_work"),
+            models.Index(fields=["organization", "-created_at"], name="operational_workspace"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(audience="manager", tenant__isnull=True)
+                    | models.Q(audience="tenant")
+                ),
+                name="operational_recipient_shape",
+            ),
+        ]
+
+
+class OperationalScan(models.Model):
+    """One resumable, bounded daily scan per source, not a full-history polling log."""
+
+    source = models.CharField(max_length=80, primary_key=True)
+    day = models.DateField()
+    after_id = models.PositiveBigIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.source}: {self.day}"
+
+
+class NotificationPhoneLink(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    channel = models.CharField(max_length=12, choices=[("sms", "SMS"), ("whatsapp", "WhatsApp")])
+    phone = models.CharField(max_length=16)
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True)
+    verified_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Phone verification {self.pk}"
