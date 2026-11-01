@@ -64,6 +64,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.notifications.actor_context.NoticeActorMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.SecurityHeadersMiddleware",
@@ -260,6 +261,9 @@ BETA_REGISTRATION_OPEN = (
 # catches up any welcome emails that were missed.
 BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
 MESSAGING_EMAIL_ENABLED = env_bool("APP_MESSAGING_EMAIL_ENABLED", False)
+WHATSAPP_OPERATIONAL_TEMPLATE = __import__("os").getenv("APP_WHATSAPP_OPERATIONAL_TEMPLATE", "")
+WHATSAPP_PUBLIC_NUMBER = __import__("os").getenv("APP_WHATSAPP_PUBLIC_NUMBER", "")
+SMS_INCOMING_NUMBER = __import__("os").getenv("APP_SMS_INCOMING_NUMBER", "")
 # Rolling 24-hour ceiling for notices and reminders. Gmail allows about 500 a day,
 # shared with sign-in and signing mail, so stay under it until a mail service is chosen.
 MESSAGING_EMAIL_DAILY_LIMIT = int(__import__("os").getenv("APP_MESSAGING_EMAIL_DAILY_LIMIT", "400"))

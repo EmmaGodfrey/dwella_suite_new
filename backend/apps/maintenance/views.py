@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from django_filters import rest_framework as filters
@@ -132,6 +133,7 @@ class MaintenanceRequestViewSet(OrganizationScopedModelViewSet):
         return self.detail_response(job)
 
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def updates(self, request, public_id=None):
         job = self.get_object()
         serializer = MaintenanceUpdateSerializer(data=request.data)

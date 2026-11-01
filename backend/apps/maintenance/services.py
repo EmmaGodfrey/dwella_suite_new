@@ -47,6 +47,7 @@ def assign_request(
     request, *, vendor, scheduled_for=None, estimated_cost=None, charge_to_tenant=None, author=None
 ):
     request = locked(request)
+    request._notice_actor = author
     require_status(
         request,
         (Status.NEW, Status.SCHEDULED, Status.IN_PROGRESS),
@@ -72,6 +73,7 @@ def assign_request(
 @transaction.atomic
 def start_request(request, author=None):
     request = locked(request)
+    request._notice_actor = author
     require_status(
         request, (Status.NEW, Status.SCHEDULED), "Only a new or scheduled request can be started."
     )
@@ -86,6 +88,7 @@ def start_request(request, author=None):
 def complete_request(request, *, actual_cost=None, author=None):
     """Close the job; bill the tenant for it if the landlord chose to."""
     request = locked(request)
+    request._notice_actor = author
     require_status(request, MaintenanceRequest.OPEN_STATUSES, "This request is already closed.")
     if actual_cost is not None:
         request.actual_cost = actual_cost
@@ -119,6 +122,7 @@ def complete_request(request, *, actual_cost=None, author=None):
 @transaction.atomic
 def cancel_request(request, *, reason="", author=None):
     request = locked(request)
+    request._notice_actor = author
     require_status(request, MaintenanceRequest.OPEN_STATUSES, "This request is already closed.")
     request.status = Status.CANCELLED
     request.cancelled_at = timezone.now()
