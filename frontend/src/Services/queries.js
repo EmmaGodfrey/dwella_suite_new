@@ -2,6 +2,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { apiRequest, getApiBaseUrl } from "./apiClient";
 import { queryKeys } from "./queryKeys";
+import { portfolioReportData } from "./portfolioReport.mjs";
 
 export const toSearchParams = (filters = {}) => {
   const params = new URLSearchParams();
@@ -69,7 +70,7 @@ export function useRegistrationQuery(options = {}) {
 export function useReportQuery(report, filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.report(report, filters),
-    queryFn: () => apiRequest(`/reports/${report}/${toSearchParams(filters)}`),
+    queryFn: async () => portfolioReportData(await apiRequest(`/reports/${report}/${toSearchParams(filters)}`)),
     ...options,
   });
 }
