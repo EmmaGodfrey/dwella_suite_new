@@ -1,22 +1,24 @@
 """Transactional notices: bounded outbox, live authority and conservative delivery."""
 
+import logging
 import uuid
 from datetime import timedelta
 from time import monotonic
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from apps.accounts.access_state import email_status
-from apps.common.email_router import EmailQuotaExceeded
-from apps.common.mail import delivery_configured, recipient_allowed
-from apps.common.provider_http import ProviderRejected, post_json
-from apps.organizations.models import OrganizationMembership
 from django.apps import apps
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
+
+from apps.accounts.access_state import email_status
+from apps.common.email_router import EmailQuotaExceeded
+from apps.common.mail import delivery_configured, recipient_allowed
+from apps.common.provider_http import ProviderRejected, post_json
+from apps.organizations.models import OrganizationMembership
 
 from .actor_context import current_actor
 from .models import (
@@ -26,6 +28,8 @@ from .models import (
     PhoneMessagingConsent,
 )
 from .phone_messaging import normalize_phone, phone_allowed, send_sms, sms_ready, whatsapp_ready
+
+logger = logging.getLogger(__name__)
 
 TARGETS = {
     "billing.invoice",
@@ -557,39 +561,48 @@ def _schedule_zone(zone, local, limit, budget):
             rows = list(query.order_by("pk")[:size])
             used += len(rows)
             for target in rows:
-                pref = getattr(target.organization, "reminderpreferences", None)
-                hour = pref.due_hour if pref else 9
-                # Queue future work; a later hour must not block other workspaces.
-                deliver_at = local.replace(hour=hour, minute=0, second=0, microsecond=0)
-                if source == "invoices":
-                    from .messaging import reminder_dates
-
-                    if not target.tenant.is_active:
-                        continue
-                    if target.due_date not in reminder_dates(
-                        pref
-                        or SimpleNamespace(
-                            before_due_days=3, overdue_repeats=3, overdue_every_days=3,
-                        ),
-                        local.date(),
-                    ):
-                        continue
-                    enqueue(
-                        target, "invoice.reminder",
-                        suffix=str(local.date()), state=str(local.date()),
-                        tenant_only=True, optional=False, available_at=deliver_at,
+                try:
+                    # A failed insert must roll back this record's partial work,
+                    # leaving the scan transaction healthy and its cursor advancing.
+                    with transaction.atomic():
+                        count += _schedule_target(target, source, local)
+                except Exception:
+                    logger.exception(
+                        "Operational scan skipped source=%s target_id=%s timezone=%s",
+                        source, target.pk, zone,
                     )
-                else:
-                    days = (target.end_date - local.date()).days
-                    if days > 30:
-                        continue
-                    milestone = 30 if days > 7 else (7 if days > 0 else 0)
-                    enqueue(
-                        target, "lease.expiry", suffix=f"{target.end_date}:{milestone}",
-                        available_at=deliver_at,
-                    )
-                count += 1
             scan.after_id = rows[-1].pk if rows else scan.after_id
             scan.completed = len(rows) < size
             scan.save()
     return count, used
+
+
+def _schedule_target(target, source, local):
+    pref = getattr(target.organization, "reminderpreferences", None)
+    hour = pref.due_hour if pref else 9
+    # Queue future work; a later hour must not block other workspaces.
+    deliver_at = local.replace(hour=hour, minute=0, second=0, microsecond=0)
+    if source == "invoices":
+        from .messaging import reminder_dates
+
+        if not target.tenant.is_active:
+            return 0
+        if target.due_date not in reminder_dates(
+            pref or SimpleNamespace(before_due_days=3, overdue_repeats=3, overdue_every_days=3),
+            local.date(),
+        ):
+            return 0
+        enqueue(
+            target, "invoice.reminder", suffix=str(local.date()), state=str(local.date()),
+            tenant_only=True, optional=False, available_at=deliver_at,
+        )
+    else:
+        days = (target.end_date - local.date()).days
+        if days > 30:
+            return 0
+        milestone = 30 if days > 7 else (7 if days > 0 else 0)
+        enqueue(
+            target, "lease.expiry", suffix=f"{target.end_date}:{milestone}",
+            available_at=deliver_at,
+        )
+    return 1
