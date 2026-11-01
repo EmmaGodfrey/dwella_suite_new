@@ -85,7 +85,6 @@ class UnitSerializer(OrganizationScopedSerializer):
             "name",
             "bedrooms",
             "bathrooms",
-            "floor_area",
             "rent_amount",
             "occupancy_status",
             "notes",

@@ -23,6 +23,15 @@ class ImportActionsMixin:
         return throttles
 
     def importer(self):
+        if self.request.query_params.get("kind") == "tenancies":
+            from .importers import TenantImporter
+            from .tenancies import TenancyImporter
+
+            if self.importer_class is not TenantImporter:
+                from rest_framework.exceptions import ValidationError
+
+                raise ValidationError("Use the tenant import for combined tenancies.")
+            return TenancyImporter(self.get_organization())
         return self.importer_class(self.get_organization())
 
     @action(detail=False, methods=["get"], url_path="import-template")
@@ -31,7 +40,9 @@ class ImportActionsMixin:
 
     @action(detail=False, methods=["post"], url_path="import-preview")
     def import_preview(self, request):
-        return Response(services.preview(self.importer(), request, request.data))
+        response = Response(services.preview(self.importer(), request, request.data))
+        response["Cache-Control"] = "private, no-store"
+        return response
 
     @action(detail=False, methods=["post"], url_path="import-confirm")
     def import_confirm(self, request):

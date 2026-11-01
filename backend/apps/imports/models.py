@@ -10,6 +10,7 @@ class PortfolioImport(OrganizationScopedModel):
     class Kind(models.TextChoices):
         UNITS = "units", "Units"
         TENANTS = "tenants", "Tenants"
+        TENANCIES = "tenancies", "Units, tenants and draft leases"
 
     kind = models.CharField(max_length=12, choices=Kind.choices)
     digest = models.CharField(max_length=64)

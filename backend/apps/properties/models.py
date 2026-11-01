@@ -66,7 +66,6 @@ class Unit(OrganizationScopedModel):
     name = models.CharField(max_length=80)
     bedrooms = models.PositiveSmallIntegerField(default=0)
     bathrooms = models.DecimalField(max_digits=4, decimal_places=1, default=0)
-    floor_area = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     rent_amount = models.DecimalField(max_digits=12, decimal_places=2)
     occupancy_status = models.CharField(
         max_length=30,

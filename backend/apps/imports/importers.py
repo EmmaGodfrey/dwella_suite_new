@@ -1,6 +1,7 @@
 import re
 from decimal import Decimal, InvalidOperation
 
+from django.db.models.functions import Lower, Trim
 from rest_framework import serializers
 
 from apps.properties.models import Property, Unit
@@ -36,9 +37,6 @@ class UnitRow(serializers.Serializer):
         required=False,
         default=0,
     )
-    floor_area = AmountField(
-        max_digits=10, decimal_places=2, min_value=Decimal("0.01"), required=False, allow_null=True
-    )
     notes = serializers.CharField(max_length=2000, required=False, default="")
 
     def validate_property(self, value):
@@ -60,7 +58,6 @@ class UnitImporter(Importer):
         ("rent_amount", True, "3500"),
         ("bedrooms", False, "2"),
         ("bathrooms", False, "1"),
-        ("floor_area", False, "65"),
         ("notes", False, "Ground floor"),
     )
     aliases = {
@@ -76,16 +73,28 @@ class UnitImporter(Importer):
 
     def __init__(self, organization):
         super().__init__(organization)
-        self.properties = {
-            item.name.strip().casefold(): item
-            for item in Property.objects.for_organization(organization).filter(is_active=True)
-        }
+        self.properties = {}
+
+    def prepare(self, rows):
+        names = {row.get("property", "").strip().lower() for row in rows}
+        for item in (
+            Property.objects.for_organization(self.organization)
+            .filter(is_active=True)
+            .annotate(lookup=Lower(Trim("name")))
+            .filter(lookup__in=names)
+        ):
+            key = item.name.strip().casefold()
+            self.properties[key] = None if key in self.properties else item
 
     def key(self, data):
         return data["property"].pk, data["unit"].casefold()
 
     def prime(self, rows):
-        names = Unit.objects.filter(property__in={row["property"] for row in rows})
+        names = (
+            Unit.objects.filter(property__in={row["property"] for row in rows})
+            .annotate(lookup=Lower("name"))
+            .filter(lookup__in={row["unit"].lower() for row in rows})
+        )
         self.known = {(pk, name.casefold()) for pk, name in names.values_list("property", "name")}
 
     def existing(self, data):
@@ -104,18 +113,41 @@ class UnitImporter(Importer):
             rent_amount=data["rent_amount"],
             bedrooms=data["bedrooms"],
             bathrooms=data["bathrooms"],
-            floor_area=data.get("floor_area"),
             notes=data["notes"],
+        )
+
+    def create_many(self, results):
+        return Unit.objects.bulk_create(
+            [
+                Unit(
+                    organization=self.organization,
+                    property=item["data"]["property"],
+                    name=item["data"]["unit"],
+                    rent_amount=item["data"]["rent_amount"],
+                    bedrooms=item["data"]["bedrooms"],
+                    bathrooms=item["data"]["bathrooms"],
+                    notes=item["data"]["notes"],
+                )
+                for item in results
+            ],
+            batch_size=100,
         )
 
 
 class TenantRow(serializers.Serializer):
+    tenant_type = serializers.ChoiceField(choices=Tenant.TenantType.choices, default="individual")
+    identity_type = serializers.ChoiceField(choices=Tenant.IdentityType.choices, default="nrc")
+    identity_country = serializers.RegexField(r"^[A-Za-z]{2}$", default="ZM")
+    billing_address = serializers.CharField(max_length=1000, required=False, default="")
+    company_registration = serializers.CharField(max_length=80, required=False, default="")
+    representative_name = serializers.CharField(max_length=180, required=False, default="")
+    representative_phone = serializers.CharField(max_length=40, required=False, default="")
     full_name = serializers.CharField(max_length=180)
     phone_number = serializers.CharField(max_length=40)
     email = serializers.EmailField(required=False, default="")
     national_id = serializers.CharField(max_length=40, required=False, default="")
     tpin = serializers.RegexField(
-        r"^\d{10}$",
+        r"^[0-9]{10}$",
         required=False,
         default="",
         error_messages={"invalid": "A TPIN is 10 digits."},
@@ -139,6 +171,14 @@ class TenantRow(serializers.Serializer):
     def validate_email(self, value):
         return value.strip().lower()
 
+    def validate_identity_country(self, value):
+        return value.upper()
+
+    def validate_representative_phone(self, value):
+        if not value:
+            return ""
+        return self.validate_phone_number(value)
+
 
 class TenantImporter(Importer):
     kind = "tenants"
@@ -151,6 +191,13 @@ class TenantImporter(Importer):
         ("national_id", False, "123456/10/1"),
         ("tpin", False, ""),
         ("notes", False, ""),
+        ("tenant_type", False, "individual"),
+        ("identity_type", False, "nrc"),
+        ("identity_country", False, "ZM"),
+        ("billing_address", False, "Plot 1, Lusaka"),
+        ("company_registration", False, ""),
+        ("representative_name", False, ""),
+        ("representative_phone", False, ""),
     )
     aliases = {
         "name": "full_name",
@@ -183,6 +230,17 @@ class TenantImporter(Importer):
     def label(self, data):
         return data["full_name"]
 
+    def row_missing_details(self, data):
+        from apps.tenants.details import missing_details
+
+        return missing_details(data)
+
     def create(self, data):
         # Imported tenants start as applicants; a lease makes them active.
         return Tenant.objects.create(organization=self.organization, **data)
+
+    def create_many(self, results):
+        return Tenant.objects.bulk_create(
+            [Tenant(organization=self.organization, **item["data"]) for item in results],
+            batch_size=100,
+        )

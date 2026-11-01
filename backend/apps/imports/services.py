@@ -1,17 +1,22 @@
 """Bulk CSV imports: template, preview, then a one-time confirmation.
 
-The preview validates every row and returns a signed token holding the rows
-that are ready. Confirming re-checks those rows inside one transaction, under
+The preview validates every row and returns an opaque token for encrypted,
+expiring server-side rows. Confirming re-checks those rows in one transaction, under
 the workspace's record-limit lock, and creates all of them or none: if anything
 changed since the preview, the manager previews again.
 """
 
+import base64
 import csv
 import json
+import secrets
+from contextlib import ExitStack
 from hashlib import sha256
 from io import StringIO
 
-from django.core import signing
+from cryptography.fernet import Fernet, InvalidToken, MultiFernet
+from django.conf import settings
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
 from rest_framework import serializers
@@ -28,11 +33,24 @@ PREVIEW_SECONDS = 30 * 60
 
 
 class UploadSerializer(serializers.Serializer):
-    csv = serializers.CharField(max_length=1_000_000, trim_whitespace=False)
+    csv = serializers.CharField(max_length=1_000_000, trim_whitespace=False, required=False)
+    file = serializers.FileField(required=False)
+
+    def validate(self, attrs):
+        if ("csv" in attrs) == ("file" in attrs):
+            raise ValidationError("Choose one CSV or XLSX file.")
+        return attrs
 
 
 class ConfirmSerializer(serializers.Serializer):
-    preview_token = serializers.CharField(max_length=500_000)
+    preview_token = serializers.RegexField(r"^[A-Za-z0-9_-]{43}$", max_length=43)
+
+
+def preview_cipher():
+    keys = [settings.SECRET_KEY, *settings.SECRET_KEY_FALLBACKS]
+    return MultiFernet(
+        [Fernet(base64.urlsafe_b64encode(sha256((key + SALT).encode()).digest())) for key in keys]
+    )
 
 
 def header(name):
@@ -67,6 +85,15 @@ class Importer:
     def prime(self, rows):
         """Load what `existing` needs for all valid rows in one query."""
 
+    def prepare(self, rows):
+        pass
+
+    def capacities(self, results):
+        return [(self.resource, len(results))]
+
+    def create_many(self, results):
+        return [self.create(item["data"]) for item in results]
+
     def existing(self, data):
         """A message when the record already exists in the workspace."""
         raise NotImplementedError
@@ -89,6 +116,8 @@ def template_response(importer):
 
 
 def read_rows(importer, text):
+    if len(text.encode("utf-8")) > 1_000_000:
+        raise ValidationError("Choose a file no larger than 1 MB.")
     reader = csv.reader(StringIO(text.lstrip("﻿")), strict=True)
     try:
         raw_headers = next(reader, None)
@@ -96,6 +125,19 @@ def read_rows(importer, text):
             raise ValidationError("The file is empty. Start from the template.")
         known = {column for column, _, _ in importer.columns}
         headers = [importer.aliases.get(header(name), header(name)) for name in raw_headers]
+        if importer.kind == "tenancies" and set(headers) & {
+            "opening_balance",
+            "balance",
+            "arrears",
+            "deposit_held",
+        }:
+            raise ValidationError(
+                "Historical balances need a reviewed opening record. "
+                "Remove balance columns; this import creates draft tenancies only."
+            )
+        used = [name for name in headers if name in known]
+        if len(used) != len(set(used)):
+            raise ValidationError("Each import column must appear only once.")
         missing = [c for c, required, _ in importer.columns if required and c not in headers]
         if missing:
             plural = "s" if len(missing) > 1 else ""
@@ -123,6 +165,7 @@ def read_rows(importer, text):
 def check(importer, rows):
     """Classify rows as ready, duplicate or invalid, in file order."""
     results, seen = [], {}
+    importer.prepare([values for _, values in rows])
     cleaned = [(number, values, *importer.clean(values)) for number, values in rows]
     importer.prime([data for _, _, data, errors in cleaned if not errors])
     for number, values, data, errors in cleaned:
@@ -142,6 +185,9 @@ def check(importer, rows):
                 "label": importer.label(data),
                 "message": message,
                 "data": data,
+                "missing_details": importer.row_missing_details(data)
+                if hasattr(importer, "row_missing_details")
+                else [],
             }
         )
     return results
@@ -154,19 +200,28 @@ def public(results):
 def preview(importer, request, payload):
     upload = UploadSerializer(data=payload)
     upload.is_valid(raise_exception=True)
-    rows, ignored = read_rows(importer, upload.validated_data["csv"])
+    if "file" in upload.validated_data:
+        from .spreadsheets import uploaded_csv
+
+        text = uploaded_csv(upload.validated_data["file"])
+    else:
+        text = upload.validated_data["csv"]
+    rows, ignored = read_rows(importer, text)
     results = check(importer, rows)
     ready = [[item["row"], item["values"]] for item in results if item["status"] == "ready"]
-    token = signing.dumps(
-        {
-            "o": str(importer.organization.public_id),
-            "u": request.user.pk,
-            "k": importer.kind,
-            "rows": ready,
-        },
-        salt=SALT,
-        compress=True,
-    )
+    token = secrets.token_urlsafe(32)
+    content = {
+        "o": str(importer.organization.public_id),
+        "u": request.user.pk,
+        "k": importer.kind,
+        "rows": ready,
+    }
+    if ready:
+        cache.set(
+            f"portfolio-import-preview:{token}",
+            preview_cipher().encrypt(json.dumps(content).encode()).decode(),
+            timeout=PREVIEW_SECONDS,
+        )
     counts = {
         status: sum(item["status"] == status for item in results)
         for status in ("ready", "duplicate", "invalid")
@@ -184,10 +239,11 @@ def confirm(importer, request, payload):
     form.is_valid(raise_exception=True)
     token = form.validated_data["preview_token"]
     try:
-        content = signing.loads(token, salt=SALT, max_age=PREVIEW_SECONDS)
-    except signing.SignatureExpired as error:
-        raise ValidationError("This preview has expired. Upload the file again.") from error
-    except signing.BadSignature as error:
+        encrypted = cache.get(f"portfolio-import-preview:{token}")
+        if not encrypted:
+            raise InvalidToken
+        content = json.loads(preview_cipher().decrypt(encrypted.encode(), ttl=PREVIEW_SECONDS))
+    except (InvalidToken, ValueError, TypeError) as error:
         raise ValidationError("This preview is not valid. Upload the file again.") from error
     if (
         content.get("o") != str(importer.organization.public_id)
@@ -200,7 +256,10 @@ def confirm(importer, request, payload):
     digest = sha256(
         json.dumps([importer.organization.pk, importer.kind, rows], sort_keys=True).encode()
     ).hexdigest()
-    with capacity_guard(importer.organization, importer.resource, additional=len(rows)):
+    with transaction.atomic(), ExitStack() as guards:
+        from apps.organizations.models import Organization
+
+        Organization.objects.select_for_update().get(pk=importer.organization.pk)
         # The guard holds the workspace lock, so two imports cannot interleave.
         results = check(importer, rows)
         changed = [item for item in results if item["status"] != "ready"]
@@ -211,6 +270,8 @@ def confirm(importer, request, payload):
                     "rows": public(changed),
                 }
             )
+        for resource, amount in importer.capacities(results):
+            guards.enter_context(capacity_guard(importer.organization, resource, additional=amount))
         try:
             with transaction.atomic():
                 receipt = PortfolioImport.objects.create(
@@ -222,7 +283,7 @@ def confirm(importer, request, payload):
                 )
         except IntegrityError as error:
             raise ValidationError("This preview was already imported.") from error
-        created = [importer.create(item["data"]) for item in results]
+        created = importer.create_many(results)
         record_event(
             request,
             f"portfolio.{importer.kind}_imported",
@@ -230,4 +291,5 @@ def confirm(importer, request, payload):
             importer.organization,
             count=len(created),
         )
+        transaction.on_commit(lambda: cache.delete(f"portfolio-import-preview:{token}"))
     return created
