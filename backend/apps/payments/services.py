@@ -12,6 +12,7 @@ from apps.billing.services import record_payment
 from apps.subscriptions.catalog import Feature
 from apps.subscriptions.services import require_feature
 
+from . import notices
 from .models import Collection, Destination, Payout
 from .provider import Provider
 from .schedule import (
@@ -241,6 +242,7 @@ def _apply_verified_collection(collection, result):
     with transaction.atomic():
         invoice = Invoice.objects.select_for_update().get(pk=collection.invoice_id)
         row = Collection.objects.select_for_update().get(pk=collection.pk)
+        before = row.status
         now = timezone.now()
         row.last_checked_at = now
         _apply_collection_result(row, invoice, result, now)
@@ -253,6 +255,7 @@ def _apply_verified_collection(collection, result):
             row.issue = "settlement_overdue"
         row.next_check_at = collection_next_check(row, now)
         row.save()
+        notices.collection_changed(row, before)
 
 
 def _expire_if_unpaid(row, now):
@@ -385,11 +388,13 @@ def _apply_payout_result(payout, result):
             .select_related("collection__destination")
             .get(pk=payout.pk)
         )
+        before = row.status
         now = timezone.now()
         row.last_checked_at = now
         _apply_payout_data(row, result, now)
         row.next_check_at = payout_next_check(row, now)
         row.save()
+        notices.payout_changed(row, before)
 
 
 def _apply_payout_data(row, result, now):
@@ -483,6 +488,7 @@ def process_payout(payout):
                 row.status, row.issue = Payout.Status.REVIEW, "payout_requires_review"
                 row.next_check_at = None
                 row.save()
+                notices.payout_changed(row, Payout.Status.QUEUED)
                 return
             from .balances import can_reserve_payout
 
@@ -498,9 +504,10 @@ def process_payout(payout):
         elif row.status != Payout.Status.FAILED and (
             now - (row.submitted_at or row.created_at) > PAYOUT_CONFIRMATION_LIMIT
         ):
-            row.status, row.issue = Payout.Status.REVIEW, "payout_unconfirmed"
+            before, row.status, row.issue = row.status, Payout.Status.REVIEW, "payout_unconfirmed"
             row.next_check_at = None
             row.save()
+            notices.payout_changed(row, before)
             return
     provider = Provider(collection.environment)
     if submit:

@@ -19,6 +19,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.integrations.lenco import LencoError
 
+from . import notices
 from .models import Collection, Destination, Payout, Withdrawal
 from .provider import Provider
 from .schedule import PAYOUT_CONFIRMATION_LIMIT, payout_next_check
@@ -158,7 +159,7 @@ def request_withdrawal(*, organization, user, amount, fee, idempotency_key):
             )
         try:
             with transaction.atomic():
-                return Withdrawal.objects.create(
+                row = Withdrawal.objects.create(
                     organization=organization,
                     destination=destination,
                     requested_by=user,
@@ -171,6 +172,9 @@ def request_withdrawal(*, organization, user, amount, fee, idempotency_key):
                 )
         except IntegrityError:
             raise ValidationError("This request is already in use.") from None
+        # Co-managers learn of the request; the requester just made it.
+        notices.withdrawal_changed(row, None, actor=user)
+        return row
 
 
 def cancel_withdrawal(withdrawal):
@@ -181,6 +185,8 @@ def cancel_withdrawal(withdrawal):
             raise ValidationError("This withdrawal is already being sent.")
         row.status, row.issue, row.next_check_at = Withdrawal.Status.CANCELLED, "", None
         row.save(update_fields=["status", "issue", "next_check_at", "updated_at"])
+        # The cancelling manager is excluded through the request's actor context.
+        notices.withdrawal_changed(row, Withdrawal.Status.QUEUED)
     return row
 
 
@@ -244,6 +250,7 @@ def process_withdrawal(withdrawal):
                 row.status, row.issue = Withdrawal.Status.CANCELLED, "withdrawal_no_longer_allowed"
                 row.next_check_at = None
                 row.save()
+                notices.withdrawal_changed(row, Withdrawal.Status.QUEUED)
                 return
             from .balances import can_reserve
 
@@ -259,9 +266,11 @@ def process_withdrawal(withdrawal):
             row.next_check_at = payout_next_check(row, now)
             row.save()
         elif now - (row.submitted_at or row.created_at) > PAYOUT_CONFIRMATION_LIMIT:
+            before = row.status
             row.status, row.issue = Withdrawal.Status.REVIEW, "withdrawal_unconfirmed"
             row.next_check_at = None
             row.save()
+            notices.withdrawal_changed(row, before)
             return
     provider = Provider(row.environment)
     if submit:
@@ -289,6 +298,7 @@ def _apply_withdrawal_result(withdrawal, result, submitted=False):
             .select_related("destination")
             .get(pk=withdrawal.pk)
         )
+        before = row.status
         now = timezone.now()
         row.last_checked_at = now
         if submitted and row.status == Withdrawal.Status.SUBMITTING and _refused(result):
@@ -297,6 +307,7 @@ def _apply_withdrawal_result(withdrawal, result, submitted=False):
             _apply_withdrawal_data(row, result, now)
         row.next_check_at = payout_next_check(row, now)
         row.save()
+        notices.withdrawal_changed(row, before)
 
 
 def _matches_destination(destination, recipient):
