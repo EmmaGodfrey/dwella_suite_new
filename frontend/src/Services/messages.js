@@ -2,8 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./apiClient";
 
 const base = "notifications/";
-export function useMessageHistory(filters, platform = false) {
-  return useQuery({ queryKey: ["messages", platform, filters], queryFn: () => api.get(`${base}${platform ? "platform-messages" : "messages"}/?${new URLSearchParams(filters)}`) });
+export function useMessageHistory(filters, platform = false, operational = false) {
+  const resource = operational ? (platform ? "platform-operational-messages" : "operational-messages") : (platform ? "platform-messages" : "messages");
+  return useQuery({ queryKey: ["messages", platform, operational, filters], queryFn: () => api.get(`${base}${resource}/?${new URLSearchParams(filters)}`) });
 }
 export function useMessageRecipients(search, page = 1) {
   return useQuery({ queryKey: ["message-recipients", search, page], queryFn: () => api.get(`${base}message-recipients/?${new URLSearchParams({ search, page, page_size: 50 })}`) });

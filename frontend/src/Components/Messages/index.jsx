@@ -21,7 +21,8 @@ export default function Messages() {
   const [filters, setFilters] = useState({ page: 1, channel: "", status: "", search: "" });
   const [compose, setCompose] = useState(false);
   const [detail, setDetail] = useState(null);
-  const query = useMessageHistory(filters, platform);
+  const [operational, setOperational] = useState(true);
+  const query = useMessageHistory(filters, platform, operational);
   const update = (key, value) => setFilters((v) => ({ ...v, [key]: value, page: 1 }));
   return <div className="messages-page">
     <AdminHeader title="Messages" description="Send notices and track individual delivery requests.">
@@ -30,6 +31,7 @@ export default function Messages() {
     </AdminHeader>
     <p className="settings-note">A held request has not been sent. Provider acceptance does not confirm delivery; delivery reports update the status when available.</p>
     <div className="messages-filters">
+      <Field label="Message type"><Select value={operational ? "operational" : "notices"} onChange={(_, d) => { setOperational(d.value === "operational"); setFilters({ page: 1, channel: "", status: "", search: "" }); }}><option value="operational">Operational updates</option><option value="notices">Notices and optional reminders</option></Select></Field>
       <Field label="Search"><Input value={filters.search} onChange={(_, d) => update("search", d.value)} /></Field>
       <Field label="Channel"><Select value={filters.channel} onChange={(_, d) => update("channel", d.value)}><option value="">All channels</option>{Object.entries(channelNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>
       <Field label="Status"><Select value={filters.status} onChange={(_, d) => update("status", d.value)}><option value="">All statuses</option>{Object.entries(statusNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>
@@ -39,8 +41,8 @@ export default function Messages() {
       {!query.data?.results?.length ? <EmptyState title="No messages yet" description="Your confirmed notices and scheduled reminders will appear here." /> : <AdminTable
         rows={query.data.results} pagination={query.data.pagination} setPage={(page) => setFilters((v) => ({ ...v, page }))}
         columns={[
-          { key: "subject", label: "Notice", render: (row) => platform ? row.subject : <Button appearance="transparent" onClick={() => setDetail(row.id)}>{row.subject}</Button> },
-          { key: "tenant_name", label: "Recipient" },
+          { key: "subject", label: "Notice", render: (row) => platform || operational ? row.subject : <Button appearance="transparent" onClick={() => setDetail(row.id)}>{row.subject}</Button> },
+          { key: operational ? "recipient_name" : "tenant_name", label: "Recipient" },
           ...(platform ? [{ key: "workspace_name", label: "Workspace" }] : []),
           { key: "channel", label: "Channel", render: (row) => channelNames[row.channel] },
           { key: "status", label: "Status", render: (row) => <StatusBadge color={row.status === "held" || row.status === "review" ? "warning" : "subtle"}>{statusNames[row.status]}</StatusBadge> },
