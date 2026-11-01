@@ -183,7 +183,8 @@ def schedule_reminders(*, now=None, limit=500):
     provider_config = runtime_settings()
     ready = [
         channel for channel, ok in channel_readiness(provider_config).items()
-        if ok and (channel != "whatsapp" or provider_config["whatsapp_template"])
+        if ok and channel != "email"
+        and (channel != "whatsapp" or provider_config["whatsapp_template"])
     ]
     if not config.reminders_enabled or not ready:
         return 0
@@ -233,7 +234,10 @@ def schedule_workspace(pk, today, ready, budget):
         pref.save(update_fields=["run_date", "next_run_at"])
         return 0, 0
     organization = pref.organization
-    channels = [channel for channel in ready if getattr(pref, f"{channel}_enabled")]
+    channels = [
+        channel for channel in ready
+        if channel != "email" and getattr(pref, f"{channel}_enabled")
+    ]
     invoices = list(
         Invoice.objects.filter(
             organization=organization,
@@ -404,6 +408,7 @@ def dispatch_messages(*, now=None, limit=50):
                         connection=transport,
                         reply_to=[row.organization.email] if row.organization.email else None,
                     )
+                    email.dwella_bulk = True
                     sent = email.send(fail_silently=False)
                     provider = getattr(email, "dwella_provider", "smtp")
                     provider_id = getattr(email, "dwella_provider_id", "")
@@ -439,7 +444,9 @@ def dispatch_messages(*, now=None, limit=50):
     return count
 
 
-FINAL_REASONS = {"invoice_no_longer_due", "recipient_changed", "permission_removed"}
+FINAL_REASONS = {
+    "invoice_no_longer_due", "recipient_changed", "permission_removed", "operational_email_owned",
+}
 
 
 def close_quietly(transport):
@@ -481,6 +488,8 @@ def dispatch_block(row, config, now):
     if not feature_available(organization, row.channel):
         return "feature_unavailable"
     if row.invoice_id:
+        if row.channel == "email":
+            return "operational_email_owned"
         invoice = row.invoice
         pref = ReminderPreferences.objects.filter(organization=organization).first()
         today = now.astimezone(ZoneInfo(organization.timezone)).date()

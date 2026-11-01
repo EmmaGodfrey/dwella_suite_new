@@ -21,7 +21,7 @@ STALE_AFTER = timedelta(hours=2)
 
 
 def enabled_jobs():
-    return [name for name in settings.SCHEDULER_JOBS if name in JOBS]
+    return list(dict.fromkeys(name for name in settings.SCHEDULER_JOBS if name in JOBS))
 
 
 def is_due(name, now):
@@ -82,7 +82,7 @@ def scheduler_status():
         jobs.append(
             {
                 "job": name,
-                "enabled": name in settings.SCHEDULER_JOBS,
+                "enabled": name in enabled_jobs(),
                 "schedule": f"every {int(job.every.total_seconds() // 60)} minutes"
                 if job.every
                 else f"daily from {job.daily_at:%H:%M}",

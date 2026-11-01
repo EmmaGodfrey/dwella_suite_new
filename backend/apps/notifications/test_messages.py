@@ -37,6 +37,15 @@ def reset_cache():
     cache.clear()
 
 
+@pytest.fixture
+def reminder_sms(monkeypatch):
+    # Exercise optional scheduling with its remaining SMS owner; no network I/O.
+    monkeypatch.setattr(
+        "apps.notifications.messaging.channel_readiness",
+        lambda config=None: {"email": False, "sms": True, "whatsapp": False},
+    )
+
+
 def compose_data(home, channel="email"):
     tenant = home["invoice"].tenant
     tenant.email = "tenant@example.com"
@@ -180,7 +189,7 @@ def due_today(home, now):
     return invoice
 
 
-def test_scheduler_runs_once_a_day_and_stops_paid_invoices(home, settings):
+def test_scheduler_runs_once_a_day_and_stops_paid_invoices(home, settings, reminder_sms):
     enable_email(settings)
     now = timezone.now().replace(hour=12)
     invoice = due_today(home, now)
@@ -188,10 +197,10 @@ def test_scheduler_runs_once_a_day_and_stops_paid_invoices(home, settings):
         organization=home["org"], email_enabled=True, sms_enabled=True, whatsapp_enabled=True
     )
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
-    # SMS and WhatsApp are not connected, so only email is scheduled.
+    # Email belongs to the operational outbox; only SMS is scheduled here.
     assert schedule_reminders(now=now) == 1
     assert schedule_reminders(now=now) == 0
-    assert MessageDelivery.objects.get().channel == "email"
+    assert MessageDelivery.objects.get().channel == "sms"
     MessageDelivery.objects.all().delete()
     ReminderPreferences.objects.filter(pk=pref.pk).update(run_date=None, next_run_at=None)
     invoice.status = "paid"
@@ -211,18 +220,18 @@ def test_unconnected_channels_schedule_nothing(home):
     assert not MessageDelivery.objects.exists()
 
 
-def test_scheduler_waits_for_the_workspace_reminder_hour(home, settings):
+def test_scheduler_waits_for_the_workspace_reminder_hour(home, settings, reminder_sms):
     enable_email(settings)
     now = timezone.now().replace(hour=12)
     due_today(home, now)
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True, due_hour=23)
+    ReminderPreferences.objects.create(organization=home["org"], sms_enabled=True, due_hour=23)
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
     assert schedule_reminders(now=now) == 0
     assert ReminderPreferences.objects.get().run_date is None
 
 
 @pytest.mark.parametrize("days,expected", [(-3, 1), (-2, 0), (0, 1), (3, 1), (9, 1), (12, 0)])
-def test_before_due_and_overdue_schedule(home, settings, days, expected):
+def test_before_due_and_overdue_schedule(home, settings, days, expected, reminder_sms):
     enable_email(settings)
     now = timezone.now().replace(hour=12)
     invoice = home["invoice"]
@@ -230,7 +239,7 @@ def test_before_due_and_overdue_schedule(home, settings, days, expected):
     invoice.tenant.email = "rent@example.com"
     invoice.tenant.save()
     invoice.save()
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    ReminderPreferences.objects.create(organization=home["org"], sms_enabled=True)
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
     assert schedule_reminders(now=now) == expected
 
@@ -311,35 +320,19 @@ def test_quiet_hours_defer_without_starving_other_requests(home, settings, mailo
     assert len(mailoutbox) == 1
 
 
-@pytest.mark.parametrize("late_days,status", [(1, "sent"), (2, "cancelled")])
-def test_reminder_may_go_one_day_late(home, settings, mailoutbox, late_days, status):
+def test_legacy_queued_email_reminder_is_cancelled(home, settings, mailoutbox):
     enable_email(settings)
-    now = timezone.now().replace(hour=12)
-    due_today(home, now)
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
-    MessagingSettings.objects.create(pk=1, reminders_enabled=True)
-    assert schedule_reminders(now=now) == 1
-    dispatch_messages(now=now + timedelta(days=late_days))
-    assert MessageDelivery.objects.get().status == status
-
-
-def test_reminder_paid_between_schedule_and_send_is_cancelled(home, settings, mailoutbox):
-    settings.MESSAGING_EMAIL_ENABLED = True
-    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     now = timezone.now().replace(hour=12) + timedelta(days=1)
-    invoice = home["invoice"]
-    invoice.due_date = now.date()
-    invoice.tenant.email = "rent@example.com"
-    invoice.tenant.save()
-    invoice.save()
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    invoice = due_today(home, now)
+    row = MessageDelivery.objects.create(
+        organization=home["org"], tenant=invoice.tenant, invoice=invoice,
+        channel="email", recipient=invoice.tenant.email, subject="Rent",
+        body="Rent due", identity="legacy-reminder", reminder_date=now.date(), status="queued",
+    )
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
-    assert schedule_reminders(now=now) == 1
-    invoice.status, invoice.amount_paid = "paid", invoice.total
-    invoice.save()
-    dispatch_messages(now=now + timedelta(minutes=1))
-    row = MessageDelivery.objects.get()
-    assert row.status == "cancelled" and row.reason == "invoice_no_longer_due"
+    assert dispatch_messages(now=now) == 0
+    row.refresh_from_db()
+    assert row.status == "cancelled" and row.reason == "operational_email_owned"
     assert not mailoutbox
 
 
@@ -418,7 +411,7 @@ def test_reading_message_detail_is_not_throttled(home):
             assert client.get(BASE + f"messages/{row.public_id}/").status_code == 200
 
 
-def test_scheduling_is_bounded_and_resumes(home, settings):
+def test_scheduling_is_bounded_and_resumes(home, settings, reminder_sms):
     from apps.billing.services import generate_rent_invoices
     from apps.billing.tests import THIS_MONTH, make_lease
 
@@ -431,7 +424,7 @@ def test_scheduling_is_bounded_and_resumes(home, settings):
     assert invoices.count() == 3
     invoices.update(due_date=now.date())
     Tenant.objects.filter(organization=home["org"]).update(email="rent@example.com")
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    ReminderPreferences.objects.create(organization=home["org"], sms_enabled=True)
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
     # A limit of 3 covers the workspace itself plus two invoices.
     assert schedule_reminders(now=now, limit=3) == 2
@@ -442,15 +435,15 @@ def test_scheduling_is_bounded_and_resumes(home, settings):
     assert MessageDelivery.objects.count() == 3
 
 
-def test_scheduler_pages_workspaces_and_skips_finished_ones(home, settings):
+def test_scheduler_pages_workspaces_and_skips_finished_ones(home, settings, reminder_sms):
     enable_email(settings)
     now = timezone.now().replace(hour=12)
     # No invoices fall due, so each workspace costs one unit of the limit.
     Invoice.objects.update(due_date=now.date() + timedelta(days=60))
-    ReminderPreferences.objects.create(organization=home["org"], email_enabled=True)
+    ReminderPreferences.objects.create(organization=home["org"], sms_enabled=True)
     for i in range(5):
         org = Organization.objects.create(name=f"Reminder workspace {i}")
-        ReminderPreferences.objects.create(organization=org, email_enabled=True)
+        ReminderPreferences.objects.create(organization=org, sms_enabled=True)
     MessagingSettings.objects.create(pk=1, reminders_enabled=True)
     waiting = ReminderPreferences.objects.filter(
         Q(next_run_at__isnull=True) | Q(next_run_at__lte=now)

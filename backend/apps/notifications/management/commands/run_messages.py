@@ -9,4 +9,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         scheduled = schedule_reminders()
         sent = dispatch_messages()
-        self.stdout.write(f"Scheduled {scheduled}; accepted by email transport {sent}.")
+        self.stdout.write(
+            f"Optional scheduled {scheduled}; accepted {sent}."
+        )
