@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Button, DrawerBody, DrawerFooter, DrawerHeader, DrawerHeaderTitle, Field, Input,
   OverlayDrawer, Select, Textarea,
 } from "@fluentui/react-components";
-import { Dismiss20Regular } from "@fluentui/react-icons";
+import { Attach16Regular, Dismiss12Regular, Dismiss20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
-import { useDeductionDecision, useDeposit, useDepositAction } from "../../Services/payments";
+import {
+  openDepositEvidence, uploadDeductionEvidence, useDeductionDecision, useDeposit, useDepositAction,
+} from "../../Services/payments";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
 import { formatDate, formatMoney } from "../../shared/format";
@@ -18,6 +20,22 @@ const methods = [
 ];
 const deductionColor = { proposed: "warning", accepted: "informative", disputed: "danger", applied: "success", withdrawn: "subtle" };
 const positive = (value) => Number(value) > 0;
+const MAX_EVIDENCE = 5;
+const EVIDENCE_TYPES = "image/jpeg,image/png,image/webp,application/pdf";
+const MAX_EVIDENCE_BYTES = 8 * 1024 * 1024;
+
+/** Photos and receipts behind a deduction; scope is "billing" or "portal". */
+export function EvidenceList({ items, scope }) {
+  if (!items?.length) return null;
+  const open = async (item) => {
+    try { await openDepositEvidence(scope, item); } catch (error) { toast.error(error.message || "Could not open this file."); }
+  };
+  return <ul className="dwella-deposit-evidence" aria-label="Photos and receipts">
+    {items.map((item) => <li key={item.id}>
+      <Button size="small" appearance="secondary" icon={<Attach16Regular />} onClick={() => open(item)}>{item.name}</Button>
+    </li>)}
+  </ul>;
+}
 
 /** One form per action, sharing validation and server error handling. */
 function ActionDrawer({ leaseId, action, deposit, onClose }) {
@@ -45,6 +63,9 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
   }[action];
   const [form, setForm] = useState(config.initial);
   const [message, setMessage] = useState("");
+  const [files, setFiles] = useState([]);
+  const picker = useRef(null);
+  const addFiles = (list) => { setFiles((current) => [...current, ...list].slice(0, MAX_EVIDENCE + 1)); clearError("evidence"); };
   const mutation = useDepositAction(leaseId);
   const { errors, validate, clearError, fieldProps, showServerErrors } = useFormErrors();
   const change = (key, value) => { setForm((f) => ({ ...f, [key]: value })); clearError(key); setMessage(""); };
@@ -58,10 +79,15 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
       ...(action === "deductions" ? { reason: () => !form.reason.trim() ? "Say what the deduction is for." : "" } : {}),
       ...(form.occurred_on !== undefined ? { occurred_on: () => !form.occurred_on || form.occurred_on > today() ? "Choose a date that is not in the future." : "" } : {}),
       ...(form.paid_on !== undefined ? { paid_on: () => !form.paid_on || form.paid_on > today() ? "Choose a date that is not in the future." : "" } : {}),
+      ...(action === "deductions" ? { evidence: () => files.length > MAX_EVIDENCE ? `Attach up to ${MAX_EVIDENCE} files.`
+        : files.some((f) => f.size > MAX_EVIDENCE_BYTES) ? "Each file must be 8 MB or smaller." : "" } : {}),
     }, event.currentTarget)) return;
     try {
-      await mutation.mutateAsync({ action, ...form });
-      toast.success({ request: "Deposit invoice sent.", opening: "Deposit recorded.", deductions: "Deduction sent to the tenant.", refunds: "Refund recorded." }[action]);
+      const saved = await mutation.mutateAsync({ action, ...form });
+      const failed = action === "deductions" && files.length && saved?.created_id
+        ? await uploadDeductionEvidence(leaseId, saved.created_id, files) : [];
+      if (failed.length) toast.warning(`Deduction sent, but ${failed.map((f) => f.name).join(", ")} could not be attached: ${failed[0].message}`);
+      else toast.success({ request: "Deposit invoice sent.", opening: "Deposit recorded.", deductions: "Deduction sent to the tenant.", refunds: "Refund recorded." }[action]);
       onClose();
     } catch (error) {
       if (!showServerErrors(error.data, Object.keys(form))) setMessage(error.message || "Could not save this.");
@@ -80,6 +106,22 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
         <Field label="Details for the tenant" {...fieldProps("details")}>
           <Textarea value={form.details} maxLength={2000} onChange={(_, d) => change("details", d.value)}
             placeholder="What was found, when, and how the amount was worked out (quote or receipt)." />
+        </Field>
+        <Field label="Photos or receipts" {...fieldProps("evidence")}
+          hint={`Up to ${MAX_EVIDENCE} photos or PDFs, 8 MB each. The tenant can open them. Photo location and camera details are removed.`}>
+          <div className="dwella-deposit-attach">
+            {files.length > 0 && <ul className="dwella-deposit-evidence" aria-label="Files to attach">
+              {files.map((file, index) => <li key={`${file.name}-${index}`}>
+                <Button size="small" appearance="secondary" icon={<Dismiss12Regular />} iconPosition="after"
+                  aria-label={`Remove ${file.name}`} onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}>{file.name}</Button>
+              </li>)}
+            </ul>}
+            {files.length < MAX_EVIDENCE && <Button size="small" icon={<Attach16Regular />} onClick={() => picker.current?.click()}>
+              {files.length ? "Add another" : "Attach photos or receipts"}
+            </Button>}
+            <input ref={picker} type="file" multiple hidden accept={EVIDENCE_TYPES}
+              onChange={(e) => { addFiles([...e.target.files]); e.target.value = ""; }} />
+          </div>
         </Field>
       </>}
       {action === "opening" && text("occurred_on", "Date it was paid", { field: { required: true }, input: { type: "date", max: today() } })}
@@ -121,6 +163,7 @@ function Deduction({ row, leaseId }) {
       {row.tenant_note && <span>Tenant: “{row.tenant_note}”</span>}
       {row.resolution_note && <span>Resolution: {row.resolution_note}</span>}
     </div>
+    <EvidenceList items={row.evidence} scope="billing" />
     {open && <div className="dwella-deposit-row-actions">
       {row.status === "disputed" && resolving && <Field label="How was the dispute resolved?" className="dwella-deposit-resolution">
         <Textarea value={resolution} maxLength={1000} onChange={(_, d) => setResolution(d.value)} />

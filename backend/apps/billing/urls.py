@@ -19,6 +19,8 @@ urlpatterns = [
     path("deposits/<uuid:public_id>/opening/", deposit.DepositOpeningView.as_view()),
     path("deposits/<uuid:public_id>/deductions/", deposit.DepositDeductionCreateView.as_view()),
     path("deposits/<uuid:public_id>/refunds/", deposit.DepositRefundView.as_view()),
+    path("deposit-deductions/<uuid:public_id>/evidence/", deposit.DeductionEvidenceView.as_view()),
+    path("deposit-evidence/<uuid:public_id>/", deposit.EvidenceFileView.as_view()),
     path(
         "deposit-deductions/<uuid:public_id>/<str:decision>/",
         deposit.DeductionDecisionView.as_view(),

@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { useRespondToDeduction, useTenantDeposits } from "../../Services/payments";
 import { StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
-import { DepositHistory, DepositSummary } from "../Billing/DepositDrawer";
+import { DepositHistory, DepositSummary, EvidenceList } from "../Billing/DepositDrawer";
 import "../Billing/deposits.scss";
 
 const tone = { proposed: "warning", accepted: "informative", disputed: "danger", applied: "success" };
@@ -31,6 +31,7 @@ function Deduction({ row }) {
       {row.tenant_note && <span>Your note: “{row.tenant_note}”</span>}
       {row.resolution_note && <span>Resolution: {row.resolution_note}</span>}
     </div>
+    <EvidenceList items={row.evidence} scope="portal" />
     {row.can_respond && <div className="dwella-deposit-row-actions">
       {disputing ? <>
         <Field label="Why do you disagree?" className="dwella-deposit-resolution">
@@ -57,7 +58,7 @@ export default function TenantDeposits() {
       <DepositSummary deposit={deposit} />
       {deposit.deductions.length > 0 && <section aria-label="Deductions">
         <h3>Deductions</h3>
-        <p className="dwella-deposit-muted">Nothing is taken from your deposit until you accept or a dispute is resolved.</p>
+        <p className="dwella-deposit-muted dwella-deposit-intro">Nothing is taken from your deposit until you accept or a dispute is resolved.</p>
         {deposit.deductions.map((row) => <Deduction key={row.id} row={row} />)}
       </section>}
       <section aria-label="Deposit history">

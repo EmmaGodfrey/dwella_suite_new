@@ -6,6 +6,7 @@ from . import views
 
 urlpatterns = [
     path("deposits/", deposit_views.TenantDepositsView.as_view()),
+    path("deposit-evidence/<uuid:public_id>/", deposit_views.TenantEvidenceFileView.as_view()),
     path(
         "deposit-deductions/<uuid:public_id>/respond/",
         deposit_views.TenantDeductionResponseView.as_view(),

@@ -188,3 +188,40 @@ export const useRespondToDeduction = () => useMutation({
   retry: false,
   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["portal", "deposits"] }),
 });
+
+// Photos and receipts behind a deduction. Files are sent one at a time so one
+// bad file does not lose the others.
+export async function uploadDeductionEvidence(leaseId, deductionId, files) {
+  const failed = [];
+  let latest = null;
+  for (const file of files) {
+    const body = new FormData();
+    body.append("file", file);
+    try {
+      latest = await api.post(`/billing/deposit-deductions/${deductionId}/evidence/`, body);
+    } catch (error) {
+      failed.push({ name: file.name, message: error.data?.file?.[0] || error.message });
+    }
+  }
+  if (latest) queryClient.setQueryData(depositKey(leaseId), latest);
+  return failed;
+}
+
+// scope: "billing" (manager) or "portal" (tenant). Opens in a new tab when the
+// browser can show it, otherwise downloads it.
+export async function openDepositEvidence(scope, item) {
+  const tab = window.open("", "_blank");
+  try {
+    const blob = await api.get(`/${scope}/deposit-evidence/${item.id}/`, { responseType: "blob" });
+    const url = URL.createObjectURL(new Blob([blob], { type: item.content_type }));
+    if (tab) tab.location.href = url;
+    else {
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = item.name; anchor.click();
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (error) {
+    tab?.close();
+    throw error;
+  }
+}

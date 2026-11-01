@@ -32,6 +32,8 @@ from .phone_messaging import normalize_phone, phone_allowed, send_sms, sms_ready
 logger = logging.getLogger(__name__)
 
 TARGETS = {
+    "billing.depositdeduction",
+    "billing.depositentry",
     "billing.invoice",
     "billing.payment",
     "leases.lease",
@@ -66,6 +68,10 @@ TITLES = {
     "withdrawal.queued": "Withdrawal requested",
     "withdrawal.pending": "Withdrawal processing",
     "withdrawal.cancelled": "Withdrawal cancelled",
+    "deposit.deduction_proposed": "Deposit deduction proposed",
+    "deposit.deduction_answered": "Tenant answered a deposit deduction",
+    "deposit.deduction_applied": "Deposit deduction applied",
+    "deposit.refund_recorded": "Deposit refund recorded",
 }
 
 
@@ -78,6 +84,8 @@ def context(target):
         return target.collection.organization, None
     if label == "payments.collection":
         return target.organization, target.invoice.tenant
+    if label in ("billing.depositdeduction", "billing.depositentry"):
+        return target.organization, target.lease.tenant
     return target.organization, getattr(target, "tenant", None)
 
 
@@ -166,6 +174,8 @@ def target_for(row):
         "leases.lease": ("organization", "tenant", "unit"),
         "maintenance.maintenancerequest": ("organization", "tenant", "unit"),
         "payments.withdrawal": ("organization",),
+        "billing.depositdeduction": ("organization", "lease__tenant"),
+        "billing.depositentry": ("organization", "lease__tenant"),
     }[row.target_model]
     return model.objects.select_related(*related).filter(pk=row.target_id).first()
 
@@ -252,6 +262,27 @@ def content(row, target):
             f"Status: {target.get_status_display()}. Lease ends {target.end_date}."
         )
         path = f"/leases/{target.public_id}"
+    elif label == "billing.depositdeduction":
+        # A withdrawn or since-decided deduction is never announced late.
+        if row.target_state and target.status != row.target_state:
+            return None
+        detail = (
+            f"Lease {target.lease.reference}: {target.reason}, {currency} {target.amount:.2f}. "
+            f"Status: {target.get_status_display()}. "
+            "Nothing is taken from the deposit until the tenant accepts or a dispute is resolved."
+            if row.event == "deposit.deduction_proposed"
+            else f"Lease {target.lease.reference}: {target.reason}, {currency} "
+            f"{target.amount:.2f}. Status: {target.get_status_display()}."
+        )
+        path = "/leases" if row.audience == "tenant" else f"/leases/{target.lease.public_id}"
+    elif label == "billing.depositentry":
+        detail = (
+            f"Lease {target.lease.reference}: deposit refund of {currency} "
+            f"{-target.amount:.2f} recorded"
+            + (f", reference {target.reference}" if target.reference else "")
+            + f". Paid on {target.occurred_on}."
+        )
+        path = "/leases" if row.audience == "tenant" else f"/leases/{target.lease.public_id}"
     elif label.startswith("maintenance."):
         job = target.request if label.endswith("maintenanceupdate") else target
         if row.target_state and job.status != row.target_state:

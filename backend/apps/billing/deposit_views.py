@@ -17,7 +17,7 @@ from apps.leases.models import Lease
 from apps.portal.access import IsPortalTenant, portal_context
 
 from . import deposits
-from .models import DepositDeduction, Payment
+from .models import DepositDeduction, DepositEvidence, Payment
 
 MONEY = {"max_digits": 12, "decimal_places": 2}
 
@@ -44,6 +44,15 @@ def deduction_data(row, *, tenant=False):
         "responded_at": row.responded_at,
         "resolution_note": row.resolution_note,
         "decided_at": row.decided_at,
+        "evidence": [
+            {
+                "id": str(item.public_id),
+                "name": item.name,
+                "content_type": item.content_type,
+                "size": item.size,
+            }
+            for item in row.evidence.all()
+        ],
     }
     if tenant:
         data["can_respond"] = row.status in DepositDeduction.OPEN_STATUSES
@@ -184,7 +193,10 @@ class DepositDeductionCreateView(ManagerView):
         row = deposits.propose_deduction(
             lease, user=request.user, **valid(DeductionSerializer, request)
         )
-        return self.done(lease, "deposit.deduction_proposed", row, amount=str(row.amount))
+        response = self.done(lease, "deposit.deduction_proposed", row, amount=str(row.amount))
+        # Lets the screen attach evidence to the deduction it just created.
+        response.data["created_id"] = str(row.public_id)
+        return response
 
 
 class DepositRefundView(ManagerView):
@@ -209,6 +221,33 @@ class DeductionDecisionView(ManagerView):
 
             raise NotFound()
         return self.done(row.lease, f"deposit.deduction_{row.status}", row)
+
+
+def evidence_response(item):
+    from django.http import HttpResponse
+
+    from apps.documents.views import private_headers
+
+    response = HttpResponse(bytes(item.content), content_type=item.content_type)
+    response["Content-Disposition"] = f'attachment; filename="{item.name}"'
+    response["Content-Security-Policy"] = "sandbox; default-src 'none'"
+    return private_headers(response)
+
+
+class DeductionEvidenceView(ManagerView):
+    def post(self, request, public_id):
+        row = self.deduction(public_id)
+        item = deposits.add_evidence(row, upload=request.FILES.get("file"), user=request.user)
+        return self.done(row.lease, "deposit.evidence_added", item, name=item.name)
+
+
+class EvidenceFileView(ManagerView):
+    def get(self, request, public_id):
+        item = get_object_or_404(
+            DepositEvidence.objects.for_organization(resolve_workspace(request)),
+            public_id=public_id,
+        )
+        return evidence_response(item)
 
 
 # Tenant portal
@@ -255,3 +294,18 @@ class TenantDeductionResponseView(APIView):
         )
         record_event(request, f"deposit.deduction_{row.status}", row, portal.organization)
         return Response(payload(row.lease, tenant=True))
+
+
+class TenantEvidenceFileView(APIView):
+    permission_classes = [IsPortalTenant]
+
+    def get(self, request, public_id):
+        portal = portal_context(request)
+        item = get_object_or_404(
+            DepositEvidence.objects.filter(
+                organization=portal.organization,
+                deduction__lease__tenant_id__in=portal.tenant_ids,
+            ).exclude(deduction__status=DepositDeduction.Status.WITHDRAWN),
+            public_id=public_id,
+        )
+        return evidence_response(item)

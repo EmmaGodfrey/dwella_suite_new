@@ -287,3 +287,29 @@ class DepositEntry(OrganizationScopedModel):
 
     def __str__(self):
         return f"{self.lease} - {self.get_kind_display()} {self.amount}"
+
+
+class DepositEvidence(OrganizationScopedModel):
+    """A photo or document supporting a deduction. Stored privately in the
+    database (images re-encoded without metadata) and served only to the
+    workspace and the tenant concerned."""
+
+    MAX_PER_DEDUCTION = 5
+
+    deduction = models.ForeignKey(
+        DepositDeduction, on_delete=models.CASCADE, related_name="evidence"
+    )
+    name = models.CharField(max_length=120)
+    content_type = models.CharField(max_length=40)
+    content = models.BinaryField()
+    size = models.PositiveIntegerField()
+    sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.name

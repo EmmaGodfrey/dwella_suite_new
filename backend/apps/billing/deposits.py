@@ -9,15 +9,22 @@ reserved. Deductions never reduce what is held until they are applied.
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Prefetch, Q, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.leases.models import Lease
 
-from .models import DepositDeduction, DepositEntry, Invoice, InvoiceLine
+from .models import DepositDeduction, DepositEntry, DepositEvidence, Invoice, InvoiceLine
 
 ZERO = Decimal("0")
+
+
+def _notify(target, event, **options):
+    # Notices never block or undo a deposit change.
+    from apps.notifications.events import safe_enqueue
+
+    safe_enqueue(target, event, **options)
 
 
 def _total(queryset, field="amount"):
@@ -72,7 +79,12 @@ def summary(lease):
         "available": total_held - total_reserved,
         "requested_unpaid": requested_unpaid(lease),
         "entries": entries,
-        "deductions": list(DepositDeduction.objects.filter(lease=lease)),
+        # File contents are only read when someone opens one.
+        "deductions": list(
+            DepositDeduction.objects.filter(lease=lease).prefetch_related(
+                Prefetch("evidence", queryset=DepositEvidence.objects.defer("content"))
+            )
+        ),
     }
 
 
@@ -171,7 +183,7 @@ def propose_deduction(lease, *, amount, reason, details, user):
     available = held(lease) - reserved(lease)
     if amount > available:
         raise ValidationError({"amount": [f"Only {available} of the deposit is available."]})
-    return DepositDeduction.objects.create(
+    row = DepositDeduction.objects.create(
         organization=lease.organization,
         lease=lease,
         amount=amount,
@@ -179,6 +191,8 @@ def propose_deduction(lease, *, amount, reason, details, user):
         details=details.strip(),
         proposed_by=user,
     )
+    _notify(row, "deposit.deduction_proposed", tenant_only=True, state=row.status, actor=user)
+    return row
 
 
 def _locked_deduction(deduction):
@@ -200,6 +214,14 @@ def respond_to_deduction(deduction, *, accept, note):
     deduction.tenant_note = note.strip()
     deduction.responded_at = timezone.now()
     deduction.save(update_fields=["status", "tenant_note", "responded_at", "updated_at"])
+    _notify(
+        deduction,
+        "deposit.deduction_answered",
+        managers_only=True,
+        state=deduction.status,
+        # A tenant may change their answer; each answer is its own notice.
+        suffix=f"{deduction.status}:{deduction.responded_at.timestamp():.0f}",
+    )
     return deduction
 
 
@@ -234,6 +256,9 @@ def apply_deduction(deduction, *, user, resolution_note=""):
         note=deduction.reason,
         recorded_by=user,
     )
+    _notify(
+        deduction, "deposit.deduction_applied", tenant_only=True, state=deduction.status, actor=user
+    )
     return deduction
 
 
@@ -259,7 +284,7 @@ def record_refund(lease, *, amount, method, reference, paid_on, note, user):
     available = held(lease) - reserved(lease)
     if amount > available:
         raise ValidationError({"amount": [f"Only {available} is available to refund."]})
-    return DepositEntry.objects.create(
+    entry = DepositEntry.objects.create(
         organization=lease.organization,
         lease=lease,
         kind=DepositEntry.Kind.REFUND,
@@ -270,6 +295,8 @@ def record_refund(lease, *, amount, method, reference, paid_on, note, user):
         note=note.strip(),
         recorded_by=user,
     )
+    _notify(entry, "deposit.refund_recorded", tenant_only=True, actor=user)
+    return entry
 
 
 def carry_over_to_renewal(renewal, previous):
@@ -301,6 +328,43 @@ def carry_over_to_renewal(renewal, previous):
                 **common,
             ),
         ]
+    )
+
+
+@transaction.atomic
+def add_evidence(deduction, *, upload, user):
+    """Attach a photo or PDF (quote, receipt) to an undecided deduction.
+
+    Images are re-encoded to JPEG, which strips location and camera metadata;
+    PDFs must open in the isolated PDF reader. Nothing is stored unchecked."""
+    import hashlib
+    from pathlib import PurePath
+
+    from apps.documents.files import MAX_PHOTO_BYTES, clean_image, inspect_pdf, read_upload
+
+    deduction = _locked_deduction(deduction)
+    if deduction.status not in DepositDeduction.OPEN_STATUSES:
+        raise ValidationError({"file": ["This deduction has already been decided."]})
+    if deduction.evidence.count() >= DepositEvidence.MAX_PER_DEDUCTION:
+        raise ValidationError(
+            {"file": [f"Add up to {DepositEvidence.MAX_PER_DEDUCTION} files per deduction."]}
+        )
+    raw = read_upload(upload, MAX_PHOTO_BYTES)
+    stem = PurePath(getattr(upload, "name", "") or "evidence").stem[:100] or "evidence"
+    if raw.startswith(b"%PDF-"):
+        inspect_pdf(raw, render=False)
+        content, content_type, name = raw, "application/pdf", f"{stem}.pdf"
+    else:
+        content, content_type, name = clean_image(raw, photo=True), "image/jpeg", f"{stem}.jpg"
+    return DepositEvidence.objects.create(
+        organization_id=deduction.organization_id,
+        deduction=deduction,
+        name=name,
+        content_type=content_type,
+        content=content,
+        size=len(content),
+        sha256=hashlib.sha256(content).hexdigest(),
+        uploaded_by=user,
     )
 
 
