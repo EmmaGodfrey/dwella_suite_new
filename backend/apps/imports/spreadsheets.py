@@ -114,7 +114,10 @@ def xlsx_csv(raw):
                 kind = cell.get("t")
                 value = cell.findtext("s:v", default="", namespaces=NS)
                 if kind == "s":
-                    value = strings[int(value)]
+                    index = int(value)
+                    if not 0 <= index < len(strings):
+                        raise ValidationError("The worksheet contains an invalid text reference.")
+                    value = strings[index]
                 elif kind == "inlineStr":
                     value = "".join(cell.find("s:is", NS).itertext())
                 elif kind in {"e", "b"}:
@@ -135,6 +138,8 @@ def xlsx_csv(raw):
                         if not value.isdigit():
                             raise ValidationError("Use dates without a time in lease date columns.")
                         value = (epoch + timedelta(days=int(value))).isoformat()
+                if col in cells:
+                    raise ValidationError("The worksheet contains duplicate cell addresses.")
                 cells[col] = value
             if not any(cells.values()):
                 continue

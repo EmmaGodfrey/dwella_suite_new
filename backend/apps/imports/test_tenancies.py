@@ -231,3 +231,36 @@ def test_excel_text_identity_preservation_and_formula_rejection(portfolio):
     assert response.json()["response_data"]["rows"][0]["values"]["tpin"] == "0123456789"
     bad = excel('<row><c r="A1"><f>WEBSERVICE("https://example.com")</f><v>1</v></c></row>')
     assert client.post(BASE + "import-preview/?kind=tenancies", {"file": bad}).status_code == 400
+
+
+def test_changed_match_is_not_silently_linked(portfolio):
+    org, client = portfolio
+    token = preview(client, [row()]).json()["response_data"]["preview_token"]
+    Unit.objects.create(
+        organization=org, property=Property.objects.get(), name="Unit 1", rent_amount=1
+    )
+    response = confirm(client, token)
+    assert response.status_code == 400
+    assert not Tenant.objects.exists() and not Lease.objects.exists()
+
+
+def test_excel_rejects_numeric_ids_entities_and_expansion_bombs(portfolio):
+    _, client = portfolio
+    from zipfile import ZIP_DEFLATED
+
+    numeric = excel(
+        '<row><c r="A1" t="inlineStr"><is><t>tpin</t></is></c></row>'
+        '<row><c r="A2"><v>123456789</v></c></row>'
+    )
+    response = client.post(BASE + "import-preview/?kind=tenancies", {"file": numeric})
+    assert response.status_code == 400 and b"Text" in response.content
+    entities = excel('<!DOCTYPE x [<!ENTITY y "unsafe">]>')
+    assert (
+        client.post(BASE + "import-preview/?kind=tenancies", {"file": entities}).status_code == 400
+    )
+    stream = BytesIO()
+    with ZipFile(stream, "w", compression=ZIP_DEFLATED) as book:
+        book.writestr("xl/worksheets/sheet1.xml", "x" * 8_000_001)
+    bomb = SimpleUploadedFile("large.xlsx", stream.getvalue())
+    response = client.post(BASE + "import-preview/?kind=tenancies", {"file": bomb})
+    assert response.status_code == 400 and b"expands" in response.content

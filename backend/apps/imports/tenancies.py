@@ -140,7 +140,12 @@ class TenancyImporter(UnitImporter):
     def label(self, data):
         tenant = data["tenant_data"]
         suffix = tenant["full_name"] if tenant else "Vacant"
-        return f"{super().label(data)} · {suffix}"
+        unit_state = "existing unit" if self.key(data) in self.units else "new unit"
+        tenant_state = (
+            "existing tenant" if tenant and tenant["phone_number"] in self.tenants else "new tenant"
+        )
+        action = f"{unit_state}, {tenant_state}; draft lease" if tenant else f"{unit_state}; vacant"
+        return f"{super().label(data)} · {suffix} ({action})"
 
     def capacities(self, results):
         rows = [item["data"] for item in results]
@@ -148,6 +153,15 @@ class TenancyImporter(UnitImporter):
         return [
             (Resource.UNITS, sum(self.key(row) not in self.units for row in rows)),
             (Resource.TENANTS, len(phones - self.tenants.keys())),
+        ]
+
+    def match_signature(self, data):
+        unit = self.units.get(self.key(data))
+        tenant = data["tenant_data"]
+        tenant = self.tenants.get(tenant["phone_number"]) if tenant else None
+        return [
+            [str(unit.public_id), unit.updated_at.isoformat()] if unit else None,
+            [str(tenant.public_id), tenant.updated_at.isoformat()] if tenant else None,
         ]
 
     def create_many(self, results):

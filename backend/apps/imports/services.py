@@ -8,6 +8,7 @@ changed since the preview, the manager previews again.
 
 import base64
 import csv
+import gzip
 import json
 import secrets
 from contextlib import ExitStack
@@ -28,7 +29,7 @@ from apps.subscriptions.services import capacity_guard
 from .models import PortfolioImport
 
 MAX_ROWS = 500
-SALT = "portfolio.import.preview.v1"
+SALT = "portfolio.import.preview.v2"
 PREVIEW_SECONDS = 30 * 60
 
 
@@ -90,6 +91,9 @@ class Importer:
 
     def capacities(self, results):
         return [(self.resource, len(results))]
+
+    def match_signature(self, data):
+        return None
 
     def create_many(self, results):
         return [self.create(item["data"]) for item in results]
@@ -215,13 +219,27 @@ def preview(importer, request, payload):
         "u": request.user.pk,
         "k": importer.kind,
         "rows": ready,
+        "bindings": {
+            str(item["row"]): importer.match_signature(item["data"])
+            for item in results
+            if item["status"] == "ready"
+        },
     }
     if ready:
+        owner_key = (
+            f"portfolio-import-owner:{importer.organization.pk}:{request.user.pk}:{importer.kind}"
+        )
+        previous = cache.get(owner_key)
+        if previous:
+            cache.delete(f"portfolio-import-preview:{previous}")
         cache.set(
             f"portfolio-import-preview:{token}",
-            preview_cipher().encrypt(json.dumps(content).encode()).decode(),
+            preview_cipher()
+            .encrypt(gzip.compress(json.dumps(content, ensure_ascii=False).encode()))
+            .decode(),
             timeout=PREVIEW_SECONDS,
         )
+        cache.set(owner_key, token, timeout=PREVIEW_SECONDS)
     counts = {
         status: sum(item["status"] == status for item in results)
         for status in ("ready", "duplicate", "invalid")
@@ -242,8 +260,10 @@ def confirm(importer, request, payload):
         encrypted = cache.get(f"portfolio-import-preview:{token}")
         if not encrypted:
             raise InvalidToken
-        content = json.loads(preview_cipher().decrypt(encrypted.encode(), ttl=PREVIEW_SECONDS))
-    except (InvalidToken, ValueError, TypeError) as error:
+        content = json.loads(
+            gzip.decompress(preview_cipher().decrypt(encrypted.encode(), ttl=PREVIEW_SECONDS))
+        )
+    except (InvalidToken, ValueError, TypeError, OSError) as error:
         raise ValidationError("This preview is not valid. Upload the file again.") from error
     if (
         content.get("o") != str(importer.organization.public_id)
@@ -262,6 +282,13 @@ def confirm(importer, request, payload):
         Organization.objects.select_for_update().get(pk=importer.organization.pk)
         # The guard holds the workspace lock, so two imports cannot interleave.
         results = check(importer, rows)
+        for item in results:
+            if item["status"] == "ready" and content.get("bindings", {}).get(
+                str(item["row"])
+            ) != importer.match_signature(item["data"]):
+                item.update(
+                    status="invalid", message="Matched records changed since preview. Review again."
+                )
         changed = [item for item in results if item["status"] != "ready"]
         if changed:
             raise ValidationError(
