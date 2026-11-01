@@ -96,6 +96,9 @@ DATABASES = {
     "default": dj_database_url.config(
         default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
         conn_max_age=60,
+        # Threads keep their own persistent connection; check it before reuse so a
+        # database restart surfaces as a reconnect, not a failed request.
+        conn_health_checks=True,
     )
 }
 # A separate connection to the same PostgreSQL database commits mail reservations
