@@ -20,7 +20,7 @@ pytestmark = pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize("failure", ["invalid_hour", "enqueue", "database"])
 def test_bad_record_does_not_block_timezone_scan_or_next_page(house, source, failure, caplog):
     org, _, _, bad_lease, bad_invoice = house
-    now = timezone.now().replace(hour=12)
+    now = timezone.localtime().replace(hour=12)
     other = Organization.objects.create(name="Healthy schedule", timezone=org.timezone)
     good_lease = make_lease(other)
     good_lease.tenant.email = "healthy@example.com"

@@ -248,4 +248,3 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
     onSubmit={submit} onClose={onClose} errors={errors} busy={mutation.isPending}
     submitLabel={missing.length ? "Save incomplete" : "Save changes"}>{tenantFields}</FormDrawer>;
 }
-

@@ -231,7 +231,7 @@ def test_default_reminders_and_expiry_are_mandatory_and_deduplicated(house):
     NotificationPreferences.objects.create(user=tenant_user, email_enabled=False)
     lease.end_date = timezone.localdate() + timedelta(days=30)
     lease.save(update_fields=["end_date"])
-    now = timezone.now().replace(hour=12)
+    now = timezone.localtime().replace(hour=12)
     schedule_operational(now=now)
     count = OperationalDelivery.objects.count()
     schedule_operational(now=now)
@@ -283,7 +283,7 @@ def test_late_workspace_schedule_cannot_block_another_workspace(house):
         due_date=timezone.localdate(),
         lines=[{"kind": "rent", "description": "Rent", "amount": 100}],
     )
-    now = timezone.now().replace(hour=12)
+    now = timezone.localtime().replace(hour=12)
     schedule_operational(limit=1, now=now)
     schedule_operational(limit=1, now=now)
     earlier = OperationalDelivery.objects.get(
@@ -614,7 +614,7 @@ def test_tenant_operational_phone_requires_verified_link(house, source):
         patch("apps.notifications.operational.send_sms", return_value="sms-ok") as send,
     ):
         status, reason, _ = send_phone(
-            row, "Invoice", "Body", "https://example.com", timezone.now().replace(hour=12),
+            row, "Invoice", "Body", "https://example.com", timezone.localtime().replace(hour=12),
         )
     if source == "verified_link":
         assert status == "sent"

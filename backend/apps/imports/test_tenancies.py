@@ -244,6 +244,16 @@ def test_changed_match_is_not_silently_linked(portfolio):
     assert not Tenant.objects.exists() and not Lease.objects.exists()
 
 
+def test_new_preview_replaces_the_previous_private_preview(portfolio):
+    _, client = portfolio
+    first = preview(client, [row(1)]).json()["response_data"]["preview_token"]
+    second = preview(client, [row(2)]).json()["response_data"]["preview_token"]
+    assert cache.get(f"portfolio-import-preview:{first}") is None
+    assert confirm(client, first).status_code == 400
+    assert confirm(client, second).status_code == 201
+    assert list(Unit.objects.values_list("name", flat=True)) == ["Unit 2"]
+
+
 def test_excel_rejects_numeric_ids_entities_and_expansion_bombs(portfolio):
     _, client = portfolio
     from zipfile import ZIP_DEFLATED
