@@ -22,6 +22,7 @@ import "../../shared/records.scss";
 import "./leases.scss";
 import LeaseDocuments from "../Documents/LeaseDocuments";
 import RenewLeaseDrawer from "./RenewLeaseDrawer";
+import DepositDrawer from "../Billing/DepositDrawer";
 
 function History({ lease }) {
   const events = [
@@ -61,6 +62,7 @@ export default function LeaseDetail() {
   const lease = leaseQuery.data;
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [renewing, setRenewing] = useState(false);
+  const [deposit, setDeposit] = useState(false);
   const navigate = useNavigate();
 
   const action = useLeaseActionMutation({
@@ -121,6 +123,7 @@ export default function LeaseDetail() {
               {action.isPending ? "Starting…" : "Start lease"}
             </Button>
           ) : null}
+          {canManage && lease.status !== "draft" ? <Button onClick={() => setDeposit(true)}>Security deposit</Button> : null}
           {canRenew ? <Button icon={<ArrowRepeatAll20Regular />} disabled={action.isPending} onClick={() => setRenewing(true)}>Renew lease</Button> : null}
           {canEnd ? <Button disabled={action.isPending} onClick={() => setConfirmEnd(true)}>End lease</Button> : null}
         </div>
@@ -167,6 +170,8 @@ export default function LeaseDetail() {
       </div>
 
       <LeaseDocuments lease={lease} canManage={canManage} />
+
+      {deposit ? <DepositDrawer lease={lease} onClose={() => setDeposit(false)} /> : null}
 
       {renewing ? (
         <RenewLeaseDrawer

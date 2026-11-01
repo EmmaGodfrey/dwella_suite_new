@@ -148,3 +148,43 @@ export const useRemovePaymentInstruction = () => useMutation({
   retry: false,
   onSuccess: () => queryClient.invalidateQueries({ queryKey: instructionKey }),
 });
+
+// Security deposits (held for the tenant, separate from rent).
+const depositKey = (leaseId) => ["deposits", leaseId];
+
+export const useDeposit = (leaseId, options = {}) => useQuery({
+  queryKey: depositKey(leaseId),
+  queryFn: ({ signal }) => api.get(`/billing/deposits/${leaseId}/`, { signal }),
+  enabled: Boolean(leaseId),
+  retry: false,
+  ...options,
+});
+
+// action: "request" | "opening" | "deductions" | "refunds"
+export const useDepositAction = (leaseId) => useMutation({
+  mutationFn: ({ action, ...data }) => api.post(`/billing/deposits/${leaseId}/${action}/`, data),
+  retry: false,
+  onSuccess: (data) => {
+    queryClient.setQueryData(depositKey(leaseId), data);
+    // A deposit request issues an invoice.
+    queryClient.invalidateQueries({ queryKey: ["billing", "invoices"] });
+  },
+});
+
+export const useDeductionDecision = (leaseId) => useMutation({
+  mutationFn: ({ id, decision, ...data }) => api.post(`/billing/deposit-deductions/${id}/${decision}/`, data),
+  retry: false,
+  onSuccess: (data) => queryClient.setQueryData(depositKey(leaseId), data),
+});
+
+export const useTenantDeposits = () => useQuery({
+  queryKey: ["portal", "deposits"],
+  queryFn: ({ signal }) => api.get("/portal/deposits/", { signal }),
+  retry: false,
+});
+
+export const useRespondToDeduction = () => useMutation({
+  mutationFn: ({ id, ...data }) => api.post(`/portal/deposit-deductions/${id}/respond/`, data),
+  retry: false,
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["portal", "deposits"] }),
+});

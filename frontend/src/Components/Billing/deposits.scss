@@ -1,0 +1,164 @@
+.dwella-deposit {
+  display: grid;
+  gap: 1.5rem;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 0.75rem;
+    color: var(--dwella-ink);
+    font-size: var(--fs-h4);
+    line-height: var(--lh-h4);
+  }
+}
+
+.dwella-deposit-muted {
+  margin: 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  overflow-wrap: anywhere;
+}
+
+.dwella-deposit-summary {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem 1.25rem;
+  background: var(--dwella-wash);
+  border-radius: var(--radius-lg);
+}
+
+.dwella-deposit-held {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+
+  span {
+    display: block;
+    color: var(--dwella-muted);
+    font-size: var(--fs-small);
+  }
+
+  strong {
+    display: block;
+    color: var(--dwella-ink);
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.dwella-deposit-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+
+  div {
+    padding: 0.625rem 0.75rem;
+    background: var(--dwella-paper);
+    border-radius: var(--radius-md);
+  }
+
+  dt {
+    color: var(--dwella-muted);
+    font-size: var(--fs-small);
+  }
+
+  dd {
+    margin: 0.25rem 0 0;
+    color: var(--dwella-ink);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    &.is-positive { color: var(--dwella-success); }
+  }
+
+  @media (max-width: 520px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dwella-deposit-deduction {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.875rem 0;
+  border-top: 1px solid var(--dwella-line-soft);
+
+  &:first-of-type { border-top: 0; padding-top: 0; }
+}
+
+.dwella-deposit-deduction-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow-wrap: anywhere;
+
+  strong:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+}
+
+.dwella-deposit-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  overflow-wrap: anywhere;
+}
+
+.dwella-deposit-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.dwella-deposit-resolution { flex-basis: 100%; }
+
+.dwella-deposit-history {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.625rem 0;
+    border-top: 1px solid var(--dwella-line-soft);
+
+    &:first-child { border-top: 0; }
+  }
+
+  strong { display: block; color: var(--dwella-ink); font-size: var(--fs-body); }
+
+  span {
+    color: var(--dwella-muted);
+    font-size: var(--fs-small);
+    overflow-wrap: anywhere;
+  }
+
+  .is-in strong::before,
+  .is-out strong::before {
+    content: "";
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    background: var(--dwella-success);
+    vertical-align: 0.1em;
+  }
+
+  .is-out strong::before { background: var(--dwella-warning); }
+}
+
+.dwella-deposit-date { white-space: nowrap; }
+
+.dwella-deposit-footer {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -44,7 +44,10 @@ def month_bounds(period_start):
 
 def refresh_totals(invoice):
     """Recompute stored total/paid/status from lines and payments."""
-    invoice.total = invoice.lines.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    lines = invoice.lines.aggregate(
+        total=Sum("amount"), deposit=Sum("amount", filter=Q(kind=InvoiceLine.Kind.DEPOSIT))
+    )
+    invoice.total = lines["total"] or Decimal("0")
     invoice.amount_paid = invoice.payments.filter(reversed_at__isnull=True).aggregate(
         total=Sum("amount")
     )["total"] or Decimal("0")
@@ -56,6 +59,11 @@ def refresh_totals(invoice):
         else:
             invoice.status = Invoice.Status.PAID
     invoice.save(update_fields=["total", "amount_paid", "status", "updated_at"])
+    if lines["deposit"]:
+        # Deposit money is held for the tenant: mirror it in the deposit ledger.
+        from . import deposits
+
+        deposits.sync_invoice(invoice, lines["deposit"])
     return invoice
 
 

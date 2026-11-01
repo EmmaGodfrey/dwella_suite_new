@@ -114,6 +114,9 @@ def activate_lease(lease):
             previous.status = Lease.Status.ENDED
             previous.ended_at = timezone.now()
             previous.save(update_fields=["status", "ended_at", "updated_at"])
+        from apps.billing.deposits import carry_over_to_renewal
+
+        carry_over_to_renewal(lease, previous)
     lease.status = Lease.Status.ACTIVE
     lease.activated_at = timezone.now()
     lease.save(update_fields=["status", "activated_at", "updated_at"])

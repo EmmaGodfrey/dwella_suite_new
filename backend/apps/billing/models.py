@@ -198,3 +198,92 @@ class PaymentInstruction(OrganizationScopedModel):
             "lines": [[label, value] for label, value in lines if value],
             "note": self.note,
         }
+
+
+class DepositDeduction(OrganizationScopedModel):
+    """A proposed deduction from a tenant's deposit. It only reserves money
+    until it is applied; the tenant can accept or dispute it first."""
+
+    class Status(models.TextChoices):
+        PROPOSED = "proposed", "Awaiting tenant response"
+        ACCEPTED = "accepted", "Accepted by tenant"
+        DISPUTED = "disputed", "Disputed by tenant"
+        APPLIED = "applied", "Deducted"
+        WITHDRAWN = "withdrawn", "Withdrawn"
+
+    # Still holding money back from a refund.
+    OPEN_STATUSES = (Status.PROPOSED, Status.ACCEPTED, Status.DISPUTED)
+
+    lease = models.ForeignKey(
+        "leases.Lease", on_delete=models.PROTECT, related_name="deposit_deductions"
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    reason = models.CharField(max_length=200)
+    details = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=12, choices=Status.choices, default=Status.PROPOSED, db_index=True
+    )
+    proposed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    tenant_note = models.TextField(blank=True)
+    responded_at = models.DateTimeField(blank=True, null=True)
+    resolution_note = models.TextField(blank=True)
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", blank=True, null=True
+    )
+    decided_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=0), name="deposit_deduction_amount_positive"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.lease} - {self.reason}"
+
+
+class DepositEntry(OrganizationScopedModel):
+    """Append-only deposit ledger. Positive entries add to what is held for the
+    tenant, negative ones reduce it; corrections are new entries, never edits."""
+
+    class Kind(models.TextChoices):
+        OPENING = "opening", "Deposit already held"
+        COLLECTED = "collected", "Deposit collected"
+        DEDUCTION = "deduction", "Deduction applied"
+        REFUND = "refund", "Refund paid"
+        TRANSFER_IN = "transfer_in", "Carried over from previous lease"
+        TRANSFER_OUT = "transfer_out", "Carried over to renewal"
+
+    lease = models.ForeignKey(
+        "leases.Lease", on_delete=models.PROTECT, related_name="deposit_entries"
+    )
+    kind = models.CharField(max_length=14, choices=Kind.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    occurred_on = models.DateField()
+    # A collected entry follows its deposit invoice's payments (and reversals).
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.PROTECT, related_name="deposit_entries", blank=True, null=True
+    )
+    deduction = models.OneToOneField(
+        DepositDeduction, on_delete=models.PROTECT, related_name="entry", blank=True, null=True
+    )
+    method = models.CharField(max_length=20, choices=Payment.Method.choices, blank=True)
+    reference = models.CharField(max_length=100, blank=True)
+    note = models.TextField(blank=True)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", blank=True, null=True
+    )
+
+    class Meta:
+        ordering = ["-occurred_on", "-created_at"]
+        indexes = [models.Index(fields=["lease", "kind"])]
+        constraints = [
+            models.CheckConstraint(condition=~Q(amount=0), name="deposit_entry_amount_nonzero")
+        ]
+
+    def __str__(self):
+        return f"{self.lease} - {self.get_kind_display()} {self.amount}"

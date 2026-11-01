@@ -9,6 +9,7 @@ import { formatDate, formatMoney } from "../../shared/format";
 import { leaseBadgeProps } from "../../shared/tenancy";
 import { PaperPreview } from "../Documents/DocumentPreview";
 import PortalState from "./PortalState";
+import TenantDeposits from "./Deposits";
 
 const versionStatus = {
   signing: ["warning", "Awaiting signatures"],
@@ -121,6 +122,7 @@ export default function PortalLease() {
                 </section>
               </div>
             ))}
+            <TenantDeposits />
             {earlier.length ? (
               <section className="dwella-surface">
                 <h3>{current.length ? "Earlier and upcoming leases" : "Your leases"}</h3>
