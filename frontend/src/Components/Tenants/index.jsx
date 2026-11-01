@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Button, Input } from "@fluentui/react-components";
+import { Button, Input, Switch } from "@fluentui/react-components";
 import {
   ArrowUpload20Regular,
   Call20Regular,
@@ -89,8 +89,19 @@ function TenantProfile({ tenant, canManage, onEdit }) {
         <div><dt>Phone</dt><dd>{phone}</dd></div>
         <div><dt>Email</dt><dd>{tenant.email || "—"}</dd></div>
         <div><dt>NRC / passport</dt><dd>{tenant.national_id || "—"}</dd></div>
+        <div><dt>TPIN</dt><dd>{tenant.tpin || "—"}</dd></div>
+        <div><dt>Billing address</dt><dd>{tenant.billing_address || "—"}</dd></div>
+        {tenant.tenant_type === "company" ? <>
+          <div><dt>Company registration</dt><dd>{tenant.company_registration || "—"}</dd></div>
+          <div><dt>Representative</dt><dd>{tenant.representative_name || "—"}</dd></div>
+        </> : null}
         <div><dt>On file since</dt><dd>{formatDate(tenant.created_at)}</dd></div>
       </dl>
+      {tenant.missing_details?.length ? <section className="dwella-callout is-warning">
+        <h3>Complete tenant details</h3>
+        <p>Needed before new documents: {tenant.missing_details.map(item => item.label).join(", ")}.</p>
+        {canManage && !archived ? <Button onClick={onEdit}>Complete details</Button> : null}
+      </section> : null}
 
       {archived ? (
         <section className="dwella-callout is-info">
@@ -204,10 +215,10 @@ export default function Tenants() {
   });
   const tenant = tenantQuery.data;
   const showingArchived = filters.is_active === "false";
-  const filtered = Boolean(filters.search || filters.status || showingArchived);
+  const filtered = Boolean(filters.search || filters.status || showingArchived || filters.details);
   const clearFilters = () => {
     setSearch("");
-    setFilters(({ is_active, ...current }) => ({ ...current, search: "", status: "", page: 1 }));
+    setFilters(({ is_active, ...current }) => ({ ...current, search: "", status: "", details: "", page: 1 }));
   };
 
   const onSaved = (data) => {
@@ -218,6 +229,7 @@ export default function Tenants() {
   return (
     <div className="dwella-tenants-page">
       <div className="dwella-page-toolbar">
+        <Switch label="Missing details" checked={filters.details === "missing"} onChange={(_, data) => setFilters(current => ({ ...current, details: data.checked ? "missing" : "", page: 1 }))} />
         <SegmentedFilter
           label="Filter tenants by status"
           options={statusOptions}
@@ -244,7 +256,8 @@ export default function Tenants() {
         />
         {canManage ? (
           <PageActions>
-            <Button icon={<ArrowUpload20Regular />} onClick={() => setDrawer("import")}>Import CSV</Button>
+            <Button icon={<ArrowUpload20Regular />} onClick={() => setDrawer("import")}>Import tenants and leases</Button>
+            <Button onClick={() => setDrawer("import-tenants")}>Import tenants only</Button>
             <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setDrawer("add")}>
               Add tenant
             </Button>
@@ -328,11 +341,11 @@ export default function Tenants() {
             ) : null}
           </div>
 
-          {tenant ? <TenantProfile key={tenant.id} tenant={tenant} canManage={canManage} onEdit={() => setDrawer("edit")} /> : null}
+          {tenant ? <TenantProfile key={tenant.id} tenant={tenant} canManage={canManage && !tenantQuery.isPlaceholderData} onEdit={() => setDrawer("edit")} /> : null}
         </div>
       )}
 
-      {drawer === "import" ? <ImportDrawer kind="tenants" onClose={() => setDrawer(null)} /> : drawer ? (
+      {drawer === "import" || drawer === "import-tenants" ? <ImportDrawer kind={drawer === "import" ? "tenancies" : "tenants"} onClose={() => setDrawer(null)} /> : drawer ? (
         <TenantDrawer
           key={drawer === "edit" ? tenant?.id : "add"}
           open

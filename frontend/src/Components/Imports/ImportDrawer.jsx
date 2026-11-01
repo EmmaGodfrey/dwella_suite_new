@@ -12,6 +12,7 @@ import { ArrowDownload20Regular, ArrowUpload24Regular, Dismiss20Regular } from "
 import { useImportConfirm, useImportPreview, useImportTemplate } from "../../Services/imports";
 import { StatusBadge } from "../../shared/components";
 import { FormSteps } from "../../shared/components/FormFlow";
+import { correctionCsv } from "../../shared/importCorrections.mjs";
 import "../../shared/records.scss";
 import "./imports.scss";
 
@@ -21,7 +22,7 @@ const kinds = {
   units: {
     title: "Import units",
     description: "Add many units at once from a spreadsheet.",
-    columns: "Required: property, unit, rent_amount. Optional: bedrooms, bathrooms, floor_area, notes. Properties must already exist in Dwella.",
+    columns: "Required: property, unit, rent_amount. Optional: bedrooms, bathrooms, notes. Properties must already exist in Dwella.",
     singular: "unit",
     column: "Unit",
     plural: "units",
@@ -37,6 +38,14 @@ const kinds = {
     plural: "tenants",
     labelOf: (values) => values.full_name || values.phone_number,
     doneNote: "They start as applicants. Put each one on a lease, or invite them to the tenant portal from their profile.",
+  },
+  tenancies: {
+    title: "Import units, tenants and leases",
+    description: "One CSV or Excel file, with unit columns first and tenant columns after.",
+    columns: "Start with an existing property name, unit and rent_amount. Add tenant details and lease_start / lease_end for occupied units. Leave all tenant and lease columns blank for vacant units. Identity and phone columns in Excel must use Text format. Dates use YYYY-MM-DD.",
+    singular: "row", plural: "rows", column: "Property · Unit · Tenant",
+    labelOf: (values) => [values.property, values.unit, values.full_name || "Vacant"].join(" · "),
+    doneNote: "Tenancies were saved as drafts. No lease was activated, rent charged, deposit collected or invitation sent. Review and complete tenant details before activating each lease. Historical balances are not applied by this import.",
   },
 };
 const statusTone = { ready: ["success", "Ready"], duplicate: ["warning", "Duplicate"], invalid: ["danger", "Fix"] };
@@ -67,7 +76,7 @@ function RowsTable({ rows, text }) {
                 <td><strong>{row.row}</strong></td>
                 <td>{row.label || text.labelOf(row.values) || "—"}</td>
                 <td><StatusBadge color={color}>{label}</StatusBadge></td>
-                <td className={row.status === "invalid" ? "is-danger" : "dwella-muted-copy"}>{reasonOf(row) || "—"}</td>
+                <td className={row.status === "invalid" ? "is-danger" : "dwella-muted-copy"}>{reasonOf(row) || (row.missing_details?.length ? `Incomplete: ${row.missing_details.map(item => item.label).join(", ")}. Documents wait.` : "—")}</td>
               </tr>
             );
           })}
@@ -116,9 +125,9 @@ export default function ImportDrawer({ kind, onClose }) {
     previewMutation.reset();
     setFileError("");
     if (!chosen) return;
-    if (!/\.csv$/i.test(chosen.name)) {
+    if (!/\.(csv|xlsx)$/i.test(chosen.name)) {
       setFile(null);
-      setFileError("Choose a .csv file. In Excel or Google Sheets, save or download as CSV (UTF-8).");
+      setFileError("Choose a CSV (UTF-8) or XLSX file with one worksheet.");
       return;
     }
     if (chosen.size > MAX_BYTES) {
@@ -130,10 +139,10 @@ export default function ImportDrawer({ kind, onClose }) {
   };
   const review = async () => {
     if (!file) {
-      setFileError("Choose a CSV file first.");
+      setFileError("Choose a CSV or XLSX file first.");
       return;
     }
-    previewMutation.mutate(await file.text());
+    previewMutation.mutate(file);
   };
   const restart = () => {
     setStep(0);
@@ -142,6 +151,11 @@ export default function ImportDrawer({ kind, onClose }) {
     setChanged(null);
     previewMutation.reset();
     confirm.reset();
+  };
+  const downloadCorrections = () => {
+    const url = URL.createObjectURL(new Blob(["\uFEFF", correctionCsv(changed || preview.rows)], { type: "text/csv;charset=utf-8" }));
+    const anchor = document.createElement("a"); anchor.href = url; anchor.download = "dwella-import-corrections.csv"; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const counts = preview?.counts || { ready: 0, duplicate: 0, invalid: 0 };
@@ -190,9 +204,9 @@ export default function ImportDrawer({ kind, onClose }) {
                 }}
               >
                 <ArrowUpload24Regular aria-hidden="true" />
-                <strong>{file ? file.name : "Choose a CSV file or drop it here"}</strong>
-                <span>{file ? `${Math.max(1, Math.round(file.size / 1024))} KB · choose another to replace it` : "Up to 500 rows and 1 MB. Save from Excel or Google Sheets as CSV (UTF-8)."}</span>
-                <input ref={fileInput} type="file" accept=".csv,text/csv" onChange={(event) => choose(event.target.files?.[0])} />
+                <strong>{file ? file.name : "Choose a CSV or Excel file or drop it here"}</strong>
+                <span>{file ? `${Math.max(1, Math.round(file.size / 1024))} KB · choose another to replace it` : "Up to 500 rows and 1 MB. CSV (UTF-8) or XLSX with one worksheet."}</span>
+                <input ref={fileInput} type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => choose(event.target.files?.[0])} />
               </label>
               {fileError || previewMessage ? <p role="alert" className="dwella-import-error">{fileError || previewMessage}</p> : null}
               <p className="dwella-muted-copy">Nothing is saved until you confirm on the next step.</p>
@@ -216,6 +230,8 @@ export default function ImportDrawer({ kind, onClose }) {
                 </div>
               )}
               <RowsTable rows={changed || preview.rows} text={text} />
+              {kind === "tenancies" ? <p className="dwella-callout is-info">Units and tenants are linked through draft leases. No lease is activated, rent charged or invitation sent until you review and choose to do so.</p> : null}
+              <Button icon={<ArrowDownload20Regular />} disabled={!preview.rows.some(row => row.status !== "ready" || row.missing_details?.length)} onClick={downloadCorrections}>Download rows to review</Button>
               {confirm.isError && !changed ? <p role="alert" className="dwella-import-error">{confirm.error.message || "Could not import the rows."}</p> : null}
               {!changed ? (
                 <p className="dwella-muted-copy">
