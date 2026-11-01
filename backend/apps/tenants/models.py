@@ -1,11 +1,21 @@
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
+from django.utils import timezone
 
 from apps.common.models import OrganizationScopedModel
 
 
 class Tenant(OrganizationScopedModel):
+    class TenantType(models.TextChoices):
+        INDIVIDUAL = "individual", "Individual"
+        COMPANY = "company", "Company"
+
+    class IdentityType(models.TextChoices):
+        NRC = "nrc", "NRC"
+        PASSPORT = "passport", "Passport"
+        OTHER = "other", "Other identity document"
+
     class Status(models.TextChoices):
         APPLICANT = "applicant", "Applicant"
         ACTIVE = "active", "Active"
@@ -17,11 +27,19 @@ class Tenant(OrganizationScopedModel):
     phone_number = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
     national_id = models.CharField(max_length=40, blank=True)
+    tenant_type = models.CharField(max_length=12, choices=TenantType.choices, default="individual")
+    identity_type = models.CharField(max_length=12, choices=IdentityType.choices, default="nrc")
+    identity_country = models.CharField(max_length=2, default="ZM")
+    billing_address = models.TextField(blank=True, max_length=1000)
+    company_registration = models.CharField(max_length=80, blank=True)
+    representative_name = models.CharField(max_length=180, blank=True)
+    representative_phone = models.CharField(max_length=20, blank=True)
+    document_requirements_since = models.DateTimeField(default=timezone.now)
     # Printed on Smart Invoices; businesses renting commercial space need it.
     tpin = models.CharField(
         max_length=10,
         blank=True,
-        validators=[RegexValidator(r"^\d{10}$", "A TPIN is 10 digits.")],
+        validators=[RegexValidator(r"^[0-9]{10}$", "A TPIN is 10 digits.")],
     )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.APPLICANT, db_index=True
@@ -48,3 +66,4 @@ class Tenant(OrganizationScopedModel):
 
     def __str__(self):
         return self.full_name
+

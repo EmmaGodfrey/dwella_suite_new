@@ -9,6 +9,7 @@ from apps.leases.services import create_lease
 from apps.subscriptions.catalog import Resource
 from apps.subscriptions.services import capacity_guard
 
+from .details import missing_details
 from .models import Tenant
 from .phone import normalize_phone_number
 
@@ -17,6 +18,7 @@ LEASE_PRIORITY = {Lease.Status.ACTIVE: 0, Lease.Status.PENDING_SIGNATURE: 1, Lea
 
 
 class TenantSerializer(OrganizationScopedSerializer):
+    missing_details = serializers.SerializerMethodField()
     portal_access = serializers.SerializerMethodField()
     current_lease = serializers.SerializerMethodField()
     balance = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
@@ -31,6 +33,14 @@ class TenantSerializer(OrganizationScopedSerializer):
             "phone_number",
             "email",
             "national_id",
+            "tenant_type",
+            "identity_type",
+            "identity_country",
+            "billing_address",
+            "company_registration",
+            "representative_name",
+            "representative_phone",
+            "missing_details",
             "tpin",
             "status",
             "notes",
@@ -55,10 +65,12 @@ class TenantSerializer(OrganizationScopedSerializer):
             return {"status": "linked", "expires_at": None}
         pending = next(
             (
-                item for item in sorted(
+                item
+                for item in sorted(
                     obj.portal_invitations.all(), key=lambda item: item.created_at, reverse=True
                 )
-                if not item.accepted_at and not item.revoked_at
+                if not item.accepted_at
+                and not item.revoked_at
                 and item.expires_at > timezone.now()
                 and item.email == obj.email.strip().lower()
             ),
@@ -86,6 +98,31 @@ class TenantSerializer(OrganizationScopedSerializer):
 
     def validate_email(self, value):
         return value.strip().lower()
+
+    def validate_identity_country(self, value):
+        if len(value) != 2 or not value.isascii() or not value.isalpha():
+            raise serializers.ValidationError("Use a two-letter country code, for example ZM.")
+        return value.upper()
+
+    def validate_representative_phone(self, value):
+        if not value.strip():
+            return ""
+        phone = normalize_phone_number(value)
+        if not phone:
+            raise serializers.ValidationError("Enter a valid representative phone number.")
+        return phone
+
+    def get_missing_details(self, obj):
+        return missing_details(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        view = self.context.get("view")
+        if view and getattr(view, "action", None) == "list":
+            for key in ("national_id", "tpin", "company_registration"):
+                value = data.get(key, "")
+                data[key] = f"••••{value[-4:]}" if value else ""
+        return data
 
     def validate(self, attrs):
         if self.instance and "lease" in attrs:

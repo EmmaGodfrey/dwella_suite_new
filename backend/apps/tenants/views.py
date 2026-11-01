@@ -34,6 +34,20 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
         # Archived tenants leave the everyday list; ?is_active=false shows them.
         if self.action == "list" and "is_active" not in self.request.query_params:
             queryset = queryset.filter(is_active=True)
+        if self.action == "list" and self.request.query_params.get("details") == "missing":
+            queryset = queryset.filter(
+                Q(tpin="")
+                | Q(billing_address="")
+                | (Q(tenant_type="individual") & (Q(national_id="") | Q(identity_country="")))
+                | (
+                    Q(tenant_type="company")
+                    & (
+                        Q(company_registration="")
+                        | Q(representative_name="")
+                        | Q(representative_phone="")
+                    )
+                )
+            )
         return queryset
 
     @action(detail=True, methods=["post"])
@@ -67,7 +81,7 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
     serializer_class = TenantSerializer
     queryset = Tenant.objects.prefetch_related(
         "portal_invitations",
-        Prefetch("leases", queryset=Lease.objects.select_related("unit__property"))
+        Prefetch("leases", queryset=Lease.objects.select_related("unit__property")),
     ).annotate(
         # What the tenant still owes across unpaid invoices.
         balance=Coalesce(
