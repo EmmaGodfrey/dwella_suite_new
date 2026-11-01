@@ -77,13 +77,20 @@ class TenancyImporter(UnitImporter):
         }, None
 
     def prime(self, rows):
-        self.units = {
-            (unit.property_id, unit.name.casefold()): unit
-            for unit in Unit.objects.for_organization(self.organization)
+        self.ambiguous_units = set()
+        self.units = {}
+        # A case-sensitive database may already contain both "A" and "a".
+        # Never choose one silently when matching case-insensitive sheet labels.
+        for unit in (
+            Unit.objects.for_organization(self.organization)
             .filter(property__in={row["property"].pk for row in rows})
             .annotate(lookup=Lower("name"))
             .filter(lookup__in={row["unit"].lower() for row in rows})
-        }
+        ):
+            key = (unit.property_id, unit.name.casefold())
+            if key in self.units:
+                self.ambiguous_units.add(key)
+            self.units[key] = unit
         self.busy = set(
             Lease.objects.filter(
                 unit__in=self.units.values(), status__in=Lease.OPEN_STATUSES
@@ -109,6 +116,8 @@ class TenancyImporter(UnitImporter):
                 seen[phone] = tenant
 
     def existing(self, data):
+        if self.key(data) in self.ambiguous_units:
+            return "More than one unit matches this label. Review the unit names first."
         unit = self.units.get(self.key(data))
         if unit and (
             not unit.is_active or unit.pk in self.busy or unit.occupancy_status != "vacant"

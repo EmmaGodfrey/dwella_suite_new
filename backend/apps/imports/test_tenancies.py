@@ -254,6 +254,18 @@ def test_new_preview_replaces_the_previous_private_preview(portfolio):
     assert list(Unit.objects.values_list("name", flat=True)) == ["Unit 2"]
 
 
+def test_case_ambiguous_existing_units_require_review(portfolio):
+    org, client = portfolio
+    for name in ["Unit 1", "unit 1"]:
+        Unit.objects.create(
+            organization=org, property=Property.objects.get(), name=name, rent_amount=1
+        )
+    body = preview(client, [row()]).json()["response_data"]
+    assert body["preview_token"] is None
+    assert body["counts"]["duplicate"] == 1
+    assert "More than one unit" in body["rows"][0]["message"]
+
+
 def test_excel_rejects_numeric_ids_entities_and_expansion_bombs(portfolio):
     _, client = portfolio
     from zipfile import ZIP_DEFLATED
