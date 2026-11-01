@@ -238,7 +238,9 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
-        "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
+        # Six dashboard reads plus navigation and polling can exceed 1000/hour.
+        # Sensitive writes/rendering retain their independent, lower scopes.
+        "user": __import__("os").getenv("THROTTLE_USER_RATE", "6000/hour"),
         "support_session": "10/hour",
         "platform_write": "20/minute",
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
