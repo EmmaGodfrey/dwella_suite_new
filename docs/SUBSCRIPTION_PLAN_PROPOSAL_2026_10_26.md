@@ -15,8 +15,10 @@ Drafted 2026-10-26 by Claude for the user and Codex to review. **Nothing is impl
 - The product is moving away from automatic payouts.
 - Subscription money is collected into Dwella's own Lenco account, separate from rent. It never goes through a landlord payout.
 - Tenants never pay a subscription.
-- **2026-10-26:** Starter stays small, up to 5 units, possibly fewer. It's deliberately small so most landlords pick Standard.
 - **2026-10-26:** Portfolio uses per-unit rates that get cheaper with size (graduated bands, below).
+- **2026-10-27:** Starter is at least K350. Prices go up across the board to cover Resend ($20/month) and to **start high and collect feedback** from beta customers. Starter widens to 10 units, so K350 isn't K70 per unit.
+- **2026-10-27:** Fallback floor if customers push back: the 26 Oct draft (K150 / K400 / K850, Portfolio K850 + K15 / K10 / K7).
+- **2026-10-31:** Charge for purchased unit capacity, whether occupied or vacant, rather than the number of units with active leases. Keep the existing graduated Portfolio rates. This supersedes the occupied-unit billing proposal; billing remains unimplemented.
 
 ## Principles
 
@@ -31,15 +33,17 @@ Drafted 2026-10-26 by Claude for the user and Codex to review. **Nothing is impl
    - a landlord withdrawing money that has been collected;
    - anyone viewing or exporting history.
 3. **Tiers grow with portfolio size, not with access to the basics.** Every tier includes rent collection, invoices, receipts, the tenant portal, leases and maintenance. They are the reason to use Dwella, and they're how rent flows through it.
-4. **No price jump at a tier boundary.** Moving up one unit should never cost much more than the unit itself.
+4. **Graduated Portfolio rates.** Each additional capacity slot above 50 uses its band's rate. Starter, Standard and Professional retain the stated flat-price jumps.
 
-## Billable unit
+## Purchased unit capacity
 
-**A unit with an active lease on the billing date.**
+**2026-10-31 decision: customers pay for the ability to manage a chosen number of units, occupied or vacant.**
 
-- Vacant units are free and unlimited. Charging for empty units feels unfair, and vacancies are common.
-- It's hard to cheat, because invoicing a tenant requires a lease.
-- **Gap in the code:** the existing `capacity_guard` counts *stored records, including archived ones*. That is a technical limit, so it can't serve as the billing meter. Billing needs its own count of units with an active lease, saved on each billing date.
+- Starter includes capacity for 10 units, Standard 20, and Professional 50. Customers pay the plan price even when they use fewer slots or units are vacant.
+- Portfolio customers purchase a defined capacity above 50, priced using the existing graduated bands. Capacity for 100 units costs K2,250/month even if only 60 slots are used or some units are vacant.
+- Dwella measures capacity usage from unit records, not a manager's self-reported occupancy. Occupancy changes do not change the purchased capacity or subscription price.
+- Proposed lifecycle rule: archived units retain history without consuming capacity; archive/reactivation eligibility needs definition before implementation so live obligations cannot be hidden to evade limits.
+- **Gap in the code:** the existing `capacity_guard` counts stored records, including archived ones. Subscription billing needs explicit purchased capacity and an authoritative usage definition; an active-lease billing meter is no longer the proposed basis.
 
 ## Proposed tiers
 
@@ -47,30 +51,31 @@ All prices in kwacha. The rate stays fixed in ZMW, so it doesn't move with the d
 
 | | **Starter** | **Standard** | **Professional** | **Portfolio** |
 |---|---|---|---|---|
-| Leased units | up to 5 | up to 20 | up to 50 | 51 or more |
-| Monthly | **K150** | **K400** | **K850** | **K850 + graduated per-unit rates (below)** |
-| Annual (2 months free) | K1,500 | K4,000 | K8,500 | 10 × monthly |
-| Cost per unit at the cap | K30 | K20 | K17 | about K16 at 100 units, about K11 at 700 |
-| Share of rent roll (K3,000 average rent, at cap) | 1.0% | 0.67% | 0.57% | about 0.5% |
+| Unit capacity | up to 10 | up to 20 | up to 50 | chosen capacity above 50 |
+| Monthly | **K350** | **K650** | **K1,250** | **K1,250 + graduated per-unit rates (below)** |
+| Annual (2 months free) | K3,500 | K6,500 | K12,500 | 10 × monthly |
+| Cost per unit at the cap | K35 | K32.50 | K25 | about K22.50 at 100 units, about K14.60 at 700 |
+| Share of rent roll (K3,000 average rent, at cap) | 1.2% | 1.1% | 0.83% | about 0.5–0.75% |
 | Team members (managers) | 1 | 2 | 5 | Unlimited |
 | Bulk unit and tenant import | — | ✓ | ✓ | ✓ |
 | Handy assistant | — | ✓ (fair use) | ✓ (fair use) | ✓ (fair use) |
 | Message credits (SMS/WhatsApp) per leased unit per month | 6 | 6 | 8 | 8 |
 | Support | Email | Email | Priority (WhatsApp) | Priority plus onboarding help |
 
-**Portfolio rates.** These are graduated, like tax brackets: each rate applies only to the units inside its band, so the price never jumps.
+**Portfolio rates.** These are graduated, like tax brackets: each rate applies only to purchased capacity slots inside its band. The rates are unchanged by the 31 October capacity decision.
 
-| Leased units | Rate per unit per month |
+| Purchased capacity slots | Rate per slot per month |
 |---|---:|
-| 1–50 | included in the K850 base |
-| 51–200 | K15 |
-| 201–500 | K10 |
-| 501 and above | K7 |
+| 1–50 | included in the K1,250 base |
+| 51–200 | K20 |
+| 201–500 | K14 |
+| 501 and above | K9 |
 
 Examples:
-- **100 units:** K850 + 50 × K15 = **K1,600**.
-- **300 units:** K850 + 150 × K15 + 100 × K10 = **K4,100**.
-- **700 units:** K850 + 150 × K15 + 300 × K10 + 200 × K7 = **K7,500**. That's about K10.70 per unit, close to Nyumba Zetu's rate for large portfolios. Customers this size are offered an annual contract and may negotiate.
+- **100 units:** K1,250 + 50 × K20 = **K2,250**.
+- **300 units:** K1,250 + 150 × K20 + 100 × K14 = **K5,650**.
+- **700 units:** K1,250 + 150 × K20 + 300 × K14 + 200 × K9 = **K10,250**. That's about K14.60 per unit, 37% more than the 26 Oct draft's K7,500. Customers this size are offered an annual contract and may negotiate. Talk to the 700-unit beta customer before publishing.
+- **1,000 units:** **K12,950**, about K12.95 per unit.
 
 **What every tier includes:**
 - properties, units and tenants;
@@ -84,13 +89,13 @@ Examples:
 - unlimited email and in-app notifications.
 
 **Why these numbers:**
-- Property agents in Zambia typically charge around 10% of rent to manage a property. Dwella works out to 0.5–1% of the rent roll, so it's clearly worth paying for.
-- Starter is cheap enough for someone with one or two units. At K150 a month it is about 5% of one K3,000 rent. Raise or lower it once you've talked to small landlords.
-- **There's no jump at the threshold.** 50 leased units costs K850 and 51 costs K865. The per-unit rate continues the falling curve.
-- **There is a jump between Starter, Standard and Professional.** For example, 6 units costs K400 against K150 for 5. **This is intentional** (see "Pricing psychology"). Customers who go over keep their tier for one billing cycle (see "Going over a tier limit").
+- Property agents in Zambia typically charge around 10% of rent to manage a property. Dwella works out to about 0.5–1.2% of the rent roll, so it's still clearly worth paying for.
+- **These are opening prices, set high on purpose** so beta feedback can move them down. They sit at the top of the market, level with TenantCloud (US), and above every Kenyan product at 20 units. Don't go higher than this.
+- **There's no large jump at the Portfolio threshold.** Capacity for 50 units costs K1,250 and 51 costs K1,270. The per-unit rate continues the falling curve.
+- **There is a jump between Starter, Standard and Professional.** Capacity for 20 units costs K650 against K350 for 10. **This is intentional** (see "Pricing psychology"). Upgrade and grace mechanics remain proposals (see "Going over a tier limit").
 
 **Pricing psychology:**
-- **Starter is an entry point, not the main plan.** Its small limit and higher cost per unit (K30, or K50 if capped at 3 units) make Standard look like the obvious choice, at K20 per unit with four times the units.
+- **Starter is an entry point, not the main plan.** Its smaller limit and higher cost per unit (K35) make Standard look like the better deal as a portfolio grows.
 - **Mark Standard "Most popular"** and give it the visual emphasis on the pricing page.
 - **Show the cost per unit on every tier,** so the saving from moving up is visible.
 - **Show Portfolio as well,** even though few customers choose it. A large figure on the page makes the middle tiers look reasonable.
@@ -112,7 +117,8 @@ Monthly price by portfolio size (leased units):
 
 | Platform | 5 units | 20 units | 50 units | 100 units | Notes |
 |---|---:|---:|---:|---:|---|
-| **Dwella (proposal)** | **K150** | **K400** | **K850** | **K1,600** | Payment fees passed on, none kept |
+| **Dwella (proposal, 27 Oct)** | **K350** | **K650** | **K1,250** | **K2,250** | Payment fees passed on, none kept |
+| Dwella (26 Oct draft, floor) | K150 | K400 | K850 | K1,600 | |
 | RentSawa (KE) | K155 | K390 | K390 | from K1,160 | Starter covers 15 units, Pro 50; SMS allowance; staff accounts from Pro; 7-day trial |
 | HomeSpot (KE) | K390 | K390 | quote | quote | Starter covers 20 units |
 | Nyumba Zetu (KE) | about K140 + minimum | about K560 | up to K1,400 | falls towards K9/unit | KES 180/unit, falling to KES 60/unit at scale; 20% off annual; minimum not published |
@@ -144,16 +150,27 @@ Kenyan figures are vendor claims from their websites and should be rechecked bef
 
 ## What it costs Dwella (check against the worksheet)
 
-- **Fixed costs:** the server costs $18 now. Handy costs about $20 if it goes ahead. That's about **K760 a month** at today's K20/USD.
+- **Fixed costs:** the server costs $18 now. Handy costs about $20 if it goes ahead. Resend (transactional email, replacing Gmail SMTP) costs $20. That's about **K1,160 a month** at today's K20/USD.
 - **Messaging:** about K2 per leased unit per month at most.
-- **Collecting the subscription:** Lenco charges 1% on mobile money. Dwella absorbs it. It's about K1.50 on a Starter invoice.
-- **Breakeven on fixed costs:** about 6 Starter customers, 2 Standard, or 1 Professional.
+- **Collecting the subscription:** Lenco charges 1% on mobile money. Dwella absorbs it. It's about K3.50 on a Starter invoice.
+- **Breakeven on fixed costs:** about 4 Starter customers, 2 Standard, or 1 Professional.
+
+Beta customers (unit counts are estimates):
+
+| Customers | Plan | Full price / month | Founding (50%) |
+|---|---|---:|---:|
+| 3 managing 11–20 units | Standard | K1,950 | K975 |
+| 2 managing 21–50 units | Professional | K2,500 | K1,250 |
+| 1 managing 700 units | Portfolio | K10,250 | K5,125 |
+| **Total** | | **K14,700** | **K7,350** |
+
+After fixed costs, about K1,630 messaging and 1% collection, that leaves **about K11,750 a month at full price** or **about K4,500 at founding prices**. The 26 Oct prices would leave about K2,350 at founding prices once Resend is added.
 
 Illustrative mix, not a forecast:
 
 | Customers | Revenue / month | Messaging | Collection fees | Fixed costs | Left for support and growth |
 |---|---:|---:|---:|---:|---:|
-| 10 Starter (avg 4 units), 5 Standard (avg 15), 2 Professional (avg 40) | K5,200 | about K390 | about K52 | about K760 | **about K4,000** |
+| 10 Starter (avg 4 units), 5 Standard (avg 15), 2 Professional (avg 40) | K9,250 | about K390 | about K93 | about K1,160 | **about K7,600** |
 
 Not yet included: support time, domain, backups, taxes, future server upgrades. Revisit after three months of real usage.
 
@@ -178,7 +195,7 @@ Not yet included: support time, domain, backups, taxes, future server upgrades. 
 ## Trial, sign-up and beta
 
 - **No free tier.** New workspaces get a **30-day trial with every Professional feature** and 50 message credits in total. No payment is taken at sign-up.
-- When the trial ends, the plan is picked automatically from the number of leased units, and the manager confirms it and pays.
+- When the trial ends, propose a capacity plan based on unit records; the manager confirms their purchased capacity and pays. Occupancy is not the billing basis.
 - **Beta workspaces:**
   - every feature stays open until a published switch-on date, announced at least 30 days ahead;
   - after that, a **founding price at 50% off for 12 months**. Alternative: keep their tier price locked for 12 months.
@@ -188,7 +205,7 @@ Not yet included: support time, domain, backups, taxes, future server upgrades. 
 - Billing is monthly or annual, starting from the day the subscription begins.
 - **Mobile money can't be charged automatically.** Every charge needs the payer to approve it on their phone. So:
   - send a reminder 7 days and again 1 day before the due date, by email and in-app;
-  - the Billing page shows "Pay K400 now", using the same native mobile-money form as rent, or Lenco's hosted card checkout;
+  - the Billing page shows "Pay K650 now", using the same native mobile-money form as rent, or Lenco's hosted card checkout;
   - recommend annual plans, which means one approval a year;
   - payments go to Dwella's Lenco account with **no payout step**.
 - Each payment produces a subscription invoice and receipt in Dwella's style. Whether ZRA-compliant invoices are needed is a later decision.
@@ -196,10 +213,9 @@ Not yet included: support time, domain, backups, taxes, future server upgrades. 
 ## Going over a tier limit
 
 - **Adding a lease is never blocked**, because blocking it would block rent collection.
-- On the next billing date, the plan follows the count of leased units:
-  - moving up takes effect then, with a notice in-app and by email;
-  - moving down happens automatically on the next billing date.
-- **Optional soft rule:** a customer can stay one billing cycle above their tier limit before the upgrade applies.
+- Proposed capacity flow: before adding units beyond purchased capacity, show the upgrade price for the manager to confirm. Existing units becoming occupied do not require an upgrade.
+- Proposed annual upgrade rule: charge the prorated difference for the remaining term at the applicable annual rate. Downgrade and refund rules still need agreement; do not automatically downgrade when occupancy falls.
+- **Optional soft rule:** a customer can stay one billing cycle above their capacity before an upgrade applies. This is not an approved billing or enforcement rule.
 - **Team member limits are firm,** because adding a member is a deliberate action. At the limit, the UI offers an upgrade.
 
 ## When a payment is missed
@@ -221,7 +237,7 @@ The foundation (`subscriptions.WorkspaceAccessPolicy`, `require_feature`, `capac
 - `Plan` catalogue: tier, monthly and annual price, member limit, credits per unit, feature grants.
 - `WorkspaceSubscription`: plan, interval, status (trial, active, grace, restricted, paused, cancelled), period start and end.
 - `SubscriptionInvoice` / `SubscriptionPayment`: linked to a Lenco collection with **no payout**.
-- **Billable-unit meter:** the count of units with an active lease, saved on each billing date.
+- **Purchased capacity and usage:** subscription capacity slots and an authoritative count of units consuming them, independent of active leases or occupancy. Apply graduated Portfolio prices to purchased capacity, not monthly occupancy.
 - **Message credit ledger:** monthly grant, deductions per send, top-ups. A message that would overspend is held, which matches the Messaging design.
 - **New capacity resource:** `members`. Only `properties`, `units` and `tenants` exist today.
 - Restricted state is mapped to `feature_overrides` for: invoice creation, `lease_documents`, `lease_signing`, and manager `email_messages`, `sms_messages` and `whatsapp_messages`.
@@ -240,8 +256,8 @@ Each step is its own small commit.
 
 ## Decisions needed from the user
 
-1. Starter limit: 5 units (current) or 3. Starter, Standard and Professional prices and the Portfolio band rates are agreed in principle; they're final once the beta customers have seen them.
-2. Billable unit: units with an active lease, as recommended, or every unit.
+1. Final prices after beta feedback, between the 27 Oct opening prices and the 26 Oct floor.
+2. Capacity billing agreed on 31 October; finalize archive/reactivation eligibility, upgrade timing and downgrade/refund rules before implementation.
 3. Whether Handy is left out of Starter, which depends on its final price and usage cap.
 4. Credits per unit and the top-up price.
 5. Trial length, and the beta founding discount or price lock.

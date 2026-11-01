@@ -17,14 +17,14 @@ invent the missing tier details.
 ## Fixed monthly baseline
 
 For illustration only, USD 1 = K20. Replace with the actual billed exchange rate,
-including card conversion charges. At K25/USD the same $38 baseline is K950.
+including card conversion charges. At K25/USD the same $58 baseline is K1,450.
 
 | Item | Monthly USD | Monthly ZMW at K20/USD | Status |
 | --- | ---: | ---: | --- |
 | Server | $18 | K360 | Current bill supplied by user |
 | Handy assistant | ~$20 | ~K400 | User's anticipated price; confirm scope and usage cap |
-| Existing Gmail SMTP | $0 incremental assumed | K0 incremental assumed | User uses a Google app password; any existing mailbox subscription is separate |
-| Baseline including anticipated Handy | ~$38 | ~K760 | Excludes variable costs and the unpriced items below |
+| Resend (transactional email) | $20 | K400 | Added 2026-10-27 by the user; replaces Gmail SMTP for sending |
+| Baseline including anticipated Handy and Resend | ~$58 | ~K1,160 | Excludes variable costs and the unpriced items below |
 
 The present confirmed server bill alone is $18. Do not describe Handy's proposed
 price as an already incurred bill. The server hosts the current database and
@@ -57,7 +57,8 @@ all reminders qualify for a free conversation window.
 
 Personal Gmail documents a daily limit around 500 emails; Workspace has different
 limits. A monthly total alone is insufficient when all rent notices go out on the
-same day. A paid transactional email service is an additional future cost.
+same day. On 2026-10-27 the user added Resend at $20/month (in the fixed
+baseline above) as the transactional email service.
 
 ## Illustrative usage and budgeting
 
@@ -75,9 +76,9 @@ providers and reminder schedules are chosen.
 
 | Occupied units across all customers | Messaging allowance | Baseline + messaging | Average per occupied unit |
 | --- | ---: | ---: | ---: |
-| 20 | K40 | K800/month | K40.00 |
-| 100 | K200 | K960/month | K9.60 |
-| 500 | K1,000 | K1,760/month | K3.52 |
+| 20 | K40 | K1,200/month | K60.00 |
+| 100 | K200 | K1,360/month | K13.60 |
+| 500 | K1,000 | K2,160/month | K4.32 |
 
 These totals exclude payment fees, domain renewal, storage/backups outside free
 allowances, support labor, taxes and future infrastructure upgrades. They do not
