@@ -20,7 +20,7 @@ Claude's source review found rollout, volume and business-write coupling issues.
 
 ## Payment handoff and signal audit
 
-Claude must still wire explicit `enqueue` calls in payment services for collection failure/review/expiry, payout outcomes and withdrawal transitions. Provider-model saves intentionally create no notices until then; do not claim payment notice coverage or release readiness.
+Claude has now wired explicit payment-service helpers for collection failure/review/expiry, payout outcomes and withdrawal transitions. Failed/expired attempts notify the tenant; collection review notifies managers. Successful collections use the billing receipt. Payout outcomes and withdrawal request/cancellation/outcomes notify managers; withdrawal provider-pending progress is silent and the requesting actor is excluded. These calls use the same savepoint protection and do not add model save hooks. Provider activation remains separate from code publication.
 
 Source review of billing/leases/maintenance/imports/documents/payment services found no production QuerySet.update of the watched invoice/payment/lease/repair event fields. Lease activation/end bulk-updates unit occupancy and tenant status, which are not watched notice events. Payment worker bulk-updates next_check_at for retries, outside signal ownership. Future bulk status writes need explicit enqueue because update bypasses model signals.
 
@@ -70,3 +70,7 @@ Follow-up validation:
 - Full PostgreSQL: **1,231 passed** (`output/notification-scan-final-postgres.log`), including the six invoice/lease bad-record regressions and the fresh-migration private-table security check. The isolated server stopped successfully.
 - Django check, Ruff, migration consistency and frontend production build passed. The final working tree retains the actor fallback and existing rollout prerequisites.
 - Concurrent Claude-owned payment files are excluded from these commits; separate payment implementation/review remains Claude's responsibility. No live sends, transfers, environment changes, push or deployment were performed.
+
+## Integrated pre-push verification
+
+The user subsequently authorized committing and pushing all remaining local items to `develop` after a fresh validation run. This includes Claude's four payment-notice files as their own commit and the remaining planning/cost documents as documentation-only drafts. Earlier payment-handoff and local-only status entries describe the preceding checkpoints; the current integrated verification is recorded in [Local changes validation](LOCAL_CHANGES_VALIDATION_2026_11_01.md). Actor fallback, rollout prerequisites, provider configuration and production deployment remain unchanged.
