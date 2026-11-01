@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import UserRateThrottle
 
 from apps.audit.services import record_event
 from apps.organizations.models import OrganizationMembership
@@ -22,6 +22,7 @@ from .account_mail import send_account_mail
 from .email_verification import NoStoreAccountView, VerificationTokenSerializer, secret_hash
 from .models import TenantInvitation
 from .security import is_disposable_email, normalize_email
+from .throttles import InvitationIPThrottle, InvitationTokenThrottle
 
 INVALID = "This invitation has expired or is unavailable. Ask your property manager for a new one."
 
@@ -221,11 +222,6 @@ class InvitationAcceptSerializer(VerificationTokenSerializer):
     )
 
 
-class InvitationIPThrottle(AnonRateThrottle):
-    scope = "tenant_invitation_ip"
-    rate = "20/hour"
-
-
 class InvitationWriteThrottle(UserRateThrottle):
     scope = "tenant_invitation_write"
     rate = "20/hour"
@@ -233,9 +229,7 @@ class InvitationWriteThrottle(UserRateThrottle):
 
 class InvitationPreviewView(NoStoreAccountView):
     permission_classes = [AllowAny]
-
-    def get_throttles(self):
-        return [*super().get_throttles(), InvitationIPThrottle()]
+    throttle_classes = [InvitationIPThrottle, InvitationTokenThrottle]
 
     def post(self, request):
         data = VerificationTokenSerializer(data=request.data)

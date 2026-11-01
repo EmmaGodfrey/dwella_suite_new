@@ -230,7 +230,7 @@ REST_FRAMEWORK = {
     # Without a proxy count DRF keys throttles on the whole X-Forwarded-For
     # header, which a client can prefix with any value to get a fresh limit.
     # With it set, only the address our own proxy appended is trusted.
-    "NUM_PROXIES": int(__import__("os").getenv("APP_TRUSTED_PROXY_COUNT") or 0) or None,
+    "NUM_PROXIES": int(__import__("os").getenv("APP_TRUSTED_PROXY_COUNT") or 0),
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -242,9 +242,23 @@ REST_FRAMEWORK = {
         "support_session": "10/hour",
         "platform_write": "20/minute",
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
+        "login_ip": __import__("os").getenv("THROTTLE_LOGIN_IP_RATE", "60/minute"),
         "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
+        "password_reset_ip": __import__("os").getenv(
+            "THROTTLE_PASSWORD_RESET_IP_RATE", "60/minute"
+        ),
+        "password_reset_confirm": __import__("os").getenv(
+            "THROTTLE_PASSWORD_RESET_CONFIRM_RATE", "10/hour"
+        ),
         "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
+        "two_factor_ip": __import__("os").getenv("THROTTLE_2FA_IP_RATE", "60/minute"),
+        "tenant_invitation_ip": __import__("os").getenv(
+            "THROTTLE_INVITATION_IP_RATE", "120/minute"
+        ),
+        "tenant_invitation_token": __import__("os").getenv(
+            "THROTTLE_INVITATION_TOKEN_RATE", "20/hour"
+        ),
         "handy_agent_token": __import__("os").getenv(
             "THROTTLE_HANDY_AGENT_TOKEN_RATE", "20/hour"
         ),
@@ -255,6 +269,9 @@ REST_FRAMEWORK = {
         "public_configuration": "120/hour",
     },
 }
+
+if REST_FRAMEWORK["NUM_PROXIES"] < 0:
+    raise ImproperlyConfigured("APP_TRUSTED_PROXY_COUNT must be zero or a positive integer.")
 
 BETA_REGISTRATION_OPEN = (
     __import__("os").getenv("APP_BETA_REGISTRATION_OPEN", "false").lower() == "true"

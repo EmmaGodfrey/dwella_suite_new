@@ -21,7 +21,6 @@ from .security import (
     frontend_reset_url,
     get_client_ip,
     make_totp_secret,
-    throttle_by_key,
     totp_uri,
     verify_totp,
 )
@@ -35,6 +34,15 @@ from .serializers import (
     PasswordResetRequestSerializer,
     TwoFactorChallengeSerializer,
     TwoFactorSetupVerifySerializer,
+)
+from .throttles import (
+    LoginAccountThrottle,
+    LoginIPThrottle,
+    PasswordResetAccountThrottle,
+    PasswordResetConfirmThrottle,
+    PasswordResetIPThrottle,
+    TwoFactorAccountThrottle,
+    TwoFactorIPThrottle,
 )
 
 User = get_user_model()
@@ -98,7 +106,8 @@ class LoginView(APIView):
     # Credentials authenticate this public endpoint; a revoked browser token
     # must not prevent a new login. Password validation and throttling still apply.
     authentication_classes = []
-    throttle_scope = "login"
+    # Account protection remains strict without exhausting a shared office/carrier IP.
+    throttle_classes = [LoginIPThrottle, LoginAccountThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -124,7 +133,7 @@ class LoginView(APIView):
 class TwoFactorLoginVerifyView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    throttle_scope = "two_factor"
+    throttle_classes = [TwoFactorIPThrottle, TwoFactorAccountThrottle]
 
     def post(self, request):
         serializer = TwoFactorChallengeSerializer(data=request.data)
@@ -317,14 +326,14 @@ class IdentityVerificationSubmitView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "password_reset"
+    authentication_classes = []
+    throttle_classes = [PasswordResetIPThrottle, PasswordResetAccountThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         ip_address = get_client_ip(request)
-        throttle_by_key("password_reset_email", email, limit=3, timeout=60 * 60)
 
         PasswordResetRequest.objects.create(
             email=email,
@@ -353,7 +362,8 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "password_reset"
+    authentication_classes = []
+    throttle_classes = [PasswordResetIPThrottle, PasswordResetConfirmThrottle]
 
     @transaction.atomic
     def post(self, request):

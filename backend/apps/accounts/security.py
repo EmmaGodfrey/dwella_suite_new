@@ -7,8 +7,7 @@ import time
 from urllib.parse import quote
 
 from django.conf import settings
-from django.core.cache import cache
-from rest_framework.exceptions import Throttled
+from rest_framework.throttling import BaseThrottle
 
 DISPOSABLE_EMAIL_DOMAINS = {
     "10minutemail.com",
@@ -61,19 +60,9 @@ def verify_totp(secret, code, window=1):
     )
 
 
-def throttle_by_key(scope, identifier, limit, timeout):
-    cache_key = f"throttle:{scope}:{identifier}"
-    attempts = cache.get(cache_key, 0)
-    if attempts >= limit:
-        raise Throttled(detail="Too many attempts. Please try again later.")
-    cache.set(cache_key, attempts + 1, timeout)
-
-
 def get_client_ip(request):
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
+    # Use the same explicit trusted-proxy boundary for auditing and throttles.
+    return BaseThrottle().get_ident(request)
 
 
 def frontend_reset_url(uid, token):
