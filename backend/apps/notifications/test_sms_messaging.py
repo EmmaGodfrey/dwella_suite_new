@@ -168,6 +168,20 @@ def test_sms_stop_incoming_and_other_messages_do_not_create_chat_history(home):
     assert MessageDelivery.objects.count() == 1
 
 
+@pytest.mark.parametrize(
+    "expected,supplied", [("+260971000000", "0971000000"), ("+260971000000", "260971000000"),
+                          ("12345", " 12345 ")],
+)
+def test_sms_stop_normalizes_business_number_and_accepts_shortcodes(
+    home, settings, expected, supplied,
+):
+    row = sms_delivery(home)
+    settings.SMS_INCOMING_NUMBER = expected
+    response = callback("incoming", {"from": row.recipient, "to": supplied, "text": "STOP"})
+    assert response.status_code == 200
+    assert not PhoneMessagingConsent.objects.get(channel="sms").allowed
+
+
 def test_admin_message_list_query_count_does_not_grow_per_delivery(home):
     row = sms_delivery(home)
     client = client_for(home["admin"])

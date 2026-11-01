@@ -110,12 +110,15 @@ def save_user_consent(user, changes):
         if key not in changes:
             continue
         for phone in sorted(phones):
+            existing = PhoneMessagingConsent.objects.filter(channel=channel, phone=phone).first()
             defaults = {
                 "allowed": changes[key],
                 "user": user,
                 "source": "tenant_settings",
                 "granted_at" if changes[key] else "revoked_at": now,
             }
+            if existing and existing.source == "verified_link" and existing.user_id == user.pk:
+                defaults["source"] = "verified_link"
             PhoneMessagingConsent.objects.update_or_create(
                 channel=channel,
                 phone=phone,

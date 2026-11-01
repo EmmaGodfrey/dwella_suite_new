@@ -102,6 +102,9 @@ def apply_inbound(message):
     text = message.get("text", {}).get("body", "") if message.get("type") == "text" else ""
     if not isinstance(text, str):
         raise ValueError("Invalid message.")
+    from .phone_links import receive_link
+
+    receive_link("whatsapp", phone, text, stamp)
     button = message.get("button", {}) if message.get("type") == "button" else {}
     stop = (
         text.strip().casefold() in STOP_WORDS or button.get("payload", "").casefold() in STOP_WORDS
@@ -282,12 +285,26 @@ class SMSWebhookView(APIView):
             data.get("phoneNumber") if self.kind == "opt-out" else (data.get("from"))
         )
         sender = data.get("senderId") if self.kind == "opt-out" else data.get("to")
-        if not phone or sender != settings.AFRICASTALKING_SENDER_ID:
+        expected_sender = (
+            settings.SMS_INCOMING_NUMBER
+            if self.kind == "incoming" and settings.SMS_INCOMING_NUMBER
+            else settings.AFRICASTALKING_SENDER_ID
+        )
+        # Shortcodes/alphanumeric sender IDs compare as plain text; full phone
+        # numbers compare in canonical form (AT may omit '+' or use local form).
+        same_sender = bool(expected_sender) and str(sender).strip() == str(expected_sender).strip()
+        expected_phone = normalize_phone(expected_sender)
+        if expected_phone:
+            same_sender = normalize_phone(sender) == expected_phone
+        if not phone or not same_sender:
             return Response({"detail": "Invalid opt-out."}, status=400)
         if self.kind == "incoming":
             text = data.get("text", "")
             if not isinstance(text, str):
                 return Response({"detail": "Invalid message."}, status=400)
+            from .phone_links import receive_link
+
+            receive_link("sms", phone, text, timezone.now())
             if text.strip().casefold() not in STOP_WORDS:
                 return Response({"received": True})
         with transaction.atomic():
