@@ -65,6 +65,17 @@ def admin_client():
     return client
 
 
+@pytest.mark.django_db
+def test_transport_not_accepting_welcome_does_not_record_it_as_sent():
+    from .emails import BetaEmailError, deliver
+
+    application = applicant()
+    with mock.patch("django.core.mail.EmailMultiAlternatives.send", return_value=0):
+        with pytest.raises(BetaEmailError, match="did not accept"):
+            deliver(application, Kind.WELCOME)
+    assert not BetaEmail.objects.filter(application=application, kind=Kind.WELCOME).exists()
+
+
 @pytest.mark.django_db(transaction=True)
 def test_website_signup_sends_a_welcome_email_once():
     data = {

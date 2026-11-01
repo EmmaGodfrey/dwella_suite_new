@@ -301,7 +301,9 @@ def send_message(application, message):
         headers=headers,
     )
     email.attach_alternative(render_to_string("marketing/beta_email.html", context), "text/html")
-    email.send(fail_silently=False)
+    email.dwella_bulk = True
+    if email.send(fail_silently=False) != 1:
+        raise BetaEmailError("The email transport did not accept this message.")
 
 
 def deliver(application, kind, *, resend=False, now=None, scheduled=False):
