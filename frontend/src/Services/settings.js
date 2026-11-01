@@ -39,3 +39,26 @@ export function useSaveSettings(resource) {
     },
   });
 }
+
+export function useNotificationPhone() {
+  return useQuery({
+    queryKey: ["settings", "phone-link"],
+    queryFn: () => api.get("/notifications/phone-link/"),
+    retry: false,
+    refetchInterval: (query) => query.state.data?.pending?.length ? 10_000 : false,
+  });
+}
+
+export function useConnectNotificationPhone() {
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => api.post("/notifications/phone-link/", data),
+    retry: false,
+    onSuccess: async () => {
+      await Promise.all([
+        cache.invalidateQueries({ queryKey: ["settings", "phone-link"] }),
+        cache.invalidateQueries({ queryKey: ["settings", "personal"] }),
+      ]);
+    },
+  });
+}

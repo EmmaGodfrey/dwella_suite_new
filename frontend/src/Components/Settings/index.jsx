@@ -23,6 +23,7 @@ import OutreachSettings from "../Outreach/Settings";
 import AssistantSettings from "../Platform/Settings";
 import RuntimeConfiguration from "./RuntimeConfiguration";
 import SupportContacts from "../../shared/components/SupportContacts";
+import NotificationPhone from "./NotificationPhone";
 import "./settings.scss";
 
 export function SettingsSection({ title, note, actions, children }) {
@@ -126,7 +127,8 @@ function ChannelRows({ draft, change, channels }) {
       key={key}
       label={label}
       note={
-        key === "whatsapp"
+        key === "email" ? "Required for invoices, payments, leases and repair updates."
+        : key === "whatsapp"
           ? "Requires recipient opt-in and approved reminder templates."
           : undefined
       }
@@ -134,10 +136,11 @@ function ChannelRows({ draft, change, channels }) {
       <>
         <Switch
           aria-label={`${label} reminders`}
-          checked={draft[`${key}_enabled`]}
+          checked={key === "email" || draft[`${key}_enabled`]}
+          disabled={key === "email"}
           onChange={(_, d) => change(`${key}_enabled`, d.checked)}
         />
-      {!channels[key] && (
+      {!channels[key] && key !== "email" && (
         <>
           <StatusBadge color="subtle">Awaiting connection</StatusBadge>
           <span className="settings-inline-note">
@@ -162,11 +165,14 @@ function Notifications({ persona }) {
   return (
     <AdminState query={query}>
       {personal.data && (persona !== "landlord" || reminders.data) && (
-        <NotificationForm
-          persona={persona}
-          personal={personal.data}
-          reminders={reminders.data}
-        />
+        <>
+          <NotificationForm
+            persona={persona}
+            personal={personal.data}
+            reminders={reminders.data}
+          />
+          {persona !== "platform_admin" && <NotificationPhone />}
+        </>
       )}
     </AdminState>
   );
@@ -271,7 +277,7 @@ function NotificationForm({ persona, personal, reminders }) {
           <>
             <SettingsSection
               title="Tenant reminders"
-              note="Channels Dwella uses to remind tenants about rent. Recipient preferences and consent also apply."
+              note="Email reminders are required. SMS and WhatsApp are additional options and require recipient consent."
             >
               <ChannelRows
                 draft={draft.reminders}
@@ -281,7 +287,7 @@ function NotificationForm({ persona, personal, reminders }) {
             </SettingsSection>
             <SettingsSection
               title="Reminder schedule"
-              note="Save your preferred schedule now. Automatic delivery is not connected yet; these settings do not activate reminders."
+              note="Dwella uses this schedule for rent reminders in your workspace time zone."
             >
               <div className="dwella-form-grid">
                 {scheduleFields.map(([key, label, min, max]) => (
@@ -327,8 +333,8 @@ function NotificationForm({ persona, personal, reminders }) {
           ))}
         </SettingsSection>
         <SettingsSection
-          title={persona === "tenant" ? "Rent reminders" : "Delivery channels"}
-          note="Enable SMS or WhatsApp and save to agree to rent reminders and property notices from Dwella at your linked phone number. Disable either channel here to opt out. You can also reply STOP on WhatsApp."
+          title="Delivery channels"
+          note="Operational emails are always sent. SMS and WhatsApp are optional extras; verify your number below. Turn off an optional channel here or reply STOP to opt out."
         >
           <ChannelRows
             draft={draft.personal}

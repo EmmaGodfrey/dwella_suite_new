@@ -60,7 +60,7 @@ const labels = {
   beta_send_hour: "Email send hour (Africa/Lusaka)",
 };
 const toggles = {
-  messaging_email_enabled: "Allow email reminders and notices",
+  messaging_email_enabled: "Allow optional email notices",
   sms_enabled: "Allow SMS delivery",
   whatsapp_enabled: "Allow WhatsApp delivery",
   beta_registration_open: "Allow self-service registration",
