@@ -76,6 +76,7 @@ class UnitImporter(Importer):
         self.properties = {}
 
     def prepare(self, rows):
+        self.properties = {}
         names = {row.get("property", "").strip().lower() for row in rows}
         for item in (
             Property.objects.for_organization(self.organization)
