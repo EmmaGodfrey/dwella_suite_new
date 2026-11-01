@@ -1,4 +1,4 @@
-"""Global Google-first routing, below recipient guards and shared by every mail caller."""
+"""Configurable routing and reserved security-mail capacity below recipient guards."""
 
 import base64
 from datetime import timedelta
@@ -22,7 +22,7 @@ class EmailDeliveryUnknown(Exception):
     """A send may have succeeded. Callers must not automatically resend it."""
 
 
-def reserve_provider(recipients, now=None, *, allow_fallback=True):
+def reserve_provider(recipients, now=None, *, allow_fallback=True, bulk=False):
     """Reserve before I/O. Hour buckets conservatively retain up to 25 hours of usage.
 
     Count recipients rather than SMTP messages. Failed/uncertain attempts retain their
@@ -49,25 +49,31 @@ def reserve_provider(recipients, now=None, *, allow_fallback=True):
             .annotate(total=Sum("recipients"))
             .values_list("provider", "total")
         )
-        provider = "google"
-        if used.get("google", 0) + recipients > limit:
-            if not allow_fallback:
-                raise EmailQuotaExceeded("Email allowance reached; messages must wait.")
-            if not settings.RESEND_API_KEY or not settings.RESEND_FROM_EMAIL:
-                raise EmailQuotaExceeded("Email quota reached; Resend is not configured.")
-            month = hour.replace(day=1, hour=0)
-            monthly = (
-                buckets.filter(provider="resend", hour__gte=month).aggregate(
+        reserve = max(1, min(settings.EMAIL_BULK_RESERVE_PERCENT, 100))
+
+        def ceiling(value):
+            return max(0, value * (100 - reserve) // 100) if bulk else value
+
+        order = settings.EMAIL_PROVIDER_ORDER if allow_fallback else ["google"]
+        provider = None
+        for candidate in order:
+            if candidate == "google":
+                if used.get("google", 0) + recipients <= ceiling(limit):
+                    provider = candidate
+                    break
+            elif candidate == "resend" and settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL:
+                month = hour.replace(day=1, hour=0)
+                monthly = buckets.filter(provider="resend", hour__gte=month).aggregate(
                     total=Sum("recipients")
-                )["total"]
-                or 0
-            )
-            if (
-                used.get("resend", 0) + recipients > settings.RESEND_DAILY_LIMIT
-                or monthly + recipients > settings.RESEND_MONTHLY_LIMIT
-            ):
-                raise EmailQuotaExceeded("Resend quota reached.")
-            provider = "resend"
+                )["total"] or 0
+                if (
+                    used.get("resend", 0) + recipients <= ceiling(settings.RESEND_DAILY_LIMIT)
+                    and monthly + recipients <= ceiling(settings.RESEND_MONTHLY_LIMIT)
+                ):
+                    provider = candidate
+                    break
+        if provider is None:
+            raise EmailQuotaExceeded("Email allowance reached; messages must wait.")
         bucket, created = buckets.get_or_create(provider=provider, hour=hour)
         bucket.recipients += recipients
         bucket.save(using=alias, update_fields=["recipients"])
@@ -87,6 +93,8 @@ def resend_payload(message):
     for field in ("cc", "bcc", "reply_to"):
         if getattr(message, field):
             payload[field] = getattr(message, field)
+    if message.extra_headers:
+        payload["headers"] = message.extra_headers
     for alternative in getattr(message, "alternatives", []):
         if alternative[1] == "text/html":
             payload["html"] = alternative[0]
@@ -137,7 +145,9 @@ class EmailBackend(BaseEmailBackend):
             if not message.recipients():
                 continue
             try:
-                provider = reserve_provider(len(message.recipients()))
+                provider = reserve_provider(
+                    len(message.recipients()), bulk=getattr(message, "dwella_bulk", False),
+                )
                 message.dwella_provider = provider
                 try:
                     if provider == "google":

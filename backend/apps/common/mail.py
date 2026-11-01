@@ -35,7 +35,12 @@ def delivery_backend():
 
 def delivery_configured():
     if delivery_backend() == "apps.common.email_router.EmailBackend":
-        return settings.EMAIL_PRIMARY_BACKEND not in LOCAL_ONLY_BACKENDS
+        return bool(
+            ("resend" in settings.EMAIL_PROVIDER_ORDER
+             and settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL)
+            or ("google" in settings.EMAIL_PROVIDER_ORDER
+                and settings.EMAIL_PRIMARY_BACKEND not in LOCAL_ONLY_BACKENDS)
+        )
     return delivery_backend() not in LOCAL_ONLY_BACKENDS
 
 

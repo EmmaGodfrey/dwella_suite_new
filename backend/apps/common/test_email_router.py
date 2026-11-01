@@ -20,6 +20,7 @@ ROUTING = {
     "RESEND_FROM_EMAIL": "Dwella <notify@example.com>",
     "RESEND_DAILY_LIMIT": 100,
     "RESEND_MONTHLY_LIMIT": 3000,
+    "EMAIL_PROVIDER_ORDER": ["google", "resend"],
 }
 
 
@@ -186,3 +187,49 @@ def test_postgres_concurrent_workers_cannot_overspend_google_quota():
     with ThreadPoolExecutor(max_workers=4) as pool:
         providers = list(pool.map(reserve, range(8)))
     assert providers.count("google") == 2 and providers.count("resend") == 6
+
+
+@override_settings(**ROUTING)
+@pytest.mark.parametrize("provider", ["google", "resend"])
+def test_bulk_stops_before_security_quota_on_each_provider(provider):
+    with override_settings(
+        EMAIL_PROVIDER_ORDER=[provider], EMAIL_GOOGLE_LIMIT=10,
+        RESEND_DAILY_LIMIT=10, RESEND_MONTHLY_LIMIT=10, EMAIL_BULK_RESERVE_PERCENT=20,
+    ):
+        assert reserve_provider(8, bulk=True) == provider
+        with pytest.raises(EmailQuotaExceeded):
+            reserve_provider(1, bulk=True)
+        assert reserve_provider(2) == provider
+        with pytest.raises(EmailQuotaExceeded):
+            reserve_provider(1)
+
+
+@override_settings(**ROUTING)
+def test_resend_primary_uses_authenticated_sender_and_preserves_message_id():
+    with override_settings(EMAIL_PROVIDER_ORDER=["resend", "google"]):
+        message = EmailMessage(
+            "Notice", "Body", to=["a@example.com"],
+            headers={"Message-ID": "<test@dwella.properties>"},
+        )
+        message.dwella_bulk = True
+        with patch("apps.common.email_router.post_json", return_value={"id": "email-ok"}) as api:
+            assert message.send() == 1
+        payload = api.call_args.args[1]
+        assert payload["from"] == ROUTING["RESEND_FROM_EMAIL"]
+        assert payload["headers"]["Message-ID"] == "<test@dwella.properties>"
+        assert not EmailUsageBucket.objects.filter(provider="google").exists()
+
+
+@override_settings(**ROUTING)
+def test_runtime_smtp_backend_enforces_bulk_reserve_before_io():
+    with override_settings(
+        EMAIL_BACKEND="apps.common.runtime_mail.RuntimeEmailBackend",
+        RUNTIME_MAIL_INNER_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+        EMAIL_GOOGLE_LIMIT=10, EMAIL_BULK_RESERVE_PERCENT=20,
+    ):
+        reserve_provider(8, allow_fallback=False)
+        message = EmailMessage("Notice", "Body", to=["a@example.com"])
+        message.dwella_bulk = True
+        with pytest.raises(EmailQuotaExceeded):
+            message.send()
+        assert EmailMessage("Security", "Body", to=["a@example.com"]).send() == 1

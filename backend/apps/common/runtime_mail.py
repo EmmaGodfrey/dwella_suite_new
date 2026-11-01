@@ -39,7 +39,10 @@ class RuntimeEmailBackend(BaseEmailBackend):
                 # The optional router reserves its own quota. Never double reserve
                 # or introduce a Resend fallback for ordinary SMTP mail.
                 if settings.RUNTIME_MAIL_INNER_BACKEND != "apps.common.email_router.EmailBackend":
-                    reserve_provider(len(message.recipients()), allow_fallback=False)
+                    reserve_provider(
+                        len(message.recipients()), allow_fallback=False,
+                        bulk=getattr(message, "dwella_bulk", False),
+                    )
                 if settings.RUNTIME_MAIL_INNER_BACKEND == "apps.common.email_router.EmailBackend":
                     sent += self.inner.send_messages([message]) or 0
                 else:

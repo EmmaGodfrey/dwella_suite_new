@@ -9,6 +9,10 @@ def messaging_settings(backend):
     values = {
         "EMAIL_ROUTING_ENABLED": env_bool("APP_EMAIL_ROUTING_ENABLED", False),
         "EMAIL_PRIMARY_BACKEND": backend,
+        "EMAIL_PROVIDER_ORDER": env_list("APP_EMAIL_PROVIDER_ORDER", "google,resend"),
+        "EMAIL_BULK_RESERVE_PERCENT": int(os.getenv("APP_EMAIL_BULK_RESERVE_PERCENT", "10")),
+        "OPERATIONAL_EMAIL_ENABLED": env_bool("APP_OPERATIONAL_EMAIL_ENABLED", False),
+        "EMAIL_MESSAGE_ID_DOMAIN": os.getenv("APP_EMAIL_MESSAGE_ID_DOMAIN", "dwella.properties"),
         "EMAIL_GOOGLE_LIMIT": int(os.getenv("APP_EMAIL_GOOGLE_LIMIT", "400")),
         "RESEND_API_KEY": os.getenv("RESEND_API_KEY", ""),
         "RESEND_FROM_EMAIL": os.getenv("RESEND_FROM_EMAIL", ""),
