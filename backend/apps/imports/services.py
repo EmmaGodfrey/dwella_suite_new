@@ -120,7 +120,13 @@ def template_response(importer):
 
 
 def read_rows(importer, text):
-    if len(text.encode("utf-8")) > 1_000_000:
+    try:
+        size = len(text.encode("utf-8"))
+    except UnicodeError as error:
+        raise ValidationError("Use valid UTF-8 text in the import file.") from error
+    if "\x00" in text:
+        raise ValidationError("Remove null characters from the import file.")
+    if size > 1_000_000:
         raise ValidationError("Choose a file no larger than 1 MB.")
     reader = csv.reader(StringIO(text.lstrip("﻿")), strict=True)
     try:

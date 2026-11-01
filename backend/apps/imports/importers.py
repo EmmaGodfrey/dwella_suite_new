@@ -77,7 +77,11 @@ class UnitImporter(Importer):
 
     def prepare(self, rows):
         self.properties = {}
-        names = {row.get("property", "").strip().lower() for row in rows}
+        names = {
+            row.get("property", "").strip().lower()
+            for row in rows
+            if len(row.get("property", "")) <= 180 and "\x00" not in row.get("property", "")
+        }
         for item in (
             Property.objects.for_organization(self.organization)
             .filter(is_active=True)

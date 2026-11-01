@@ -244,6 +244,20 @@ def test_changed_match_is_not_silently_linked(portfolio):
     assert not Tenant.objects.exists() and not Lease.objects.exists()
 
 
+def test_malformed_csv_is_rejected_before_property_lookup(portfolio):
+    _, client = portfolio
+    values = row()
+    values[0] = "Court\x00"
+    assert preview(client, [values]).status_code == 400
+    from rest_framework.exceptions import ValidationError
+
+    from apps.imports.services import read_rows
+    from apps.imports.tenancies import TenancyImporter
+
+    with pytest.raises(ValidationError, match="UTF-8"):
+        read_rows(TenancyImporter(portfolio[0]), "property,unit,rent_amount\n\ud800,A,1")
+
+
 def test_new_preview_replaces_the_previous_private_preview(portfolio):
     _, client = portfolio
     first = preview(client, [row(1)]).json()["response_data"]["preview_token"]
