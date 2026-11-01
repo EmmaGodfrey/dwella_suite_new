@@ -15,6 +15,10 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
     country = models.CharField(max_length=80, default="Zambia")
     currency = models.CharField(max_length=3, default="ZMW")
     timezone = models.CharField(max_length=80, default="Africa/Lusaka")
+    # Rent invoices go out automatically this many days before each lease's due
+    # day. Managers can still issue them by hand at any time.
+    auto_invoice = models.BooleanField(default=True)
+    invoice_lead_days = models.PositiveSmallIntegerField(default=7)
 
     class Meta:
         ordering = ["name"]

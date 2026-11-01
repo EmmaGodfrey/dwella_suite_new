@@ -91,11 +91,12 @@ def create_invoice(
     return invoice
 
 
-def generate_rent_invoices(organization, period_start, today=None):
+def generate_rent_invoices(organization, period_start, today=None, lead_days=None):
     """Issue one rent invoice per active lease covering the month.
 
     Safe to run again for the same month: leases that already have a live
-    invoice for it are skipped. Returns (created, skipped) counts.
+    invoice for it are skipped. With `lead_days`, a lease is only billed once
+    its due day is that close (automatic billing). Returns (created, skipped).
     """
     today = today or timezone.localdate()
     first, last = month_bounds(period_start.replace(day=1))
@@ -123,6 +124,10 @@ def generate_rent_invoices(organization, period_start, today=None):
     created = 0
     for lease in leases:
         if lease.id in billed or lease.renewal_of_id in billed_before:
+            continue
+        if lead_days is not None and today < first.replace(day=lease.rent_due_day) - timedelta(
+            days=lead_days
+        ):
             continue
         # Never due before it is issued: a month billed late (e.g. a landlord
         # who joins mid-month) gets its grace period from today, so tenants
@@ -267,3 +272,18 @@ def apply_late_fees(organization, today=None):
 
 def first_of_month(value):
     return date(value.year, value.month, 1)
+
+
+def issue_upcoming_rent(organization, today=None):
+    """Automatic billing: each month's rent goes out the workspace's lead days
+    before the lease's due day. This month is included so a missed run, a new
+    lease or a late joiner still gets billed; nothing is billed twice."""
+    today = today or timezone.localdate()
+    this_month = first_of_month(today)
+    next_month = first_of_month(this_month + timedelta(days=32))
+    return sum(
+        generate_rent_invoices(
+            organization, period, today=today, lead_days=organization.invoice_lead_days
+        )[0]
+        for period in (this_month, next_month)
+    )

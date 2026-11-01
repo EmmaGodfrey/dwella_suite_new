@@ -88,9 +88,15 @@ class WorkspaceSerializer(StrictSerializer):
             "country",
             "currency",
             "timezone",
+            "auto_invoice",
+            "invoice_lead_days",
         ]
         read_only_fields = ["currency"]
-        extra_kwargs = {"address": {"max_length": 2000}}
+        extra_kwargs = {
+            "address": {"max_length": 2000},
+            # Due days run 1-28, so at most four weeks keeps billing one month ahead.
+            "invoice_lead_days": {"min_value": 0, "max_value": 28},
+        }
 
     def validate_timezone(self, value):
         try:

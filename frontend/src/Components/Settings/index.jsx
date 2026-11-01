@@ -383,6 +383,12 @@ function Workspace() {
               !v.phone_number || /^\+?[0-9 ()-]{7,40}$/.test(v.phone_number)
                 ? ""
                 : "Enter a valid phone number.",
+            invoice_lead_days: () =>
+              Number.isInteger(v.invoice_lead_days) &&
+              v.invoice_lead_days >= 0 &&
+              v.invoice_lead_days <= 28
+                ? ""
+                : "Choose between 0 and 28 days.",
             timezone: () => {
               try {
                 Intl.DateTimeFormat("en", { timeZone: v.timezone });
@@ -423,6 +429,35 @@ function Workspace() {
                     />
                   </Field>
                 </div>
+              </SettingsSection>
+              <SettingsSection
+                title="Rent invoices"
+                note="Dwella sends each tenant's rent invoice before it is due, using the due day on their lease. You can still create invoices yourself at any time."
+              >
+                <SettingsRow label="Send rent invoices automatically">
+                  <Switch
+                    aria-label="Send rent invoices automatically"
+                    checked={draft.auto_invoice}
+                    onChange={(_, d) => change("auto_invoice", d.checked)}
+                  />
+                </SettingsRow>
+                {draft.auto_invoice && (
+                  <Field
+                    label="Days before rent is due"
+                    hint="Between 0 (on the due day) and 28."
+                    {...errors.fieldProps("invoice_lead_days")}
+                  >
+                    <Input
+                      type="number"
+                      min={0}
+                      max={28}
+                      value={String(draft.invoice_lead_days)}
+                      onChange={(_, d) =>
+                        change("invoice_lead_days", d.value === "" ? "" : Number(d.value))
+                      }
+                    />
+                  </Field>
+                )}
               </SettingsSection>
               <SettingsSection
                 title="Regional defaults"
