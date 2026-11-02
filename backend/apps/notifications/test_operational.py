@@ -383,6 +383,11 @@ def test_verified_optional_manager_channel_sends_alongside_required_email(
     mailoutbox,
     channel,
 ):
+    # Dispatch during daytime, with a verified inbound message inside its
+    # service window regardless of the wall-clock hour running the suite.
+    now = timezone.localtime(timezone.now() + timedelta(days=1)).replace(
+        hour=12, minute=0, second=0, microsecond=0
+    )
     NotificationPreferences.objects.create(user=house[1], **{f"{channel}_enabled": True})
     PhoneMessagingConsent.objects.create(
         user=house[1],
@@ -391,10 +396,9 @@ def test_verified_optional_manager_channel_sends_alongside_required_email(
         allowed=True,
         source="verified_link",
         granted_at=timezone.now(),
-        last_inbound_at=timezone.now(),
+        last_inbound_at=now - timedelta(hours=1),
     )
     paid(house)
-    now = (timezone.now() + timedelta(days=1)).replace(hour=12)
     with (
         patch("apps.notifications.operational.phone_allowed", return_value=True),
         patch("apps.notifications.operational.sms_ready", return_value=True),
