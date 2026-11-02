@@ -2,6 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import deposit_views as deposit
+from . import proof_views as proof
 from .views import InvoiceViewSet, PaymentInstructionViewSet, PaymentViewSet
 
 app_name = "billing"
@@ -9,9 +10,7 @@ app_name = "billing"
 router = DefaultRouter()
 router.register("invoices", InvoiceViewSet, basename="invoice")
 router.register("payments", PaymentViewSet, basename="payment")
-router.register(
-    "payment-instructions", PaymentInstructionViewSet, basename="payment-instruction"
-)
+router.register("payment-instructions", PaymentInstructionViewSet, basename="payment-instruction")
 
 urlpatterns = [
     path("deposits/<uuid:public_id>/", deposit.DepositView.as_view()),
@@ -25,5 +24,12 @@ urlpatterns = [
         "deposit-deductions/<uuid:public_id>/<str:decision>/",
         deposit.DeductionDecisionView.as_view(),
     ),
+    path("payment-proofs/", proof.ManagerProofListView.as_view()),
+    path("payment-proofs/<uuid:public_id>/", proof.ManagerProofDetailView.as_view()),
+    path(
+        "payment-proofs/<uuid:public_id>/<str:decision>/",
+        proof.ManagerProofDecisionView.as_view(),
+    ),
+    path("payment-proof-files/<uuid:public_id>/", proof.ManagerProofFileView.as_view()),
     path("", include(router.urls)),
 ]

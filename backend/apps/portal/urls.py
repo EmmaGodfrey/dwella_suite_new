@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.billing import deposit_views
+from apps.billing import deposit_views, proof_views
 
 from . import views
 
@@ -11,6 +11,12 @@ urlpatterns = [
         "deposit-deductions/<uuid:public_id>/respond/",
         deposit_views.TenantDeductionResponseView.as_view(),
     ),
+    path("payment-proofs/", proof_views.TenantProofListView.as_view()),
+    path(
+        "payment-proofs/<uuid:public_id>/<str:operation>/",
+        proof_views.TenantProofActionView.as_view(),
+    ),
+    path("payment-proof-files/<uuid:public_id>/", proof_views.TenantProofFileView.as_view()),
     path("overview/", views.OverviewView.as_view()),
     path("profile/", views.ProfileView.as_view()),
     path("leases/", views.LeaseListView.as_view()),

@@ -327,3 +327,90 @@ class DepositEvidence(OrganizationScopedModel):
 
     def __str__(self):
         return self.name
+
+
+class PaymentProof(OrganizationScopedModel):
+    """A tenant's report that they paid directly (bank, mobile money, cash).
+
+    It changes nothing until a manager confirms the money arrived; confirming
+    records one ordinary payment and receipt. The submitted facts are kept,
+    and each resubmission after a question is a new revision."""
+
+    class Status(models.TextChoices):
+        SUBMITTED = "submitted", "Awaiting confirmation"
+        NEEDS_INFORMATION = "needs_information", "More details requested"
+        CONFIRMED = "confirmed", "Confirmed"
+        REJECTED = "rejected", "Not received"
+        CANCELLED = "cancelled", "Cancelled"
+
+    OPEN_STATUSES = (Status.SUBMITTED, Status.NEEDS_INFORMATION)
+    MAX_OPEN_PER_INVOICE = 3
+    MAX_FILES = 3
+    # Card payments only happen through Dwella checkout, never as a report.
+    METHODS = [
+        choice for choice in Payment.Method.choices if choice[0] not in ("card", "deposit")
+    ]
+
+    number = models.CharField(max_length=20)
+    invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name="payment_proofs")
+    tenant = models.ForeignKey(
+        "tenants.Tenant", on_delete=models.PROTECT, related_name="payment_proofs"
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    channel = models.CharField(max_length=12, default="portal")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    method = models.CharField(max_length=20, choices=Payment.Method.choices)
+    paid_on = models.DateField()
+    reference = models.CharField(max_length=80, blank=True)
+    note = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.SUBMITTED, db_index=True
+    )
+    revision = models.PositiveSmallIntegerField(default=1)
+    # Earlier revisions' facts, oldest first, so nothing the tenant said is lost.
+    history = models.JSONField(default=list, blank=True)
+    submitted_at = models.DateTimeField()
+    review_note = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", blank=True, null=True
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    payment = models.OneToOneField(
+        Payment, on_delete=models.PROTECT, related_name="proof", blank=True, null=True
+    )
+
+    class Meta:
+        ordering = ["-submitted_at"]
+        indexes = [models.Index(fields=["organization", "status"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["organization", "number"], name="unique_payment_proof_number"
+            ),
+            models.CheckConstraint(condition=Q(amount__gt=0), name="payment_proof_amount_positive"),
+        ]
+
+    def __str__(self):
+        return self.number
+
+
+class PaymentProofFile(OrganizationScopedModel):
+    """A screenshot or PDF behind a payment proof, stored privately."""
+
+    proof = models.ForeignKey(PaymentProof, on_delete=models.CASCADE, related_name="files")
+    revision = models.PositiveSmallIntegerField(default=1)
+    name = models.CharField(max_length=120)
+    content_type = models.CharField(max_length=40)
+    content = models.BinaryField()
+    size = models.PositiveIntegerField()
+    sha256 = models.CharField(max_length=64, db_index=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return self.name

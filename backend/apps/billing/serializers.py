@@ -241,6 +241,8 @@ class InvoiceDetailSerializer(InvoiceSerializer):
     issuer = serializers.SerializerMethodField()
     tenant_tpin = serializers.CharField(source="tenant.tpin", read_only=True)
     tenant_email = serializers.CharField(source="tenant.email", read_only=True)
+    # Tenant-reported payments still to confirm: warn before recording by hand.
+    pending_proofs = serializers.SerializerMethodField()
 
     class Meta(InvoiceSerializer.Meta):
         fields = [
@@ -250,6 +252,22 @@ class InvoiceDetailSerializer(InvoiceSerializer):
             "payments",
             "fiscal_receipts",
             "issuer",
+            "pending_proofs",
+        ]
+
+    def get_pending_proofs(self, obj):
+        from .proofs import matching_proofs
+
+        return [
+            {
+                "id": str(row.public_id),
+                "number": row.number,
+                "amount": f"{row.amount:.2f}",
+                "paid_on": row.paid_on.isoformat(),
+                "method": row.method,
+                "reference": row.reference,
+            }
+            for row in matching_proofs(obj)
         ]
 
     def get_issuer(self, obj):

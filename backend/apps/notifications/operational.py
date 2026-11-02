@@ -36,6 +36,7 @@ TARGETS = {
     "billing.depositentry",
     "billing.invoice",
     "billing.payment",
+    "billing.paymentproof",
     "leases.lease",
     "maintenance.maintenancerequest",
     "maintenance.maintenanceupdate",
@@ -72,6 +73,9 @@ TITLES = {
     "deposit.deduction_answered": "Tenant answered a deposit deduction",
     "deposit.deduction_applied": "Deposit deduction applied",
     "deposit.refund_recorded": "Deposit refund recorded",
+    "proof.submitted": "Payment to confirm",
+    "proof.needs_information": "Your property manager has a question about your payment",
+    "proof.rejected": "Payment not received",
 }
 
 
@@ -176,6 +180,7 @@ def target_for(row):
         "payments.withdrawal": ("organization",),
         "billing.depositdeduction": ("organization", "lease__tenant"),
         "billing.depositentry": ("organization", "lease__tenant"),
+        "billing.paymentproof": ("organization", "tenant", "invoice"),
     }[row.target_model]
     return model.objects.select_related(*related).filter(pk=row.target_id).first()
 
@@ -283,6 +288,27 @@ def content(row, target):
             + f". Paid on {target.occurred_on}."
         )
         path = "/leases" if row.audience == "tenant" else f"/leases/{target.lease.public_id}"
+    elif label == "billing.paymentproof":
+        # A proof decided since the notice was queued is never announced late.
+        if row.target_state and target.status != row.target_state:
+            return None
+        if row.event == "proof.submitted" and target.status != "submitted":
+            return None
+        facts = (
+            f"{currency} {target.amount:.2f} for invoice {target.invoice.reference}, "
+            f"paid {target.paid_on} by {target.get_method_display().lower()}"
+            + (f", reference {target.reference}" if target.reference else "")
+        )
+        if row.event == "proof.submitted":
+            detail = (
+                f"{target.tenant.full_name} reports paying {facts}. Proof {target.number}. "
+                "Confirm only after checking the money arrived."
+            )
+        elif row.event == "proof.needs_information":
+            detail = f"About your payment of {facts}: {target.review_note}"
+        else:
+            detail = f"Your payment of {facts} was not received. Reason: {target.review_note}"
+        path = "/billing" if row.audience == "tenant" else f"/billing?proof={target.public_id}"
     elif label.startswith("maintenance."):
         job = target.request if label.endswith("maintenanceupdate") else target
         if row.target_state and job.status != row.target_state:
