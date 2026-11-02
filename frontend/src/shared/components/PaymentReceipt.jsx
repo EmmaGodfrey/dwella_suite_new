@@ -14,6 +14,12 @@ export default function PaymentReceipt({ receipt }) {
       style: "currency",
       currency: issuer.currency || "ZMW",
     }).format(Number(value));
+  // Older API responses have no split; show the whole payment against the invoice.
+  const allocation = receipt.allocation?.length
+    ? receipt.allocation
+    : [{ kind: "charges", label: "Invoice payment", note: "", document: receipt.invoice_reference, period: null, amount: receipt.amount }];
+  const formatMonth = (value) =>
+    new Date(`${value}T00:00:00`).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
   return (
     <article
       className="dwella-receipt-document"
@@ -60,22 +66,36 @@ export default function PaymentReceipt({ receipt }) {
         <span>{paymentMethodLabel(receipt.method)}</span>
       </section>
       <table className="dwella-receipt-allocation">
-        <caption>Payment allocation</caption>
+        <caption>How this payment was allocated</caption>
         <thead>
           <tr>
             <th scope="col">Applied to</th>
+            <th scope="col">Document</th>
+            <th scope="col">Period</th>
             <th scope="col">Amount</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>
-              <strong>{receipt.invoice_reference}</strong>
-              <span>Invoice payment</span>
-            </td>
-            <td>{money(receipt.amount)}</td>
-          </tr>
+          {allocation.map((row) => (
+            <tr key={row.kind} className={row.kind === "deposit" ? "is-deposit" : undefined}>
+              <td>
+                <strong>{row.label}</strong>
+                {row.note ? <span>{row.note}</span> : null}
+              </td>
+              <td>{row.document}</td>
+              <td>{row.period ? formatMonth(row.period) : "—"}</td>
+              <td>{money(row.amount)}</td>
+            </tr>
+          ))}
         </tbody>
+        {allocation.length > 1 ? (
+          <tfoot>
+            <tr>
+              <th scope="row" colSpan={3}>Total allocated</th>
+              <td>{money(receipt.amount)}</td>
+            </tr>
+          </tfoot>
+        ) : null}
       </table>
       <dl className="dwella-receipt-details">
         <div>
@@ -102,6 +122,12 @@ export default function PaymentReceipt({ receipt }) {
           <dt>Current invoice balance</dt>
           <dd>{money(receipt.current_balance)}</dd>
         </div>
+        {receipt.deposit_held ? (
+          <div>
+            <dt>Deposit now held for tenant</dt>
+            <dd>{money(receipt.deposit_held)}</dd>
+          </div>
+        ) : null}
       </dl>
       <footer className="dwella-receipt-footer">
         <p>Thank you for your payment.</p>
