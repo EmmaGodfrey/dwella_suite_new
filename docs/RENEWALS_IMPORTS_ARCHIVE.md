@@ -35,14 +35,14 @@ Both use the same three calls, on `/api/v1/properties/units/` and `/api/v1/tenan
 
 **Unit columns:**
 - Required: `property`, `unit`, `rent_amount`.
-- Optional: `bedrooms`, `bathrooms`, `floor_area`, `notes`.
+- Optional: `bedrooms`, `bathrooms`, `notes`. Unit floor area was removed on 2 November 2026.
 - The property must already exist; its name matches ignoring case.
 - Rent accepts "K 3,500" style amounts.
 - Units start vacant.
 
 **Tenant columns:**
 - Required: `full_name`, `phone_number`.
-- Optional: `email`, `national_id`, `tpin`, `notes`.
+- Optional: `email`, `national_id`, `tpin`, `notes`, `tenant_type`, `identity_type`, `identity_country`, `billing_address`, `company_registration`, `representative_name`, `representative_phone`.
 - Phones are normalised, and phone duplicates include archived tenants.
 - Tenants start as applicants.
 
@@ -53,6 +53,22 @@ Both use the same three calls, on `/api/v1/properties/units/` and `/api/v1/tenan
 **Confirming:**
 - It re-checks every row under the workspace's record-limit lock and creates all of them or none. If anything changed, it returns the changed rows and asks for a new upload.
 - Each preview can be confirmed once. `PortfolioImport` keeps the receipt, and an audit event records the count.
+
+### Combined portfolio import (2 November 2026)
+
+Add `?kind=tenancies` to the tenant template, preview and confirmation URLs to create units, tenants and **draft** leases together. Upload a CSV/XLSX as multipart `file`, or send CSV text in `csv`. Properties must already exist. A row without tenant or lease fields creates a vacant unit. Occupied rows need tenant name/phone and lease start/end dates; monthly rent defaults to the unit rent. Existing units and tenants are linked only when the reviewed match remains unambiguous; their stored details are not overwritten.
+
+The preview shows the matched property/unit/tenant, row errors and missing document details. Confirmation checks the matches again under the workspace lock, checks capacity for each resource, then writes in bounded batches. Any changed match or conflict requires another preview. It does not activate leases, issue invoices, send invitations or record money. Historical `opening_balance`, `balance`, `arrears` and `deposit_held` columns are rejected: opening financial records remain a separate reviewed migration.
+
+Preview rows are encrypted in the shared cache, bound to the requesting user/workspace and expire after 30 minutes. Only one current preview per user/workspace/import kind is retained; a newer preview invalidates the older one. Tokens contain no tenant data. Successful confirmation records a durable one-use import receipt. Keep the normal shared cache available across web workers.
+
+XLSX accepts one worksheet, at most 60 columns and 500 data rows. Phone and identity cells must be stored as Text to retain leading zeros. Formulas, macros, external links, unsupported XML declarations, oversized archives/XML and malformed text are rejected. These constraints apply before database lookups where possible.
+
+### Tenant details and document preparation
+
+Tenant lists mask identity numbers and TPINs; the authorised detail drawer supports individual/company details and a missing-information checklist. Dwella requires legal name, phone, billing address and TPIN, plus individual identity details or company registration/representative details, before activating a new lease or preparing new tenancy documents. This is product completeness, not verification by an identity or tax authority. Incomplete records remain available for payments, repairs and retained documents. Receipt preparation reports missing details for newer payments without preventing payment recording; previously recorded receipts remain available.
+
+Import regression coverage includes role/workspace boundaries, expiry/replay, throttling, malformed files, changed matches, rollback, capacity and query budgets. Combined confirmation measured 14 SELECTs for both 10 and 500 rows on SQLite; batched INSERTs were 6 and 31 respectively (0.027s and 0.608s in the original local run). These measurements are a local import budget, not a server-capacity claim.
 
 ## Archive tenants
 

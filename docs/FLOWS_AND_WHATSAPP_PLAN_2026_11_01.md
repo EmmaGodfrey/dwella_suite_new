@@ -18,8 +18,8 @@ Payments-adjacent work is Claude's (see `.agents/memory/feedback-payments-owner.
 | --- | --- | --- | --- |
 | 1 | Automatic rent invoices (workspace on/off + days before due, default on / 7 days) | Claude | Built locally 1 Nov |
 | 2 | Payment details printed on invoices (bank / mobile money set once in Settings → Billing, up to three, audited; "Pay online" line when collections are on) | Claude | Built locally 1 Nov |
-| 3 | Required tenant details (name, phone, NRC/passport, TPIN; individual/company) + missing-details checklist | Codex | To start |
-| 4 | Combined unit + tenant import (CSV/XLSX), existing tenancies with opening balances; remove unit floor area | Codex | To start |
+| 3 | Required tenant details (name, phone, NRC/passport, TPIN; individual/company) + missing-details checklist | Codex | Implemented and committed locally 2 Nov; final validation/publication in progress |
+| 4 | Combined unit + tenant import (CSV/XLSX), existing tenancies with opening balances; remove unit floor area | Codex | Draft unit/tenant/lease import and floor-area removal implemented locally 2 Nov; historical opening balances remain a separate payments-owned migration |
 | 5 | Deposits: request, collect (Dwella checkout or recorded), held balance, deductions with evidence, refund, renewal transfer | Claude | Built locally 1 Nov (evidence uploads next) |
 | 6 | Move-out: notice, move-in/move-out condition with photos, tenant acknowledgement, deposit settlement hand-off | Codex | After 3 |
 | 7 | Tenant reimbursement claims: tenant submits with receipt/photos; manager approves/partly/rejects; settlement recorded | Codex (claim flow) + Claude (settlement/ledger) | After 5 |
@@ -84,7 +84,7 @@ Not available from WhatsApp in the first release: withdrawals/payouts, bank or p
 - `Organization.auto_invoice` (default on) and `invoice_lead_days` (default 7, 0–28), edited in Settings → Workspace → Rent invoices.
 - `run_billing` (daily 06:00) calls `issue_upcoming_rent`: for this month and next month, a lease is billed once `today >= due day − lead days`; this month is always caught up. Existing duplicate protection means no month is billed twice, and hand-issued invoices count.
 - Late fees still apply when automatic invoices are off.
-- Release step: the `billing` job is not in either server's `APP_SCHEDULER_JOBS`. Add `billing` (and `renewals`) there when releasing; check the invoice notice email is enabled so tenants receive them.
+- Release step updated 2 Nov: `billing` and `renewals` were added and runtime-verified in the test scheduler at the user's request. The production scheduler job list was preserved. Check invoice notice email configuration and exercise scheduled issuance in test before a later production rollout.
 - Known edge: a renewal that starts next month is billed on its start day (once it becomes active), not ahead.
 
 ## Deposits (item 5, built locally 1 Nov)
