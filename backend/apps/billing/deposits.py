@@ -371,3 +371,54 @@ def add_evidence(deduction, *, upload, user):
 def tenant_visible(queryset):
     """Withdrawn proposals are hidden from tenants; everything else is shown."""
     return queryset.filter(~Q(status=DepositDeduction.Status.WITHDRAWN))
+
+
+def _describe(lines, limit=3):
+    names = [line.description for line in lines]
+    shown = ", ".join(names[:limit])
+    return f"{shown} and {len(names) - limit} more" if len(names) > limit else shown
+
+
+def allocation(payment):
+    """How one payment was split between rent/charges and the deposit.
+
+    Uses the same rule as sync_invoice: earlier payments that still count are
+    applied first, and within the invoice other charges settle before the
+    deposit. A reversed receipt shows the split it had while it counted.
+    """
+    invoice = payment.invoice
+    lines = list(invoice.lines.order_by("pk"))
+    deposit_lines = [line for line in lines if line.kind == InvoiceLine.Kind.DEPOSIT]
+    charge_lines = [line for line in lines if line.kind != InvoiceLine.Kind.DEPOSIT]
+    deposit_total = sum((line.amount for line in deposit_lines), ZERO)
+    charges_total = sum((line.amount for line in charge_lines), ZERO)
+    earlier = _total(invoice.payments.filter(reversed_at__isnull=True, pk__lt=payment.pk))
+    to_charges = min(payment.amount, max(charges_total - earlier, ZERO))
+    to_deposit = min(
+        payment.amount - to_charges, max(deposit_total - max(earlier - charges_total, ZERO), ZERO)
+    )
+    period = invoice.period_start.isoformat() if invoice.period_start else None
+    rows = []
+    if to_charges > 0 or not deposit_lines:
+        rows.append(
+            {
+                "kind": "charges",
+                "label": _describe(charge_lines) or "Invoice payment",
+                "note": "",
+                "document": invoice.reference,
+                "period": period,
+                "amount": f"{(to_charges if deposit_lines else payment.amount):.2f}",
+            }
+        )
+    if to_deposit > 0:
+        rows.append(
+            {
+                "kind": "deposit",
+                "label": _describe(deposit_lines),
+                "note": "Held for the tenant, refundable",
+                "document": invoice.reference,
+                "period": period,
+                "amount": f"{to_deposit:.2f}",
+            }
+        )
+    return rows

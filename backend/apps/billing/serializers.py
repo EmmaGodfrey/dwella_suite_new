@@ -12,6 +12,7 @@ from apps.payments.serializers import CollectionSerializer
 from apps.tenants.models import Tenant
 
 from .models import Invoice, InvoiceLine, Payment, PaymentInstruction
+from .receipt_fields import AllocationFields
 from .services import create_invoice
 
 
@@ -67,7 +68,7 @@ class PaymentSerializer(OrganizationScopedSerializer):
         return (user.get_full_name() or user.username) if user else None
 
 
-class ReceiptSerializer(PaymentSerializer):
+class ReceiptSerializer(AllocationFields, PaymentSerializer):
     missing_details = serializers.SerializerMethodField()
 
     def get_missing_details(self, obj):
@@ -98,6 +99,8 @@ class ReceiptSerializer(PaymentSerializer):
             "invoice_total",
             "current_balance",
             "reversed_by_name",
+            "allocation",
+            "deposit_held",
         ]
         read_only_fields = fields
 

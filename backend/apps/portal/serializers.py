@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from apps.billing.models import Invoice, InvoiceLine, Payment
+from apps.billing.receipt_fields import AllocationFields
 from apps.common.serializers import PublicIdModelSerializer
 from apps.documents.models import DocumentVersion, SignedLeaseOriginal
 from apps.leases.models import Lease
@@ -90,7 +91,7 @@ class PaymentSerializer(PublicIdModelSerializer):
         return obj.reversed_at is not None
 
 
-class ReceiptSerializer(PaymentSerializer):
+class ReceiptSerializer(AllocationFields, PaymentSerializer):
     missing_details = serializers.SerializerMethodField()
 
     def get_missing_details(self, obj):
@@ -119,6 +120,8 @@ class ReceiptSerializer(PaymentSerializer):
             "unit_name",
             "invoice_total",
             "current_balance",
+            "allocation",
+            "deposit_held",
         ]
         read_only_fields = fields
 
