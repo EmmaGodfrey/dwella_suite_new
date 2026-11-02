@@ -20,7 +20,7 @@ Payments-adjacent work is Claude's (see `.agents/memory/feedback-payments-owner.
 | 2 | Payment details printed on invoices (bank / mobile money set once in Settings → Billing, up to three, audited; "Pay online" line when collections are on) | Claude | Built locally 1 Nov |
 | 3 | Required tenant details (name, phone, NRC/passport, TPIN; individual/company) + missing-details checklist | Codex | Implemented and committed locally 2 Nov; final validation/publication in progress |
 | 4 | Combined unit + tenant import (CSV/XLSX), existing tenancies with opening balances; remove unit floor area | Codex | Draft unit/tenant/lease import and floor-area removal implemented locally 2 Nov; historical opening balances remain a separate payments-owned migration |
-| 5 | Deposits: request, collect (Dwella checkout or recorded), held balance, deductions with evidence, refund, renewal transfer | Claude | Built locally 1 Nov (evidence uploads next) |
+| 5 | Deposits: request, collect (Dwella checkout or recorded), held balance, deductions with evidence, refund, renewal transfer | Claude | Done 2 Nov, incl. evidence, receipt split and paying unpaid rent from the deposit |
 | 6 | Move-out: notice, move-in/move-out condition with photos, tenant acknowledgement, deposit settlement hand-off | Codex | After 3 |
 | 7 | Tenant reimbursement claims: tenant submits with receipt/photos; manager approves/partly/rejects; settlement recorded | Codex (claim flow) + Claude (settlement/ledger) | After 5 |
 | 8 | Tenant account statement (invoices, payments, credits over a period, PDF) | Codex | Reuses reports work |
@@ -94,4 +94,12 @@ Not available from WhatsApp in the first release: withdrawals/payouts, bank or p
 - Manager: Lease → **Security deposit** drawer (Figma 280:5335): request deposit (issues a deposit invoice for what is still missing), deposit already held, propose deduction, apply/withdraw (disputed needs a resolution note), record refund (cannot exceed available). Every write is audited.
 - Tenant: My lease shows held/reserved/available, deductions with Accept / Dispute (dispute needs a reason), and history.
 - Renewal carries the unreserved balance to the new lease once; a renewal deposit request asks only for the top-up.
-- Not yet: photo/receipt evidence on deductions, tenant/manager notifications for deductions and refunds, applying a deduction to unpaid rent, and the deposit allocation table on receipts (Figma 284:521).
+- Done 2 Nov: photo/receipt evidence on deductions, deduction/refund notices, the rent/deposit allocation table on receipts (Figma 284:521), and paying unpaid rent from the deposit: a deduction can name an unpaid non-deposit invoice on the same lease; applying it records a `deposit`-method payment and receipt, and reversing that payment returns the money (`returned` ledger entry) and withdraws the deduction.
+
+## Payment proof (WhatsApp step 2, channel-neutral backend done 2 Nov)
+
+- `billing.PaymentProof` + `PaymentProofFile`, services in `billing/proofs.py` (`submit`, `cancel`, `resubmit`, `confirm`, `decline`), API in `billing/proof_views.py`.
+- Tenant: `POST /portal/payment-proofs/` (multipart: invoice, amount, method, paid_on, reference, note, files), `.../<id>/cancel|resend/`, private file download. Methods: bank transfer, mobile money, cash, cheque (no card/deposit). Needs a file or a reference; amount ≤ balance; at most 3 open per invoice.
+- Manager: `GET /billing/payment-proofs/?status=open` (with `waiting` count), detail, `.../<id>/confirm|ask|reject/` (ask/reject need a note), private file download. Invoice detail returns `pending_proofs`.
+- Confirm locks invoice then proof, is idempotent and calls `record_payment` (receipt notice comes from the payment). Notices: `proof.submitted` (managers), `proof.needs_information` / `proof.rejected` (tenant).
+- For Codex's WhatsApp engine: call these service functions with the verified actor; pass `channel="whatsapp"` to `submit`. No frontend yet: Figma design first.
