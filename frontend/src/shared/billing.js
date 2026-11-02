@@ -34,7 +34,11 @@ export const paymentMethods = [
   { value: "cheque", label: "Cheque" },
 ];
 
-export const paymentMethodLabel = (value) => paymentMethods.find((method) => method.value === value)?.label || value;
+// Not offered when recording a payment: set only when a deduction pays an invoice.
+const systemMethods = { deposit: "From security deposit" };
+
+export const paymentMethodLabel = (value) =>
+  paymentMethods.find((method) => method.value === value)?.label || systemMethods[value] || value;
 
 export const lineKinds = [
   { value: "rent", label: "Rent" },

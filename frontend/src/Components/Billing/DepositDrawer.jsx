@@ -53,7 +53,7 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
     deductions: {
       title: "Propose deduction", submit: "Send to tenant",
       description: "The amount is reserved, not deducted, until the tenant accepts or the dispute is resolved. Fair wear and tear is not deductible.",
-      initial: { amount: "", reason: "", details: "" },
+      initial: { amount: "", reason: "", details: "", invoice: "" },
     },
     refunds: {
       title: "Record refund", submit: "Record refund",
@@ -69,7 +69,20 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
   const mutation = useDepositAction(leaseId);
   const { errors, validate, clearError, fieldProps, showServerErrors } = useFormErrors();
   const change = (key, value) => { setForm((f) => ({ ...f, [key]: value })); clearError(key); setMessage(""); };
-  const limit = action === "refunds" || action === "deductions" ? Number(deposit.available) : null;
+  const payable = deposit.payable_invoices || [];
+  const target = payable.find((row) => row.id === form.invoice);
+  // Paying an invoice from the deposit cannot exceed what is owed on it.
+  const limit = action === "refunds" || action === "deductions"
+    ? Math.min(Number(deposit.available), target ? Number(target.balance) : Infinity) : null;
+  const pickInvoice = (id) => {
+    const row = payable.find((item) => item.id === id);
+    setForm((f) => ({
+      ...f, invoice: id,
+      amount: row && !f.amount ? String(Math.min(Number(deposit.available), Number(row.balance))) : f.amount,
+      reason: row && !f.reason.trim() ? `Unpaid ${row.period ? formatMonth(row.period) + " rent" : "charges"} · ${row.reference}` : f.reason,
+    }));
+    clearError("invoice"); clearError("amount");
+  };
   const submit = async (event) => {
     event.preventDefault();
     if (mutation.isPending) return;
@@ -83,7 +96,7 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
         : files.some((f) => f.size > MAX_EVIDENCE_BYTES) ? "Each file must be 8 MB or smaller." : "" } : {}),
     }, event.currentTarget)) return;
     try {
-      const saved = await mutation.mutateAsync({ action, ...form });
+      const saved = await mutation.mutateAsync({ action, ...form, ...(action === "deductions" ? { invoice: form.invoice || null } : {}) });
       const failed = action === "deductions" && files.length && saved?.created_id
         ? await uploadDeductionEvidence(leaseId, saved.created_id, files) : [];
       if (failed.length) toast.warning(`Deduction sent, but ${failed.map((f) => f.name).join(", ")} could not be attached: ${failed[0].message}`);
@@ -102,6 +115,15 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
       {message && <p role="alert" className="dwella-alert danger">{message}</p>}
       {text("amount", "Amount (ZMW)", { field: { required: true, hint: limit !== null ? `Available: ${formatMoney(limit)}` : undefined }, input: { inputMode: "decimal" } })}
       {action === "deductions" && <>
+        {payable.length > 0 && <Field label="Use it to pay" {...fieldProps("invoice")}
+          hint={target ? "When applied, the invoice is paid from the deposit and the tenant gets a receipt." : "Or keep it as a deduction for damage, cleaning or other costs."}>
+          <Select value={form.invoice} onChange={(_, d) => pickInvoice(d.value)}>
+            <option value="">Nothing – a deduction for costs</option>
+            {payable.map((row) => <option key={row.id} value={row.id}>
+              {row.reference} · {row.period ? formatMonth(row.period) : "One-off"} · {formatMoney(row.balance)} owed
+            </option>)}
+          </Select>
+        </Field>}
         {text("reason", "What it is for", { field: { required: true }, input: { maxLength: 200, placeholder: "e.g. Replace broken bedroom door lock" } })}
         <Field label="Details for the tenant" {...fieldProps("details")}>
           <Textarea value={form.details} maxLength={2000} onChange={(_, d) => change("details", d.value)}
@@ -139,6 +161,16 @@ function ActionDrawer({ leaseId, action, deposit, onClose }) {
   </FormDrawer>;
 }
 
+const formatMonth = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+/** The unpaid invoice a deduction pays, and its receipt once applied. */
+export function PaysInvoice({ row }) {
+  if (!row.invoice) return null;
+  return <p className="dwella-deposit-muted">
+    {row.receipt ? `Paid ${row.invoice.reference} from the deposit · receipt ${row.receipt.number}` : `Will pay ${row.invoice.reference} from the deposit`}
+  </p>;
+}
+
 function Deduction({ row, leaseId }) {
   const decide = useDeductionDecision(leaseId);
   const [resolution, setResolution] = useState("");
@@ -158,6 +190,7 @@ function Deduction({ row, leaseId }) {
       <strong>{formatMoney(row.amount)}</strong>
     </div>
     <p className="dwella-deposit-muted">Proposed {formatDate(row.proposed_on)}{row.details ? ` · ${row.details}` : ""}</p>
+    <PaysInvoice row={row} />
     <div className="dwella-deposit-status">
       <StatusBadge color={deductionColor[row.status]}>{row.status_label}</StatusBadge>
       {row.tenant_note && <span>Tenant: “{row.tenant_note}”</span>}

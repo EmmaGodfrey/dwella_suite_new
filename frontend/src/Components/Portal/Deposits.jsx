@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { useRespondToDeduction, useTenantDeposits } from "../../Services/payments";
 import { StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
-import { DepositHistory, DepositSummary, EvidenceList } from "../Billing/DepositDrawer";
+import { DepositHistory, DepositSummary, EvidenceList, PaysInvoice } from "../Billing/DepositDrawer";
 import "../Billing/deposits.scss";
 
 const tone = { proposed: "warning", accepted: "informative", disputed: "danger", applied: "success" };
@@ -26,6 +26,7 @@ function Deduction({ row }) {
   return <article className="dwella-deposit-deduction">
     <div className="dwella-deposit-deduction-head"><strong>{row.reason}</strong><strong>{formatMoney(row.amount)}</strong></div>
     <p className="dwella-deposit-muted">Proposed {formatDate(row.proposed_on)}{row.details ? ` · ${row.details}` : ""}</p>
+    <PaysInvoice row={row} />
     <div className="dwella-deposit-status">
       <StatusBadge color={tone[row.status] || "subtle"}>{row.status_label}</StatusBadge>
       {row.tenant_note && <span>Your note: “{row.tenant_note}”</span>}
