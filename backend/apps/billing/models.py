@@ -104,6 +104,11 @@ class Payment(OrganizationScopedModel):
         BANK_TRANSFER = "bank_transfer", "Bank transfer"
         CARD = "card", "Card"
         CHEQUE = "cheque", "Cheque"
+        # Settled from the tenant's security deposit by an applied deduction.
+        DEPOSIT = "deposit", "From security deposit"
+
+    # Methods a manager can choose when recording money they received.
+    RECEIVED_METHODS = [choice for choice in Method.choices if choice[0] != "deposit"]
 
     receipt_number = models.CharField(max_length=20)
     reversed_at = models.DateTimeField(blank=True, null=True)
@@ -233,6 +238,13 @@ class DepositDeduction(OrganizationScopedModel):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", blank=True, null=True
     )
     decided_at = models.DateTimeField(blank=True, null=True)
+    # Unpaid rent or charges this deduction pays once it is applied.
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.PROTECT, related_name="deposit_deductions", blank=True, null=True
+    )
+    payment = models.OneToOneField(
+        Payment, on_delete=models.PROTECT, related_name="deposit_deduction", blank=True, null=True
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -257,6 +269,8 @@ class DepositEntry(OrganizationScopedModel):
         REFUND = "refund", "Refund paid"
         TRANSFER_IN = "transfer_in", "Carried over from previous lease"
         TRANSFER_OUT = "transfer_out", "Carried over to renewal"
+        # An applied deduction undone because the payment it made was reversed.
+        RETURNED = "returned", "Returned to deposit"
 
     lease = models.ForeignKey(
         "leases.Lease", on_delete=models.PROTECT, related_name="deposit_entries"

@@ -15,7 +15,14 @@ from rest_framework.exceptions import ValidationError
 
 from apps.leases.models import Lease
 
-from .models import DepositDeduction, DepositEntry, DepositEvidence, Invoice, InvoiceLine
+from .models import (
+    DepositDeduction,
+    DepositEntry,
+    DepositEvidence,
+    Invoice,
+    InvoiceLine,
+    Payment,
+)
 
 ZERO = Decimal("0")
 
@@ -81,7 +88,9 @@ def summary(lease):
         "entries": entries,
         # File contents are only read when someone opens one.
         "deductions": list(
-            DepositDeduction.objects.filter(lease=lease).prefetch_related(
+            DepositDeduction.objects.filter(lease=lease)
+            .select_related("invoice", "payment")
+            .prefetch_related(
                 Prefetch("evidence", queryset=DepositEvidence.objects.defer("content"))
             )
         ),
@@ -174,8 +183,34 @@ def record_opening(lease, *, amount, occurred_on, note, user):
     )
 
 
+def payable_invoices(lease):
+    """Unpaid rent and charges on this lease that a deduction may pay.
+
+    Deposit invoices are excluded: the deposit cannot pay for itself."""
+    return (
+        Invoice.objects.filter(lease=lease, status__in=Invoice.UNPAID_STATUSES)
+        .exclude(lines__kind=InvoiceLine.Kind.DEPOSIT)
+        .distinct()
+        .order_by("due_date", "pk")
+    )
+
+
+def _check_payable(deduction_amount, invoice):
+    if invoice.status not in Invoice.UNPAID_STATUSES:
+        raise ValidationError({"invoice": [f"Nothing is owed on {invoice.reference} any more."]})
+    if deduction_amount > invoice.balance:
+        raise ValidationError(
+            {
+                "amount": [
+                    f"Only {invoice.balance} is owed on {invoice.reference}. "
+                    "Withdraw this deduction and propose the smaller amount."
+                ]
+            }
+        )
+
+
 @transaction.atomic
-def propose_deduction(lease, *, amount, reason, details, user):
+def propose_deduction(lease, *, amount, reason, details, user, invoice=None):
     _positive(amount)
     lease = lock(lease)
     if not reason.strip():
@@ -183,6 +218,10 @@ def propose_deduction(lease, *, amount, reason, details, user):
     available = held(lease) - reserved(lease)
     if amount > available:
         raise ValidationError({"amount": [f"Only {available} of the deposit is available."]})
+    if invoice is not None:
+        if not payable_invoices(lease).filter(pk=invoice.pk).exists():
+            raise ValidationError({"invoice": ["Choose unpaid rent or charges on this lease."]})
+        _check_payable(amount, invoice)
     row = DepositDeduction.objects.create(
         organization=lease.organization,
         lease=lease,
@@ -190,6 +229,7 @@ def propose_deduction(lease, *, amount, reason, details, user):
         reason=reason.strip(),
         details=details.strip(),
         proposed_by=user,
+        invoice=invoice,
     )
     _notify(row, "deposit.deduction_proposed", tenant_only=True, state=row.status, actor=user)
     return row
@@ -239,12 +279,35 @@ def apply_deduction(deduction, *, user, resolution_note=""):
     # Reservations (this one included) must still be covered by what is held.
     if held(deduction.lease) < reserved(deduction.lease):
         raise ValidationError({"amount": ["The deposit no longer covers this deduction."]})
+    reference = ""
+    if deduction.invoice_id:
+        # Lease is already locked; the invoice comes next, as in every deposit path.
+        from .services import record_payment
+
+        invoice = Invoice.objects.select_for_update().get(pk=deduction.invoice_id)
+        _check_payable(deduction.amount, invoice)
+        deduction.payment = record_payment(
+            invoice=invoice,
+            amount=deduction.amount,
+            method=Payment.Method.DEPOSIT,
+            paid_on=timezone.localdate(),
+            notes=f"Paid from the security deposit: {deduction.reason}",
+            recorded_by=user,
+        )
+        reference = invoice.reference
     deduction.status = DepositDeduction.Status.APPLIED
     deduction.resolution_note = resolution_note.strip()
     deduction.decided_by = user
     deduction.decided_at = timezone.now()
     deduction.save(
-        update_fields=["status", "resolution_note", "decided_by", "decided_at", "updated_at"]
+        update_fields=[
+            "status",
+            "resolution_note",
+            "decided_by",
+            "decided_at",
+            "payment",
+            "updated_at",
+        ]
     )
     DepositEntry.objects.create(
         organization_id=deduction.organization_id,
@@ -253,6 +316,7 @@ def apply_deduction(deduction, *, user, resolution_note=""):
         amount=-deduction.amount,
         occurred_on=timezone.localdate(),
         deduction=deduction,
+        reference=reference,
         note=deduction.reason,
         recorded_by=user,
     )
@@ -297,6 +361,27 @@ def record_refund(lease, *, amount, method, reference, paid_on, note, user):
     )
     _notify(entry, "deposit.refund_recorded", tenant_only=True, actor=user)
     return entry
+
+
+def return_reversed_payment(payment, *, user):
+    """A deposit-funded payment was reversed: put the money back in the deposit.
+
+    Called from reverse_payment, which locks the lease before the invoice for
+    deposit payments. The deduction is withdrawn so it no longer counts."""
+    deduction = DepositDeduction.objects.select_for_update().get(payment=payment)
+    DepositEntry.objects.create(
+        organization_id=deduction.organization_id,
+        lease_id=deduction.lease_id,
+        kind=DepositEntry.Kind.RETURNED,
+        amount=deduction.amount,
+        occurred_on=timezone.localdate(),
+        reference=payment.receipt_number,
+        note=f"Payment reversed: {payment.reversal_reason}",
+        recorded_by=user,
+    )
+    deduction.status = DepositDeduction.Status.WITHDRAWN
+    deduction.save(update_fields=["status", "updated_at"])
+    return deduction
 
 
 def carry_over_to_renewal(renewal, previous):

@@ -44,6 +44,17 @@ def deduction_data(row, *, tenant=False):
         "responded_at": row.responded_at,
         "resolution_note": row.resolution_note,
         "decided_at": row.decided_at,
+        # Unpaid rent or charges this deduction pays, and the receipt once it did.
+        "invoice": (
+            {"id": str(row.invoice.public_id), "reference": row.invoice.reference}
+            if row.invoice_id
+            else None
+        ),
+        "receipt": (
+            {"id": str(row.payment.public_id), "number": row.payment.receipt_number}
+            if row.payment_id
+            else None
+        ),
         "evidence": [
             {
                 "id": str(item.public_id),
@@ -64,7 +75,7 @@ def payload(lease, *, tenant=False):
     rows = info["deductions"]
     if tenant:
         rows = [row for row in rows if row.status != DepositDeduction.Status.WITHDRAWN]
-    return {
+    data = {
         "lease": {
             "id": str(lease.public_id),
             "reference": lease.reference,
@@ -91,6 +102,18 @@ def payload(lease, *, tenant=False):
         ],
         "deductions": [deduction_data(row, tenant=tenant) for row in rows],
     }
+    if not tenant:
+        data["payable_invoices"] = [
+            {
+                "id": str(invoice.public_id),
+                "reference": invoice.reference,
+                "period": invoice.period_start.isoformat() if invoice.period_start else None,
+                "due_date": invoice.due_date.isoformat(),
+                "balance": money(invoice.balance),
+            }
+            for invoice in deposits.payable_invoices(lease)
+        ]
+    return data
 
 
 class ManagerView(APIView):
@@ -143,11 +166,12 @@ class DeductionSerializer(serializers.Serializer):
     amount = serializers.DecimalField(**MONEY)
     reason = serializers.CharField(max_length=200)
     details = serializers.CharField(max_length=2000, required=False, default="", allow_blank=True)
+    invoice = serializers.UUIDField(required=False, allow_null=True, default=None)
 
 
 class RefundSerializer(serializers.Serializer):
     amount = serializers.DecimalField(**MONEY)
-    method = serializers.ChoiceField(choices=Payment.Method.choices)
+    method = serializers.ChoiceField(choices=Payment.RECEIVED_METHODS)
     reference = serializers.CharField(max_length=100, required=False, default="", allow_blank=True)
     paid_on = serializers.DateField(default=timezone.localdate)
     note = serializers.CharField(max_length=500, required=False, default="", allow_blank=True)
@@ -190,9 +214,15 @@ class DepositOpeningView(ManagerView):
 class DepositDeductionCreateView(ManagerView):
     def post(self, request, public_id):
         lease = self.lease(public_id)
-        row = deposits.propose_deduction(
-            lease, user=request.user, **valid(DeductionSerializer, request)
-        )
+        data = valid(DeductionSerializer, request)
+        if data["invoice"]:
+            payable = deposits.payable_invoices(lease)
+            data["invoice"] = payable.filter(public_id=data["invoice"]).first()
+            if data["invoice"] is None:
+                raise serializers.ValidationError(
+                    {"invoice": ["Choose unpaid rent or charges on this lease."]}
+                )
+        row = deposits.propose_deduction(lease, user=request.user, **data)
         response = self.done(lease, "deposit.deduction_proposed", row, amount=str(row.amount))
         # Lets the screen attach evidence to the deduction it just created.
         response.data["created_id"] = str(row.public_id)

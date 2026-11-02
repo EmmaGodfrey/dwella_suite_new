@@ -269,7 +269,7 @@ class InvoiceDetailSerializer(InvoiceSerializer):
 
 class RecordPaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
-    method = serializers.ChoiceField(choices=Payment.Method.choices)
+    method = serializers.ChoiceField(choices=Payment.RECEIVED_METHODS)
     paid_on = serializers.DateField(required=False)
     reference = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
     notes = serializers.CharField(required=False, allow_blank=True, default="")

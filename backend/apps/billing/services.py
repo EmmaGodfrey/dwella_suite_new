@@ -19,6 +19,12 @@ CENT = Decimal("0.01")
 @transaction.atomic
 def reverse_payment(payment, *, reason, user):
     """Correct the ledger, keeping the original receipt and who corrected it."""
+    from . import deposits
+
+    from_deposit = payment.method == Payment.Method.DEPOSIT
+    if from_deposit:
+        # Deposit changes lock the lease before the invoice; keep that order.
+        deposits.lock(payment.invoice.lease)
     invoice = Invoice.objects.select_for_update().get(pk=payment.invoice_id)
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
     if hasattr(payment, "collection"):
@@ -34,6 +40,8 @@ def reverse_payment(payment, *, reason, user):
     payment.reversed_by = user
     payment.save(update_fields=["reversed_at", "reversal_reason", "reversed_by", "updated_at"])
     refresh_totals(invoice)
+    if from_deposit:
+        deposits.return_reversed_payment(payment, user=user)
     return payment
 
 
