@@ -37,6 +37,7 @@ export const AppBreadcrumbs = () => {
   const crumbs = [{ to: "/dashboard", label: getPageMeta("/dashboard", user)[0] }];
   if (section !== "/dashboard") crumbs.push({ to: section, label: getPageMeta(section, user)[0] });
   if (pathname.startsWith("/billing/receipts")) crumbs.push({ to: "/billing/receipts", label: "Receipts" });
+  if (pathname === "/billing/statement") crumbs.push({ to: pathname, label: "Statement" });
   if (detail) crumbs.push({ to: pathname, label: detail });
   if (pathname.startsWith("/admin/")) {
     const sectionPath = pathname.split("/").slice(0, 3).join("/");

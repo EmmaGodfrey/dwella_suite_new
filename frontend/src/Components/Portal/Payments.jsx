@@ -194,6 +194,7 @@ export default function PortalPayments() {
           <div className="dwella-portal">
             <div className="dwella-page-toolbar">
               <SegmentedFilter label="Filter invoices" options={views} value={view} onChange={(value) => setParam("view", value === "unpaid" ? null : value)} />
+              <Button as={Link} to="/billing/statement">Statement</Button>
             </div>
             {invoices.length ? (
               <div className="dwella-table-card">

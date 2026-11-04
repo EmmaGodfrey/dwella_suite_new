@@ -92,6 +92,7 @@ export const pageMeta = {
 export function getPageMeta(pathname, user, search = "") {
   const access = getUserAccess(user);
   if (access.persona === "tenant") {
+    if (pathname === "/billing/statement") return ["Statement", "Your recorded charges and payments."];
     if (pathname === "/dashboard") return ["Home", "Your tenancy, payments, and maintenance requests."];
     if (pathname.startsWith("/leases")) return ["My lease", "Lease terms and your signed agreement."];
     if (pathname.startsWith("/billing")) return ["Payments", "Invoices, receipts, and what you owe."];
