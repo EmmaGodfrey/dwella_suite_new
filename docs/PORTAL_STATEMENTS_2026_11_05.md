@@ -98,3 +98,36 @@ These are static review frames with fictional data. No prototype, frontend
 implementation, new API behavior, live data change, deployment or release is
 implied. Next: user design review, then frontend query hooks, screen/navigation,
 date validation, production build and desktop/mobile flow checks.
+
+## Structural revision after user feedback — 5 November 2026
+
+The user rejected the first proposal's structure and directed Codex to follow
+Claude's established Dwella layouts more closely. The same review links above
+now show the revised designs; this correction is not design approval.
+
+Direct references inspected visually and structurally:
+
+- Claude's manager proof review `299:730`, including the summary section `301:520`.
+- Claude's tenant mobile payment report `299:1104`, including its back/context
+  top bar `299:1105`, compact context row `302:525` and grouped form `302:530`.
+
+The desktop now separates grouped period controls, a closing-balance summary
+with supporting opening/charge/payment figures, and a defined activity surface
+with column headings and aligned money. The previously separate Back button
+and floating date controls are removed from the desktop composition.
+
+Mobile now follows the focused tenant layout: back/context header, compact
+applied-period row, prominent closing balance, secondary figures, CSV action
+and compact activity. Changing the period and choosing an account use focused
+bottom sheets. The sample mobile frame is 908 pixels high, compared with the
+earlier 1,500-pixel frame; the compact layout preserves every sample entry and
+its running balance. It is a static layout comparison, not a browser benchmark.
+
+Desktop/mobile content fits its bounds. Dark mode and the date/account sheets
+were visually checked; the sheets deliberately clip the dimmed background to
+the phone viewport. Figtree/Montserrat and editable components are retained.
+Claude's reference frames were only read and cloned, never edited.
+
+The backend's earlier test evidence predates Claude's opening-balance changes.
+Recheck statement integration with that newer ledger behavior before shipping
+the frontend. This design-only revision does not claim new backend validation.
