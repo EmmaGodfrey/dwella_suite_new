@@ -236,5 +236,6 @@ from .whatsapp.models import (  # noqa: E402,F401
     WhatsAppConversation,
     WhatsAppInbound,
     WhatsAppMedia,
+    WhatsAppProofNotice,
     WhatsAppReply,
 )

@@ -110,3 +110,35 @@ class WhatsAppMedia(models.Model):
 
     def __str__(self):
         return f'WhatsApp media {self.pk}'
+
+
+class WhatsAppProofNotice(models.Model):
+    """One approved-template message about one revision of a payment proof."""
+
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True)
+    binding = models.ForeignKey(WhatsAppBinding, on_delete=models.CASCADE)
+    binding_generation = models.UUIDField()
+    organization = models.ForeignKey('organizations.Organization', on_delete=models.CASCADE)
+    role = models.CharField(max_length=20)
+    proof = models.ForeignKey('billing.PaymentProof', on_delete=models.CASCADE)
+    revision = models.PositiveSmallIntegerField()
+    purpose = models.CharField(max_length=16)
+    # Only a hash: the button token exists in plain form only in the message Meta delivers.
+    token_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    status = models.CharField(max_length=16, default='queued')
+    reason = models.CharField(max_length=80, blank=True)
+    claimed_at = models.DateTimeField(null=True)
+    claim_token = models.UUIDField(null=True)
+    provider_id = models.CharField(max_length=160, blank=True, db_index=True)
+    provider_updated_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['binding', 'proof', 'revision', 'purpose'], name='wa_unique_proof_notice',
+        )]
+        indexes = [models.Index(fields=['status', 'created_at', 'id'], name='wa_notice_due')]
+
+    def __str__(self):
+        return f'WhatsApp proof notice {self.public_id}'

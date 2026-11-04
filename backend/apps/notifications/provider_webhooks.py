@@ -60,9 +60,11 @@ def apply_status(data):
         query |= Q(public_id=reference, channel="whatsapp", status="sending", provider_id="")
     row = MessageDelivery.objects.select_for_update().filter(query, channel="whatsapp").first()
     if not row:
+        from .whatsapp.notices import apply_notice_status
         from .whatsapp.transport import apply_reply_status
 
         apply_reply_status(data, stamp)
+        apply_notice_status(data, stamp)
         return
     if normalize_phone("+" + str(data.get("recipient_id", ""))) != normalize_phone(row.recipient):
         return

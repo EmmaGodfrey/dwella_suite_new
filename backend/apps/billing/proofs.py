@@ -30,6 +30,13 @@ def _notify(proof, event, **options):
     safe_enqueue(proof, event, **options)
 
 
+def _message(proof, purpose):
+    # Queues an optional WhatsApp message; it is rechecked again at sending time.
+    from apps.notifications.whatsapp.notices import queue_proof_notice
+
+    queue_proof_notice(proof, purpose)
+
+
 def clean_file(upload):
     from apps.documents.files import MAX_PHOTO_BYTES, clean_image, inspect_pdf, read_upload
 
@@ -78,7 +85,8 @@ def _check_facts(invoice, *, amount, method, paid_on, reference, uploads, ignore
         raise ValidationError({"method": ["Choose how you paid."]})
     if paid_on > timezone.localdate():
         raise ValidationError({"paid_on": ["The payment date cannot be in the future."]})
-    if not uploads and not reference.strip():
+    # Cash often leaves no screenshot or reference, and the manager still checks it arrived.
+    if method != "cash" and not uploads and not reference.strip():
         raise ValidationError(
             {"files": ["Attach a screenshot or receipt, or enter the transaction reference."]}
         )
@@ -122,6 +130,7 @@ def submit(
     )
     _store_files(proof, uploads, user)
     _notify(proof, "proof.submitted", managers_only=True, suffix="1", actor=user)
+    _message(proof, "review")
     return proof
 
 
@@ -183,6 +192,7 @@ def resubmit(proof, *, user, amount, method, paid_on, reference="", note="", upl
     if uploads:
         _store_files(proof, uploads, user)
     _notify(proof, "proof.submitted", managers_only=True, suffix=str(proof.revision), actor=user)
+    _message(proof, "review")
     return proof
 
 
@@ -219,6 +229,7 @@ def confirm(proof, *, user):
     proof.reviewed_by, proof.reviewed_at = user, timezone.now()
     proof.save(update_fields=["payment", "status", "reviewed_by", "reviewed_at", "updated_at"])
     # The receipt notice comes from the payment itself.
+    _message(proof, "received")
     return proof
 
 
@@ -245,6 +256,7 @@ def decline(proof, *, user, note, ask=False):
         suffix=str(proof.revision),
         actor=user,
     )
+    _message(proof, "question" if ask else "declined")
     return proof
 
 
