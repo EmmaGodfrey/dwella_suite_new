@@ -461,6 +461,152 @@ def test_expired_service_window_requires_approved_operational_template(house, se
     ), list(OperationalDelivery.objects.values("channel", "status", "reason"))
 
 
+def opted_in(user, phone="+260971234567"):
+    NotificationPreferences.objects.update_or_create(user=user, defaults={"whatsapp_enabled": True})
+    return PhoneMessagingConsent.objects.create(
+        user=user,
+        channel="whatsapp",
+        phone=phone,
+        allowed=True,
+        source="verified_link",
+        granted_at=timezone.now(),
+        last_inbound_at=timezone.now() - timedelta(days=2),
+    )
+
+
+def send_outside_window(approved):
+    """Dispatch with the reply window closed; returns the payloads given to Meta."""
+    with (
+        patch("apps.notifications.operational.phone_allowed", return_value=True),
+        patch("apps.notifications.operational.whatsapp_ready", return_value=True),
+        patch("apps.audit.runtime_settings.approved_whatsapp_templates", return_value=approved),
+        patch(
+            "apps.notifications.operational.post_json",
+            return_value={"messages": [{"id": "wa-money"}]},
+        ) as send,
+    ):
+        dispatch_operational(now=(timezone.now() + timedelta(days=1)).replace(hour=12))
+    return [call.args[1] for call in send.call_args_list]
+
+
+def body_values(payload):
+    return [item["text"] for item in payload["template"]["components"][0]["parameters"]]
+
+
+def tenant_phone(house):
+    tenant = house[3].tenant
+    tenant.phone_number = "+260971234567"
+    tenant.save()
+    return tenant
+
+
+def test_invoice_notice_uses_its_own_template_with_clean_values(house, settings):
+    settings.WHATSAPP_OPERATIONAL_TEMPLATE = ""
+    tenant = tenant_phone(house)
+    tenant.full_name = "Mutale   Banda"
+    tenant.save()
+    opted_in(house[2])
+    enqueue(house[4], "invoice.issued")
+    payloads = send_outside_window({"dwella_invoice_issued:en"})
+    assert [item["template"]["name"] for item in payloads] == ["dwella_invoice_issued"]
+    values = body_values(payloads[0])
+    assert len(values) == 5
+    assert values[0] == "Mutale Banda" and values[2] == house[4].reference
+    assert values[3].endswith("100.00")
+
+
+def test_payment_notice_template_reaches_only_the_tenant(house, settings):
+    settings.WHATSAPP_OPERATIONAL_TEMPLATE = ""
+    tenant_phone(house)
+    opted_in(house[1], "+260971234560")
+    opted_in(house[2])
+    paid(house)
+    payloads = send_outside_window({"dwella_payment_received:en"})
+    assert [item["template"]["name"] for item in payloads] == ["dwella_payment_received"]
+    assert len(body_values(payloads[0])) == 4
+    held = OperationalDelivery.objects.get(channel="whatsapp", audience="manager")
+    assert (held.status, held.reason) == ("held", "operational_template_required")
+
+
+@pytest.mark.parametrize(
+    "approved,sent", [({"dwella_payment_received:en"}, 1), (set(), 0)]
+)
+def test_unapproved_money_template_holds_instead_of_sending(house, settings, approved, sent):
+    settings.WHATSAPP_OPERATIONAL_TEMPLATE = ""
+    tenant_phone(house)
+    opted_in(house[2])
+    paid(house)
+    assert len(send_outside_window(approved)) == sent
+    if not sent:
+        row = OperationalDelivery.objects.get(channel="whatsapp", audience="tenant")
+        assert (row.status, row.reason) == ("held", "operational_template_required")
+
+
+@pytest.mark.parametrize(
+    "event,word",
+    [
+        ("successful", "delivered"),
+        ("failed", "failed"),
+        ("review", "needs attention"),
+        ("queued", "requested"),
+        ("cancelled", "cancelled"),
+    ],
+)
+def test_withdrawal_update_names_the_manager_and_status(event, word):
+    from types import SimpleNamespace
+
+    from .money_templates import money_template
+
+    row = SimpleNamespace(
+        event=f"withdrawal.{event}",
+        audience="manager",
+        organization=SimpleNamespace(name="Workspace", currency="ZMW"),
+        recipient_user=SimpleNamespace(get_full_name=lambda: ""),
+    )
+    target = SimpleNamespace(reference="WD-1", amount=Decimal("1250"))
+    assert money_template(row, target) == (
+        "dwella_payout_update", ["there", "WD-1", "ZMW 1,250.00", word],
+    )
+
+
+def test_payment_from_a_confirmed_proof_is_not_announced_twice(house, settings):
+    from apps.billing.models import PaymentProof
+
+    from .whatsapp.models import WhatsAppBinding, WhatsAppProofNotice
+
+    settings.WHATSAPP_OPERATIONAL_TEMPLATE = ""
+    tenant_phone(house)
+    opted_in(house[2])
+    payment = paid(house)
+    proof = PaymentProof.objects.create(
+        number="POP-1",
+        submitted_by=house[2],
+        submitted_at=timezone.now(),
+        organization=house[0],
+        tenant=house[3].tenant,
+        invoice=house[4],
+        amount=payment.amount,
+        method="bank_transfer",
+        paid_on=payment.paid_on,
+        status="confirmed",
+        payment=payment,
+    )
+    binding = WhatsAppBinding.objects.create(user=house[2], phone="+260971234567")
+    WhatsAppProofNotice.objects.create(
+        binding=binding,
+        binding_generation=binding.generation,
+        proof=proof,
+        revision=proof.revision,
+        purpose="received",
+        role="tenant",
+        organization_id=house[0].pk,
+        expires_at=timezone.now() + timedelta(hours=24),
+    )
+    assert send_outside_window({"dwella_payment_received:en"}) == []
+    row = OperationalDelivery.objects.get(channel="whatsapp", audience="tenant")
+    assert (row.status, row.reason) == ("cancelled", "covered_by_proof_notice")
+
+
 def test_signed_inbound_connect_code_marks_only_intended_number(house, settings):
     from .test_phone_messaging import callback
 

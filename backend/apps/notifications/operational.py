@@ -27,6 +27,7 @@ from .models import (
     OperationalScan,
     PhoneMessagingConsent,
 )
+from .money_templates import covered_by_proof_notice, money_template
 from .phone_messaging import normalize_phone, phone_allowed, send_sms, sms_ready, whatsapp_ready
 
 logger = logging.getLogger(__name__)
@@ -357,7 +358,7 @@ def _finish(pk, token, **values):
     ).update(**values)
 
 
-def send_phone(row, subject, body, url, now):
+def send_phone(row, subject, body, url, now, target=None):
     from apps.audit.runtime_settings import approved_whatsapp_templates, runtime_settings
 
     pref = NotificationPreferences.objects.filter(user_id=row.recipient_user_id).first()
@@ -398,14 +399,22 @@ def send_phone(row, subject, body, url, now):
     else:
         if not whatsapp_ready(config):
             return "held", "channel_unavailable", ""
+        if covered_by_proof_notice(row):
+            return "cancelled", "covered_by_proof_notice", ""
         payload = {"messaging_product": "whatsapp", "to": consent.phone.lstrip("+")}
         if consent.last_inbound_at and consent.last_inbound_at > now - timedelta(hours=24):
             payload.update(type="text", text={"body": f"{subject}\n\n{body}"})
         else:
-            template = settings.WHATSAPP_OPERATIONAL_TEMPLATE
             language = config["whatsapp_language"]
-            if not template or f"{template}:{language}" not in approved_whatsapp_templates():
-                return "held", "operational_template_required", ""
+            approved = approved_whatsapp_templates()
+            dedicated = money_template(row, target) if target else None
+            if dedicated and f"{dedicated[0]}:{language}" in approved:
+                template, values = dedicated
+            else:
+                template = settings.WHATSAPP_OPERATIONAL_TEMPLATE
+                values = [subject, body.split("\n\n")[1], url]
+                if not template or f"{template}:{language}" not in approved:
+                    return "held", "operational_template_required", ""
             payload.update(
                 type="template",
                 template={
@@ -414,11 +423,7 @@ def send_phone(row, subject, body, url, now):
                     "components": [
                         {
                             "type": "body",
-                            "parameters": [
-                                {"type": "text", "text": subject},
-                                {"type": "text", "text": body.split("\n\n")[1]},
-                                {"type": "text", "text": url},
-                            ],
+                            "parameters": [{"type": "text", "text": value} for value in values],
                         }
                     ],
                 },
@@ -532,7 +537,7 @@ def dispatch_operational(*, limit=50, now=None):
                     else ("review", "send_outcome_unknown", "")
                 )
             else:
-                status, reason, provider_id = send_phone(row, subject, body, url, now)
+                status, reason, provider_id = send_phone(row, subject, body, url, now, target)
         except EmailQuotaExceeded:
             _finish(
                 pk,
