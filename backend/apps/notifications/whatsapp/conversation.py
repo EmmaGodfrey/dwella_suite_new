@@ -159,7 +159,8 @@ def run_action(ctx, conversation, action, target='', page=0):
         allowed = ({'pay_rent', 'payment_proof'} if ctx.role == 'tenant' else
                    {'create_invoice', 'review_proof'})
         if action not in allowed:
-            raise PermissionDenied('This action is not available for this account.')
+            # A manager typing a tenant word is a wrong turn, not a reason to disconnect them.
+            return menu(ctx, conversation, 'That option is not available for this account.')
         if MONEY_ADAPTER is None:
             return menu(ctx, conversation, 'Use Dwella for payment actions while WhatsApp '
                         'payment setup is being completed. ' + website(
@@ -290,7 +291,8 @@ def handle(binding, conversation, inbound):
     conversation.revision += 1
     conversation.expires_at = now + timedelta(minutes=10)
     text = payload.get('text', '').strip()
-    lower = text.casefold()
+    lower = text.casefold().replace('’', "'")
+    exited_step = lower in {'cancel', 'back'} and bool(conversation.draft)
     if lower in {'cancel', 'back', 'menu', 'hi', 'hello', 'start', 'help'}:
         conversation.draft = {}
     if selected and selected['action'] == 'workspace':
@@ -344,9 +346,12 @@ def handle(binding, conversation, inbound):
         return response('Choose a button from the latest repair message, or send BACK.')
     aliases = {'balance': 'balance', 'what do i owe': 'balance', 'who owes me': 'balance',
                'invoices': 'invoices', 'receipts': 'receipts', 'repairs': 'repairs',
-               'pop': 'payment_proof', "i've paid": 'payment_proof', 'pay rent': 'pay_rent'}
+               'pop': 'payment_proof', "i've paid": 'payment_proof', 'i have paid': 'payment_proof',
+               'i paid': 'payment_proof', 'paid': 'payment_proof', 'pay rent': 'pay_rent'}
     if lower in aliases:
         return run_action(ctx, conversation, aliases[lower])
+    if exited_step:
+        return menu(ctx, conversation, 'Cancelled. Nothing was sent.')
     return menu(ctx, conversation, '' if lower in {'menu', 'hi', 'hello', 'help', 'back',
                                                   'cancel', 'start'} else
                 'Choose an option below. For attachments or detailed account changes, use Dwella.')

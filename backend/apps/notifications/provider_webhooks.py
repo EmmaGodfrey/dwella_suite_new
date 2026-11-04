@@ -19,7 +19,9 @@ from .models import MessageDelivery, PhoneMessagingConsent
 from .phone_messaging import normalize_phone, phone_variants
 
 MAX_BODY = 256 * 1024
-STOP_WORDS = {"stop", "unsubscribe", "cancel", "stop all", "opt out"}
+# On WhatsApp, CANCEL exits the current step of a guided flow and is not an opt-out.
+STOP_WORDS = {"stop", "unsubscribe", "stop all", "opt out"}
+SMS_STOP_WORDS = STOP_WORDS | {"cancel"}
 
 
 class CallbackThrottle(AnonRateThrottle):
@@ -325,7 +327,7 @@ class SMSWebhookView(APIView):
             from .phone_links import receive_link
 
             receive_link("sms", phone, text, timezone.now())
-            if text.strip().casefold() not in STOP_WORDS:
+            if text.strip().casefold() not in SMS_STOP_WORDS:
                 return Response({"received": True})
         with transaction.atomic():
             PhoneMessagingConsent.objects.update_or_create(
