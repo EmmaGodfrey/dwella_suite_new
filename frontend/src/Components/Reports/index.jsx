@@ -8,8 +8,16 @@ import { SegmentedFilter, PageActions } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import "../../shared/records.scss";
 import "./reports.scss";
+import ActivityReports from "./ActivityReports";
+import { reportOptions } from "../../shared/activityReports.mjs";
 
 export default function Reports() {
+  const [params] = useSearchParams();
+  const report = params.get("report");
+  return ["collections", "tenant-statement"].includes(report) ? <ActivityReports key={report} report={report} /> : <PortfolioReport />;
+}
+
+function PortfolioReport() {
   const [params, setParams] = useSearchParams();
   const report = params.get("report") === "arrears" ? "arrears" : "rent-roll";
   const [property, setProperty] = useState("");
@@ -65,10 +73,7 @@ export default function Reports() {
       <div className="dwella-page-toolbar">
         <SegmentedFilter
           label="Choose report"
-          options={[
-            { value: "rent-roll", label: "Rent roll" },
-            { value: "arrears", label: "Arrears" },
-          ]}
+          options={reportOptions}
           value={report}
           onChange={(value) => {
             setParams(current => { const next = new URLSearchParams(current); next.set("report", value); return next; });

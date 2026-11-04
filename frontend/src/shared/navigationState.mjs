@@ -20,6 +20,8 @@ export function moduleChildren(value, access) {
     case "reports": return [
       child("rent-roll", "Rent roll", "/reports?report=rent-roll", { default: true }),
       child("arrears", "Arrears", "/reports?report=arrears"),
+      child("collections", "Collections", "/reports?report=collections"),
+      child("tenant-statement", "Tenant statement", "/reports?report=tenant-statement"),
     ];
     case "messages": case "admin-messages": return [
       child("operational", "Operational updates", `${messages}?view=operational`, { default: true }),

@@ -83,7 +83,7 @@ export const pageMeta = {
   "/leases": ["Leases", "Lease terms, renewals, deposits, and documents."],
   "/billing": ["Billing", "Rent invoices, collections, balances, and payment tracking."],
   "/maintenance": ["Maintenance", "Work orders, vendors, approvals, and service tracking."],
-  "/reports": ["Reports", "Rent roll, outstanding balances and overdue invoices."],
+  "/reports": ["Reports", "Rent roll, arrears, recorded collections and tenant statements."],
   "/beta-signups": ["Beta signups", "Review applicants and coordinate beta onboarding."],
   "/profile": ["Profile", "Account details, identity verification, and profile photo."],
   "/security": ["Security", "Two-factor authentication and account protection."],
