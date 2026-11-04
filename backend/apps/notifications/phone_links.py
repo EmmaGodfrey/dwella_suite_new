@@ -234,6 +234,10 @@ class PhoneLinkView(APIView):
             setattr(pref, f"{channel}_enabled", link.notification_consent)
             pref.save(update_fields=[f"{channel}_enabled"])
             record_event(request, "notifications.phone_connected", pref, channel=channel)
+            if channel == "whatsapp":
+                from .non_money_templates import safely_enqueue_connection
+
+                safely_enqueue_connection(link, resolve_workspace(request))
             return Response({"connected": True, "channel": channel, "phone": link.phone,
                              "actions_connected": link.actions_enabled,
                              "notification_consent": link.notification_consent})

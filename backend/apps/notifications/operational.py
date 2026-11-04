@@ -28,11 +28,13 @@ from .models import (
     PhoneMessagingConsent,
 )
 from .money_templates import covered_by_proof_notice, money_template
+from .non_money_templates import CONNECTION_TARGET, connection_authorised, non_money_template
 from .phone_messaging import normalize_phone, phone_allowed, send_sms, sms_ready, whatsapp_ready
 
 logger = logging.getLogger(__name__)
 
 TARGETS = {
+    CONNECTION_TARGET,
     "billing.depositdeduction",
     "billing.depositentry",
     "billing.invoice",
@@ -46,6 +48,7 @@ TARGETS = {
     "payments.withdrawal",
 }
 TITLES = {
+    "whatsapp.connected": "WhatsApp connected",
     "invoice.issued": "Invoice available",
     "invoice.void": "Invoice cancelled",
     "invoice.reminder": "Rent reminder",
@@ -171,6 +174,7 @@ def target_for(row):
         return None
     model = apps.get_model(row.target_model)
     related = {
+        CONNECTION_TARGET: ("user",),
         "maintenance.maintenanceupdate": ("request__organization", "request__tenant"),
         "payments.payout": ("collection__organization", "collection__invoice"),
         "payments.collection": ("organization", "invoice__tenant"),
@@ -187,6 +191,8 @@ def target_for(row):
 
 
 def authorised(row, target):
+    if row.target_model == CONNECTION_TARGET:
+        return connection_authorised(row, target)
     if not target or not row.organization.is_active:
         return False
     org, tenant = context(target)
@@ -232,7 +238,13 @@ def content(row, target):
     title = TITLES[row.event]
     currency = row.organization.currency
     label = row.target_model
-    if label == "billing.payment":
+    if label == CONNECTION_TARGET:
+        detail = (
+            "Your number is connected to Dwella. "
+            "You can manage optional notifications in Settings."
+        )
+        path = "/settings"
+    elif label == "billing.payment":
         if row.event == "payment.confirmed" and target.reversed_at:
             return None
         detail = (
@@ -372,7 +384,9 @@ def send_phone(row, subject, body, url, now, target=None):
     )
     if not row.recipient_user_id:
         return "held", "verified_phone_required", ""
-    if row.audience == "tenant":
+    if row.target_model == CONNECTION_TARGET:
+        consents = consents.filter(phone=target.phone)
+    elif row.audience == "tenant":
         consents = consents.filter(phone=normalize_phone(row.tenant.phone_number))
     consent = consents.order_by("-granted_at", "pk").first()
     if not consent or not phone_allowed(consent.phone):
@@ -407,7 +421,10 @@ def send_phone(row, subject, body, url, now, target=None):
         else:
             language = config["whatsapp_language"]
             approved = approved_whatsapp_templates()
-            dedicated = money_template(row, target) if target else None
+            dedicated = (
+                money_template(row, target) or non_money_template(row, target)
+                if target else None
+            )
             if dedicated and f"{dedicated[0]}:{language}" in approved:
                 template, values = dedicated
             else:
