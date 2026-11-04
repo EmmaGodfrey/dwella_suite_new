@@ -38,11 +38,15 @@ Files: `inbox.py` keeps only Meta's media ID. `media.py` downloads a file only w
 
 Template sends in `notices.py` require a template listed in `APP_APPROVED_WHATSAPP_TEMPLATES`, the recipient's proactive opt-in, and a live recheck of the binding, access and proof revision. Other cases are cancelled with a recorded reason; the existing email and in-app notices still apply. Uncertain sends are never retried.
 
-Required template list for this flow: `dwella_payment_proof_review:en`, `dwella_payment_received:en`, `dwella_payment_proof_declined:en`, `dwella_payment_proof_question:en`.
+Required template list for this flow: `dwella_payment_proof_review:en`, `dwella_payment_received:en`, `dwella_payment_proof_declined:en`, `dwella_payment_proof_question:en`. Other money notices also need `dwella_invoice_issued:en` and `dwella_payout_update:en`.
 
 Pay rent replies with a link to the invoice in signed-in Dwella, choosing first when several are unpaid. No money, card or mobile-money detail passes through the chat. The website page decides which ways to pay are offered.
 
-Known limits: all connected managers receive the review template, because no designated reviewer setting exists. Sending and receiving against Meta has been exercised only with synthetic webhooks and mocked provider calls, including button payloads, media download and evidence upload.
+Reviewer: Settings → Workspace can name one property manager to receive the review template. With nobody chosen, or when that person has no active link, every connected manager receives it. Email and in-app notices still reach all managers, and any manager can still review.
+
+Money templates: outside the reply window, `notifications/money_templates.py` sends `dwella_invoice_issued` and `dwella_payment_received` to tenants and `dwella_payout_update` to managers, once each is listed in `APP_APPROVED_WHATSAPP_TEMPLATES`. Otherwise the notice is held, as before. The ordinary WhatsApp notice is cancelled when a proof's own message covers it.
+
+Known limits: sending and receiving against Meta has been exercised only with synthetic webhooks and mocked provider calls, including button payloads, media download and evidence upload.
 
 ## Release and operations
 
