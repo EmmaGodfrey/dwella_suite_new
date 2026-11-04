@@ -1,6 +1,6 @@
 """Payment proof API: tenants report direct payments, managers confirm them."""
 
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -36,6 +36,7 @@ def proof_data(proof, *, tenant=False):
         "amount": f"{proof.amount:.2f}",
         "method": proof.method,
         "method_label": proof.get_method_display(),
+        "channel": proof.channel,
         "paid_on": proof.paid_on.isoformat(),
         "reference": proof.reference,
         "note": proof.note,
@@ -47,6 +48,7 @@ def proof_data(proof, *, tenant=False):
             "id": str(invoice.public_id),
             "reference": invoice.reference,
             "period": invoice.period_start.isoformat() if invoice.period_start else None,
+            "is_opening_balance": invoice.is_opening_balance,
             "balance": f"{invoice.balance:.2f}",
         },
         "receipt": (
@@ -168,9 +170,21 @@ class ManagerProofListView(ManagerProofView):
         invoice = request.query_params.get("invoice")
         if invoice:
             rows = rows.filter(invoice__public_id=invoice)
-        waiting = self.queryset().filter(status=PaymentProof.Status.SUBMITTED).count()
+        counts = dict(
+            self.queryset()
+            .filter(status__in=PaymentProof.OPEN_STATUSES)
+            .order_by()
+            .values_list("status")
+            .annotate(total=Count("pk"))
+        )
         rows = mark_duplicates(list(with_details(rows)[: self.LIMIT]))
-        return Response({"waiting": waiting, "results": [proof_data(row) for row in rows]})
+        return Response(
+            {
+                "waiting": counts.get(PaymentProof.Status.SUBMITTED, 0),
+                "asked": counts.get(PaymentProof.Status.NEEDS_INFORMATION, 0),
+                "results": [proof_data(row) for row in rows],
+            }
+        )
 
 
 class ManagerProofDetailView(ManagerProofView):

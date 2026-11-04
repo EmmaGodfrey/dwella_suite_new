@@ -308,7 +308,11 @@ def content(row, target):
             detail = f"About your payment of {facts}: {target.review_note}"
         else:
             detail = f"Your payment of {facts} was not received. Reason: {target.review_note}"
-        path = "/billing" if row.audience == "tenant" else f"/billing?proof={target.public_id}"
+        path = (
+            f"/billing?proof={target.public_id}"
+            if row.audience == "tenant"
+            else f"/billing/payment-proofs?proof={target.public_id}"
+        )
     elif label.startswith("maintenance."):
         job = target.request if label.endswith("maintenanceupdate") else target
         if row.target_state and job.status != row.target_state:

@@ -73,6 +73,7 @@ def test_proof_changes_nothing_until_the_manager_confirms(home):
     assert [row["number"] for row in detail["pending_proofs"]] == ["PRF-0001"]
     listing = data(home["manager"].get(f"{BILLING}?status=open"))
     assert listing["waiting"] == 1 and listing["results"][0]["can_review"] is True
+    assert listing["asked"] == 0 and listing["results"][0]["channel"] == "portal"
     proof = PaymentProof.objects.get()
     confirmed = data(home["manager"].post(f"{BILLING}{proof.public_id}/confirm/"))
     assert confirmed["status"] == "confirmed" and confirmed["receipt"]["number"].startswith("RCT-")
