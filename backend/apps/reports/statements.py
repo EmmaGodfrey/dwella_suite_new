@@ -145,25 +145,30 @@ class TenantStatementView(ReportView):
         params.is_valid(raise_exception=True)
         data = params.validated_data
         tenant = validate_scope(org, data)
-        statement = TenantStatement(org, tenant, data)
-        if data.get("export") == "csv":
-            return csv_response(
-                f"dwella-statement-{tenant.public_id}-{data['date_from']}-{data['date_to']}",
-                STATEMENT_HEADERS, statement.csv_rows(),
-                numeric_columns={"debit", "credit", "balance"},
-            )
-        offset, size, _, _ = page_bounds(data, statement.count)
-        events = list(statement.events()[offset:offset + size])
-        opening = statement.balance_before(events[0]) if offset and events else statement.opening
-        return report_response(request, data, statement.count, {
-            "rows": list(statement.render_rows(events, opening)),
-            "tenant": {"id": str(tenant.public_id), "name": tenant.full_name,
-                       "archived": not tenant.is_active},
-            "totals": {"opening_balance": money(statement.opening),
-                       "charges": money(statement.debits),
-                       "payments": money(statement.credits_total),
-                       "closing_balance": money(statement.closing)},
-            "page_opening_balance": money(opening),
-            "date_from": data["date_from"], "date_to": data["date_to"],
-            "as_of": today, "currency": org.currency, "basis": STATEMENT_BASIS,
-        })
+        return statement_response(request, org, tenant, data, today)
+
+
+def statement_response(request, organization, tenant, params, today):
+    """Render an already authorised tenant's ledger for manager or portal access."""
+    statement = TenantStatement(organization, tenant, params)
+    if params.get("export") == "csv":
+        return csv_response(
+            f"dwella-statement-{tenant.public_id}-{params['date_from']}-{params['date_to']}",
+            STATEMENT_HEADERS, statement.csv_rows(),
+            numeric_columns={"debit", "credit", "balance"},
+        )
+    offset, size, _, _ = page_bounds(params, statement.count)
+    events = list(statement.events()[offset:offset + size])
+    opening = statement.balance_before(events[0]) if offset and events else statement.opening
+    return report_response(request, params, statement.count, {
+        "rows": list(statement.render_rows(events, opening)),
+        "tenant": {"id": str(tenant.public_id), "name": tenant.full_name,
+                   "archived": not tenant.is_active},
+        "totals": {"opening_balance": money(statement.opening),
+                   "charges": money(statement.debits),
+                   "payments": money(statement.credits_total),
+                   "closing_balance": money(statement.closing)},
+        "page_opening_balance": money(opening),
+        "date_from": params["date_from"], "date_to": params["date_to"],
+        "as_of": today, "currency": organization.currency, "basis": STATEMENT_BASIS,
+    })
