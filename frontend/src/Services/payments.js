@@ -221,6 +221,64 @@ export const useSaveOpeningBalances = () => useMutation({
   onSuccess: refreshPaymentRecords,
 });
 
+// Payments a tenant reports making directly; a manager confirms the money arrived.
+export const useManagerProofs = (status, options = {}) => useQuery({
+  queryKey: ["billing", "payment-proofs", status],
+  queryFn: ({ signal }) => api.get(`/billing/payment-proofs/${toSearchParams({ status })}`, { signal }),
+  retry: false,
+  ...options,
+});
+
+export const useManagerProof = (id, options = {}) => useQuery({
+  queryKey: ["billing", "payment-proofs", "detail", id],
+  queryFn: ({ signal }) => api.get(`/billing/payment-proofs/${id}/`, { signal }),
+  enabled: Boolean(id),
+  retry: false,
+  ...options,
+});
+
+// decision: "confirm" | "reject" | "ask"
+export const useProofDecision = () => useMutation({
+  mutationFn: ({ id, decision, note = "" }) => api.post(`/billing/payment-proofs/${id}/${decision}/`, { note }),
+  retry: false,
+  onSuccess: refreshPaymentRecords,
+});
+
+export const usePortalProofs = (options = {}) => useQuery({
+  queryKey: ["portal", "payment-proofs"],
+  queryFn: ({ signal }) => api.get("/portal/payment-proofs/", { signal }),
+  retry: false,
+  ...options,
+});
+
+// Files travel with the facts, so a rejected file leaves nothing half sent.
+const proofBody = ({ files = [], ...facts }) => {
+  const body = new FormData();
+  Object.entries(facts).forEach(([name, value]) => body.append(name, value));
+  files.forEach((file) => body.append("files", file));
+  return body;
+};
+
+export const useSubmitProof = () => useMutation({
+  mutationFn: (data) => api.post("/portal/payment-proofs/", proofBody(data)),
+  retry: false,
+  onSuccess: refreshPaymentRecords,
+});
+
+export const useResendProof = () => useMutation({
+  mutationFn: ({ id, ...data }) => api.post(`/portal/payment-proofs/${id}/resend/`, proofBody(data)),
+  retry: false,
+  onSuccess: refreshPaymentRecords,
+});
+
+export const useCancelProof = () => useMutation({
+  mutationFn: (id) => api.post(`/portal/payment-proofs/${id}/cancel/`, {}),
+  retry: false,
+  onSuccess: refreshPaymentRecords,
+});
+
+export const openProofFile = (scope, item) => openPrivateFile(`/${scope}/payment-proof-files/${item.id}/`, item);
+
 // scope: "billing" (manager) or "portal" (tenant).
 export const openDepositEvidence = (scope, item) => openPrivateFile(`/${scope}/deposit-evidence/${item.id}/`, item);
 

@@ -31,6 +31,7 @@ import PortalLease from "../Components/Portal/MyLease";
 import PortalMaintenance from "../Components/Portal/Maintenance";
 import PortalPayments from "../Components/Portal/Payments";
 import Payouts from "../Components/Billing/Payouts";
+import PaymentProofs from "../Components/Billing/PaymentProofs";
 import PortalReceipt from "../Components/Portal/Receipt";
 import PortalRepairDetail from "../Components/Portal/RepairDetail";
 import ForTenant from "./ForTenant";
@@ -57,6 +58,7 @@ export const routes = [
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },
   { path: "/billing/payouts", title: "Payouts", Component: <ForTenant tenant={<PortalPayments />}><Payouts /></ForTenant> },
+  { path: "/billing/payment-proofs", title: "Payment proofs", Component: <ForTenant tenant={<PortalPayments />}><PaymentProofs /></ForTenant> },
   { path: "/billing/receipts", title: "Receipts", Component: <ForTenant tenant={<PortalPayments />}><Receipts /></ForTenant> },
   { path: "/billing/receipts/:id", title: "Receipt", Component: <ForTenant tenant={<PortalReceipt />}><Receipt /></ForTenant> },
   {

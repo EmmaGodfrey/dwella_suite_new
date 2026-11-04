@@ -8,7 +8,10 @@ export function moduleChildren(value, access) {
     case "billing": return [
       child("invoices", "Invoices", "/billing", { default: true }),
       child("receipts", "Receipts", "/billing/receipts"),
-      ...(access.can_manage_properties ? [child("payouts", "Payouts", "/billing/payouts")] : []),
+      ...(access.can_manage_properties ? [
+        child("proofs", "Payment proofs", "/billing/payment-proofs"),
+        child("payouts", "Payouts", "/billing/payouts"),
+      ] : []),
     ];
     case "maintenance": return [
       child("requests", "Requests", "/maintenance", { default: true }),

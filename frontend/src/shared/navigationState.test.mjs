@@ -23,6 +23,7 @@ test("billing detail paths select the most specific child", () => {
   assert.equal(selected(billing, "/billing/invoices/123"), "billing-invoices");
   assert.equal(selected(billing, "/billing/receipts/123"), "billing-receipts");
   assert.equal(selected(billing, "/billing/payouts"), "billing-payouts");
+  assert.equal(selected(billing, "/billing/payment-proofs"), "billing-proofs");
 });
 test("query selectors and invalid/absent values agree with screen defaults", () => {
   for (const [module, path, key, value, fallback] of [
