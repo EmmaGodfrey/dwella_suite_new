@@ -38,8 +38,12 @@ def capture(message, phone, stamp):
             raise ValueError('Invalid button identity.')
         payload.update(type='choice', token=token)
     elif kind in {'image', 'document'}:
-        # Media remains an explicit authenticated-website fallback in this slice.
-        payload = {'type': 'attachment'}
+        # Only the reference is kept here. Nothing is downloaded unless a linked sender's
+        # guided draft asks for it, so unknown senders' files are never fetched.
+        media_id = message[kind]['id']
+        if not isinstance(media_id, str) or not media_id or len(media_id) > 160:
+            raise ValueError('Invalid media identity.')
+        payload = {'type': 'attachment', 'media_id': media_id}
     else:
         payload = {'type': 'unsupported'}
     binding = WhatsAppBinding.objects.filter(phone=phone, revoked_at__isnull=True).first()

@@ -3,13 +3,38 @@
 import json
 from urllib.error import HTTPError
 from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 
 class ProviderRejected(Exception):
     def __init__(self, code):
         self.code = str(code)[:80]
         super().__init__(self.code)
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    # Following a redirect would forward the bearer token to whichever host was named.
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_no_redirect = build_opener(_NoRedirect)
+
+
+def get_bytes(url, headers, limit):
+    request = Request(url, headers=headers, method="GET")
+    try:
+        with _no_redirect.open(request, timeout=10) as response:
+            raw = response.read(limit + 1)
+    except HTTPError as error:
+        raise ProviderRejected(f"http_{error.code}") from None
+    if len(raw) > limit:
+        raise ProviderRejected("too_large")
+    return raw
+
+
+def get_json(url, headers):
+    return json.loads(get_bytes(url, headers, 262144))
 
 
 def post_json(url, payload, headers):

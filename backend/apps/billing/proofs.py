@@ -30,7 +30,7 @@ def _notify(proof, event, **options):
     safe_enqueue(proof, event, **options)
 
 
-def _clean_file(upload):
+def clean_file(upload):
     from apps.documents.files import MAX_PHOTO_BYTES, clean_image, inspect_pdf, read_upload
 
     raw = read_upload(upload, MAX_PHOTO_BYTES)
@@ -46,7 +46,7 @@ def _store_files(proof, uploads, user):
     if len(uploads) > PaymentProof.MAX_FILES:
         raise ValidationError({"files": [f"Attach up to {PaymentProof.MAX_FILES} files."]})
     # Check every file before saving any, so a bad one leaves nothing behind.
-    cleaned = [_clean_file(upload) for upload in uploads]
+    cleaned = [clean_file(upload) for upload in uploads]
     PaymentProofFile.objects.bulk_create(
         [
             PaymentProofFile(

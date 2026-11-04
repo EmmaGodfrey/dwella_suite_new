@@ -235,5 +235,6 @@ from .whatsapp.models import (  # noqa: E402,F401
     WhatsAppBinding,
     WhatsAppConversation,
     WhatsAppInbound,
+    WhatsAppMedia,
     WhatsAppReply,
 )

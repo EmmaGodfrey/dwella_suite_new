@@ -87,3 +87,26 @@ class WhatsAppReply(models.Model):
 
     def __str__(self):
         return f'WhatsApp reply {self.public_id}'
+
+
+class WhatsAppMedia(models.Model):
+    """A file sent during a draft, held only until the draft is submitted or abandoned."""
+
+    binding = models.ForeignKey(WhatsAppBinding, on_delete=models.CASCADE)
+    binding_generation = models.UUIDField()
+    media_id = models.CharField(max_length=160)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    status = models.CharField(max_length=16, default='queued')
+    reason = models.CharField(max_length=80, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    claimed_at = models.DateTimeField(null=True)
+    content = models.BinaryField(null=True)
+    content_type = models.CharField(max_length=40, blank=True)
+    name = models.CharField(max_length=120, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['status', 'available_at', 'id'], name='wa_media_due')]
+
+    def __str__(self):
+        return f'WhatsApp media {self.pk}'
