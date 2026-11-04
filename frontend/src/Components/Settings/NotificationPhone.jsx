@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Button, Checkbox, Field, Input, Radio, RadioGroup } from "@fluentui/react-components";
-import { useConnectNotificationPhone, useNotificationPhone } from "../../Services/settings";
+import { useConnectNotificationPhone, useDisconnectWhatsApp, useNotificationPhone } from "../../Services/settings";
 import { useFormErrors } from "../../shared/useFormErrors";
 import { SettingsRow, SettingsSection } from "./index";
 
 export default function NotificationPhone() {
   const query = useNotificationPhone();
   const connect = useConnectNotificationPhone();
+  const disconnect = useDisconnectWhatsApp();
   const [phone, setPhone] = useState("");
   const [channel, setChannel] = useState("whatsapp");
   const [consent, setConsent] = useState(false);
@@ -19,10 +20,10 @@ export default function NotificationPhone() {
     setNotice("");
     if (!errors.validate({
       phone: () => /^\+?[0-9 ()-]{9,24}$/.test(phone) ? "" : "Enter your WhatsApp or SMS number.",
-      consent: () => consent ? "" : "Agree to optional notifications to connect this number.",
+      consent: () => channel === "whatsapp" || consent ? "" : "Agree to optional SMS notifications to connect this number.",
     }, event.currentTarget)) return;
     try {
-      setChallenge(await connect.mutateAsync({ phone, channel, consent }));
+      setChallenge(await connect.mutateAsync({ phone, channel, consent, actions: channel === "whatsapp" }));
     } catch (error) {
       errors.showServerErrors(error.data, ["phone", "consent", "channel"]);
       setNotice(error.message || "Could not connect this number.");
@@ -31,24 +32,38 @@ export default function NotificationPhone() {
 
   async function complete(link) {
     try {
-      await connect.mutateAsync({ channel: link.channel, complete: link.id });
+      const result = await connect.mutateAsync({ channel: link.channel, complete: link.id });
       setChallenge(null);
-      setNotice("Number verified. Optional notifications are enabled.");
+      setNotice(result.actions_connected
+        ? "WhatsApp connected. Send MENU to Dwella to get started."
+        : "Number verified. Your notification preference is saved.");
     } catch (error) {
       setNotice(error.message || "Could not complete verification.");
     }
   }
 
   return (
-    <SettingsSection title="Optional phone notifications"
-      note="Verify a number you control. This adds notifications alongside required email; it does not change your payment wallet.">
+    <SettingsSection title="WhatsApp and phone notifications"
+      note="Connect WhatsApp to use Dwella from your phone. Optional notices are a separate choice. Verify a number you control; your payment wallet stays separate.">
+      {query.isLoading && <p role="status">Loading connected numbers…</p>}
+      {query.data?.whatsapp_binding && <SettingsRow label={query.data.whatsapp_binding.phone}
+        note="Connected to your Dwella account on WhatsApp">
+        <Button disabled={disconnect.isPending} onClick={async () => {
+          try {
+            await disconnect.mutateAsync();
+            setNotice("WhatsApp disconnected. Account access and optional notices are disabled.");
+          } catch (error) {
+            setNotice(error.message || "Could not disconnect WhatsApp.");
+          }
+        }}>Disconnect WhatsApp</Button>
+      </SettingsRow>}
       {query.data?.links?.map((link) => (
         <SettingsRow key={`${link.channel}:${link.phone}`} label={link.phone}
-          note={`${link.channel === "whatsapp" ? "WhatsApp" : "SMS"} · ${link.allowed ? "Connected" : "Opted out"}`} />
+          note={`${link.channel === "whatsapp" ? "WhatsApp" : "SMS"} · ${link.allowed ? "Optional notices enabled" : "Optional notices off"}`} />
       ))}
       {query.isError && <p role="alert">Could not load connected numbers. <Button onClick={() => query.refetch()}>Retry</Button></p>}
       <form onSubmit={submit}>
-        <fieldset disabled={connect.isPending} className="settings-fields">
+        <fieldset disabled={connect.isPending || disconnect.isPending} className="settings-fields">
           <Field label="Channel">
             <RadioGroup layout="horizontal" value={channel} onChange={(_, data) => setChannel(data.value)}>
               <Radio value="whatsapp" label="WhatsApp" /><Radio value="sms" label="SMS" />
