@@ -29,6 +29,7 @@ from .models import (
     ReminderPreferences,
 )
 from .phone_messaging import (
+    is_rent_reminder,
     personal_phone_preferences,
     phone_block,
     send_sms,
@@ -488,9 +489,9 @@ def dispatch_block(row, config, now):
         return "permission_removed"
     if not feature_available(organization, row.channel):
         return "feature_unavailable"
-    if row.invoice_id:
-        if row.channel == "email":
-            return "operational_email_owned"
+    if row.invoice_id and row.channel == "email":
+        return "operational_email_owned"
+    if is_rent_reminder(row):
         invoice = row.invoice
         pref = ReminderPreferences.objects.filter(organization=organization).first()
         today = now.astimezone(ZoneInfo(organization.timezone)).date()

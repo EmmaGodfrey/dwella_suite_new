@@ -233,6 +233,9 @@ def test_template_window_consent_test_allowlist_and_disabled_configuration(home,
     row = delivery(home)
     assert phone_block(row, timezone.now()) == "whatsapp_reply_window_closed"
     row.invoice = home["invoice"]
+    # An invoice alone does not make a rent reminder: it still needs the reply window.
+    assert phone_block(row, timezone.now()) == "whatsapp_reply_window_closed"
+    row.reminder_date = timezone.localdate()
     assert phone_block(row, timezone.now()) == ""
     settings.WHATSAPP_RENT_TEMPLATE = ""
     assert phone_block(row, timezone.now()) == "whatsapp_template_required"
@@ -247,6 +250,12 @@ def test_template_window_consent_test_allowlist_and_disabled_configuration(home,
     payload = api.call_args.args[1]
     assert payload["type"] == "template" and payload["template"]["name"] == "rent_template"
     assert len(payload["template"]["components"][0]["parameters"]) == 5
+    row.reminder_date = None
+    with patch(
+        "apps.notifications.phone_messaging.post_json", return_value={"messages": [{"id": "wa-2"}]}
+    ) as api:
+        assert send_whatsapp(row) == "wa-2"
+    assert api.call_args.args[1]["type"] == "text"
 
 
 @pytest.mark.parametrize(

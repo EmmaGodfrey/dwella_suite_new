@@ -148,6 +148,11 @@ def personal_phone_preferences(user, values):
     return values
 
 
+def is_rent_reminder(row):
+    """Only a dated reminder uses the rent template; other invoice messages are plain text."""
+    return bool(row.invoice_id and row.reminder_date)
+
+
 def phone_block(row, now, config=None):
     config = runtime_settings() if config is None else config
     phone = normalize_phone(row.recipient)
@@ -163,7 +168,7 @@ def phone_block(row, now, config=None):
     if row.channel == "whatsapp" and not whatsapp_ready(config):
         return "channel_unavailable"
     if row.channel == "whatsapp":
-        if row.invoice_id:
+        if is_rent_reminder(row):
             if not config["whatsapp_template"]:
                 return "whatsapp_template_required"
             if (f"{config['whatsapp_template']}:{config['whatsapp_language']}"
@@ -200,7 +205,7 @@ def send_whatsapp(row, config=None):
         "to": normalize_phone(row.recipient)[1:],
         "biz_opaque_callback_data": str(row.public_id),
     }
-    if row.invoice_id:
+    if is_rent_reminder(row):
         payload.update(
             type="template",
             template={
