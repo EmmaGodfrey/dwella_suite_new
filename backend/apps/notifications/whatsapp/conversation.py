@@ -10,12 +10,13 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.audit.models import AuditEvent
-from apps.billing.models import Invoice, Payment
+from apps.billing.models import Invoice, Payment, PaymentProof
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
 from apps.maintenance.services import create_request
 
 from .access import actor_context, memberships
+from .notices import ACTION_PREFIX
 
 PAGE_SIZE = 7
 MONEY_INTENTS = {'create_invoice', 'pay_rent', 'payment_proof', 'review_proof'}
@@ -83,6 +84,15 @@ def guards_current(ctx, guards):
         expected = guards['payments']
         actual = [[str(row.public_id), str(row.amount), row.reversed_at is not None] for row in
                   ctx.scope(Payment.objects.all()).filter(public_id__in=[r[0] for r in expected])]
+        if sorted(actual) != sorted(expected):
+            return False
+    if 'proofs' in guards:
+        expected = guards['proofs']
+        actual = [[str(row.public_id), row.status, row.revision] for row in
+                  PaymentProof.objects.filter(
+                      organization=ctx.organization,
+                      public_id__in=[r[0] for r in expected],
+                  )]
         if sorted(actual) != sorted(expected):
             return False
     return True
@@ -281,6 +291,12 @@ def handle(binding, conversation, inbound):
         conversation.draft = {}
         conversation.choices = {}
         conversation.generation = binding.generation
+    if (payload.get('type') == 'choice' and MONEY_ADAPTER is not None
+            and payload.get('token', '').startswith(ACTION_PREFIX)):
+        conversation.choices = {}
+        conversation.revision += 1
+        conversation.expires_at = now + timedelta(minutes=10)
+        return MONEY_ADAPTER.handle_action(binding, conversation, payload['token'])
     selected = None
     if payload.get('type') == 'choice':
         selected = conversation.choices.get(fingerprint(payload.get('token', '')))
@@ -302,12 +318,18 @@ def handle(binding, conversation, inbound):
             raise PermissionDenied('Your workspace access changed. Reconnect in Dwella.')
         conversation.organization = ctx.organization
         conversation.role = ctx.role
+        pending = conversation.draft.pop('pending_attachment', None)
+        if pending and ctx.role == 'tenant' and MONEY_ADAPTER is not None:
+            return MONEY_ADAPTER.start_attachment(ctx, conversation, pending)
         return menu(ctx, conversation)
     if lower == 'workspace' or (selected and selected['action'] == 'workspaces'):
         conversation.organization = None
         conversation.role = ''
         conversation.draft = {}
         return workspace_menu(binding, conversation, selected['page'] if selected else 0)
+    if not conversation.organization_id and payload.get('type') == 'attachment':
+        # A screenshot sent before choosing a workspace must not be lost.
+        conversation.draft = {'pending_attachment': payload}
     if not conversation.organization_id:
         return workspace_menu(binding, conversation)
     ctx = actor_context(binding, conversation.organization_id)
@@ -344,6 +366,8 @@ def handle(binding, conversation, inbound):
                 choice(conversation, 'Contact me first', 'repair_no_entry', member=ctx.membership),
             ])
         return response('Choose a button from the latest repair message, or send BACK.')
+    if payload.get('type') == 'attachment' and ctx.role == 'tenant' and MONEY_ADAPTER:
+        return MONEY_ADAPTER.start_attachment(ctx, conversation, payload)
     aliases = {'balance': 'balance', 'what do i owe': 'balance', 'who owes me': 'balance',
                'invoices': 'invoices', 'receipts': 'receipts', 'repairs': 'repairs',
                'pop': 'payment_proof', "i've paid": 'payment_proof', 'i have paid': 'payment_proof',

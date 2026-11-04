@@ -15,6 +15,7 @@ from apps.notifications.phone_messaging import normalize_phone, phone_allowed, w
 
 from .access import actor_context, auth_stamp, memberships, require_actor
 from .conversation import guards_current
+from .evidence import FAILED_NOTE, send_evidence
 from .models import WhatsAppBinding, WhatsAppConversation, WhatsAppReply
 
 
@@ -126,6 +127,8 @@ def dispatch_replies(limit=20, seconds=30):
                     status='cancelled', reason=reason,
                 )
                 continue
+            if reply.view.get('evidence') and not send_evidence(reply):
+                reply.view['text'] += FAILED_NOTE
             result = post_json(
                 f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
                 f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages', payload(reply),

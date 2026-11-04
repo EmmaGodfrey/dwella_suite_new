@@ -8,3 +8,7 @@ class NotificationsConfig(AppConfig):
 
     def ready(self):
         from . import events  # noqa: F401
+        from .whatsapp.conversation import register_money_adapter
+        from .whatsapp.proof_flow import ADAPTER
+
+        register_money_adapter(ADAPTER)

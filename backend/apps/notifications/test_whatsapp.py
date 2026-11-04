@@ -546,7 +546,7 @@ def test_balance_query_budget_is_independent_of_invoice_count(house):
 def test_private_whatsapp_tables_have_rls():
     tables = ['notifications_whatsappbinding', 'notifications_whatsappinbound',
               'notifications_whatsappconversation', 'notifications_whatsappreply',
-              'notifications_whatsappmedia']
+              'notifications_whatsappmedia', 'notifications_whatsappproofnotice']
     with connection.cursor() as cursor:
         cursor.execute('SELECT relname, relrowsecurity FROM pg_class WHERE relname = ANY(%s)',
                        [tables])
