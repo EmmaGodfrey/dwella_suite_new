@@ -121,6 +121,11 @@
   min-width: 0;
 }
 
+.dwella-portal-list .dwella-badge-row,
+.dwella-portal-list .dwella-badge-row span {
+  display: inline-flex;
+}
+
 .dwella-portal-list small {
   color: var(--dwella-muted);
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Button,
@@ -15,6 +15,9 @@ import { downloadPortalFile, usePortalInvoice, usePortalInvoices, usePortalPayme
 import { invoiceBadgeProps, invoicePeriodLabel, lineKinds, paymentMethodLabel } from "../../shared/billing";
 import { SegmentedFilter, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
+import { usePortalProofs } from "../../Services/payments";
+import { proofBadgeColor } from "../Billing/PaymentProofs";
+import { ProofFormDrawer, ProofStatusDrawer } from "./ProofDrawers";
 import RentCheckout from "./RentCheckout";
 import PortalState from "./PortalState";
 
@@ -24,9 +27,31 @@ const views = [
 ];
 const kindLabel = (kind) => lineKinds.find((item) => item.value === kind)?.label || kind;
 
-function InvoiceDrawer({ id, onClose }) {
+function ProofList({ proofs, onOpen }) {
+  return (
+    <ul className="dwella-portal-list">
+      {proofs.map((proof) => (
+        <li key={proof.id}>
+          <span>
+            <button type="button" className="dwella-proof-link" onClick={() => onOpen(proof.id)}>{proof.number}</button>
+            <small>{formatDate(proof.paid_on)} · {proof.method_label} · {proof.invoice.reference}</small>
+          </span>
+          <span className="dwella-badge-row">
+            <StatusBadge color={proofBadgeColor[proof.status]}>{proof.status_label}</StatusBadge>
+            <strong>{formatMoney(proof.amount)}</strong>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function InvoiceDrawer({ id, proofs, onOpenProof, onClose }) {
   const query = usePortalInvoice(id);
   const invoice = query.data;
+  const [reporting, setReporting] = useState(false);
+  const reports = proofs.filter((proof) => proof.invoice.id === id);
+  const canReport = invoice && Number(invoice.balance) > 0 && invoice.status !== "void";
   const download = () =>
     downloadPortalFile(`invoices/${id}/pdf/`, `${invoice.reference}.pdf`).catch((error) =>
       toast.error(error.message || "Could not download the invoice."),
@@ -78,6 +103,22 @@ function InvoiceDrawer({ id, onClose }) {
               )}
             </section>
             <RentCheckout key={invoice.id} invoice={invoice} />
+            {reports.length ? (
+              <section>
+                <h3>Payments you reported</h3>
+                <ProofList proofs={reports} onOpen={onOpenProof} />
+              </section>
+            ) : null}
+            {canReport ? (
+              <section className="dwella-proof-report">
+                <div>
+                  <strong>Paid another way?</strong>
+                  <small>Bank, mobile money sent directly, cash or cheque.</small>
+                </div>
+                <Button onClick={() => setReporting(true)}>I've already paid</Button>
+              </section>
+            ) : null}
+            {reporting ? <ProofFormDrawer invoice={invoice} onClose={() => setReporting(false)} /> : null}
           </div>
         ) : null}
       </DrawerBody>
@@ -134,6 +175,17 @@ export default function PortalPayments() {
     setParams(next, { replace: true });
   };
   const close = () => (routeInvoice ? navigate("/billing") : setParam("invoice", null));
+  const proofsQuery = usePortalProofs({ staleTime: 15_000 });
+  const proofs = proofsQuery.data || [];
+  const openProof = proofs.find((proof) => proof.id === params.get("proof"));
+  const showProof = (id) => {
+    const next = new URLSearchParams(params);
+    next.delete("invoice");
+    if (id) next.set("proof", id);
+    else next.delete("proof");
+    if (routeInvoice) navigate(`/billing?${next}`);
+    else setParams(next, { replace: true });
+  };
   return (
     <PortalState query={query} label="your invoices">
       {(data) => {
@@ -176,8 +228,15 @@ export default function PortalPayments() {
             ) : (
               <p className="dwella-muted-copy">{view === "unpaid" ? "Nothing to pay right now." : "No invoices yet."}</p>
             )}
+            {proofs.length ? (
+              <section className="dwella-surface">
+                <h3>Payments you reported</h3>
+                <ProofList proofs={proofs} onOpen={showProof} />
+              </section>
+            ) : null}
             <PaymentsList />
-            {openId ? <InvoiceDrawer id={openId} onClose={close} /> : null}
+            {openId ? <InvoiceDrawer id={openId} proofs={proofs} onOpenProof={showProof} onClose={close} /> : null}
+            {openProof ? <ProofStatusDrawer key={`${openProof.id}-${openProof.revision}`} proof={openProof} onClose={() => showProof(null)} /> : null}
           </div>
         );
       }}
