@@ -13,6 +13,8 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.billing.models import Payment
+from apps.billing.opening import record_deposit_held, record_opening_balance, set_rent_paid_up_to
+from apps.billing.services import record_payment, void_invoice
 from apps.billing.tests import make_lease
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.reports.common import ReportExportThrottle
@@ -118,6 +120,46 @@ def test_statement_routes_reject_writes_and_malformed_ids(portal_ledger):
     assert ctx["client"].get(BASE + "not-a-uuid/").status_code == 404
     for url in (BASE, ctx["url"]):
         assert ctx["client"].post(url, {}, format="json").status_code == 405
+
+
+def test_opening_debt_and_its_payment_use_the_same_portal_statement_ledger(portal_ledger):
+    ctx = portal_ledger
+    since = timezone.localdate() - timedelta(days=11)
+    invoice = record_opening_balance(ctx["lease"], amount=Decimal("123.45"), owed_since=since)
+    payment = record_payment(invoice=invoice, amount=Decimal("23.45"), method="cash",
+                             paid_on=timezone.localdate())
+    response = payload(ctx["client"].get(ctx["url"], ctx["params"]))
+    assert response["totals"] == {
+        "opening_balance": "183.60", "charges": "250.55", "payments": "93.50",
+        "closing_balance": "340.65",
+    }
+    assert any(row["id"] == str(payment.public_id) for row in response["rows"])
+    rows = csv_rows(ctx["client"].get(ctx["url"], {**ctx["params"], "export": "csv"}))
+    assert rows[0]["balance"] == "183.60" and rows[-1]["balance"] == "340.65"
+
+
+def test_opening_charge_in_period_is_restated_away_after_voiding(portal_ledger):
+    ctx = portal_ledger
+    invoice = record_opening_balance(ctx["lease"], amount=Decimal("123.45"),
+                                     owed_since=timezone.localdate())
+    before = payload(ctx["client"].get(ctx["url"], ctx["params"]))
+    assert before["totals"]["charges"] == "374.00"
+    assert any(row["id"] == str(invoice.public_id) for row in before["rows"])
+    void_invoice(invoice)
+    after = payload(ctx["client"].get(ctx["url"], ctx["params"]))
+    assert after["totals"]["charges"] == "250.55"
+    assert after["totals"]["closing_balance"] == "240.65"
+    assert not any(row["id"] == str(invoice.public_id) for row in after["rows"])
+
+
+def test_paid_ahead_months_and_deposit_held_do_not_invent_statement_payments(portal_ledger):
+    ctx = portal_ledger
+    before = payload(ctx["client"].get(ctx["url"], ctx["params"]))
+    set_rent_paid_up_to(ctx["lease"], timezone.localdate().replace(day=1))
+    record_deposit_held(ctx["lease"], amount=Decimal("1000"), occurred_on=timezone.localdate(),
+                         user=ctx["manager"].handler._force_user)
+    after = payload(ctx["client"].get(ctx["url"], ctx["params"]))
+    assert after == before
 
 
 @pytest.mark.parametrize("export", [False, True])
