@@ -32,6 +32,9 @@ class Lease(OrganizationScopedModel):
     activated_at = models.DateTimeField(blank=True, null=True)
     ended_at = models.DateTimeField(blank=True, null=True)
     notes = models.TextField(blank=True)
+    # First month Dwella bills rent, when the tenant paid ahead before moving to
+    # Dwella. Empty means bill every month of the lease as normal.
+    billed_from = models.DateField(blank=True, null=True)
     # A renewal is a new agreement for the same tenant and unit that starts the
     # day after this one ends. It waits as a draft until it is signed and due.
     renewal_of = models.ForeignKey(

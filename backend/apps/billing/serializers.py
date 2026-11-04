@@ -170,6 +170,7 @@ class InvoiceSerializer(OrganizationScopedSerializer):
             "fiscal_status",
             "charged_for_id",
             "charged_for_reference",
+            "is_opening_balance",
             "lines",
             "notes",
             "voided_at",
@@ -179,6 +180,7 @@ class InvoiceSerializer(OrganizationScopedSerializer):
         read_only_fields = [
             "reference",
             "period_start",
+            "is_opening_balance",
             "total",
             "amount_paid",
             "status",

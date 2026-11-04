@@ -177,7 +177,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         unpaid = invoices.filter(status__in=Invoice.UNPAID_STATUSES)
         overdue = unpaid.filter(due_date__lt=today)
         outstanding = F("total") - F("amount_paid")
-        billed = invoices.filter(issue_date__range=(first, last)).aggregate(
+        # Old debt brought into Dwella counts as owed, but was not billed this month.
+        charges = invoices.filter(is_opening_balance=False)
+        billed = charges.filter(issue_date__range=(first, last)).aggregate(
             total=Coalesce(Sum("total"), ZERO), count=Count("id")
         )
         payments = Payment.objects.filter(invoice__in=self.get_queryset(), reversed_at__isnull=True)
@@ -186,7 +188,7 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         )
         # Rent counts toward the month it is for, so a late invoice run still
         # lands in the right month; one-off charges fall back to issue date.
-        by_period = invoices.annotate(month=TruncMonth(Coalesce("period_start", "issue_date")))
+        by_period = charges.annotate(month=TruncMonth(Coalesce("period_start", "issue_date")))
         # This month's invoices split three ways so the parts add up to what
         # was billed: already paid, still within terms, and past due.
         this_month = by_period.filter(month=first).aggregate(

@@ -606,6 +606,7 @@ def _schedule_zone(zone, local, limit, budget):
             if source == "invoices":
                 query = query.filter(
                     status__in=["open", "partially_paid"],
+                    is_opening_balance=False,
                     due_date__gte=day - timedelta(days=92),
                     due_date__lte=day + timedelta(days=31),
                 )

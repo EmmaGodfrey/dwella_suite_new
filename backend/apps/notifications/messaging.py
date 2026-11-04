@@ -243,6 +243,7 @@ def schedule_workspace(pk, today, ready, budget):
             organization=organization,
             is_active=True,
             status__in=Invoice.UNPAID_STATUSES,
+            is_opening_balance=False,
             tenant__is_active=True,
             due_date__in=reminder_dates(pref, today),
             pk__gt=pref.run_after_id,

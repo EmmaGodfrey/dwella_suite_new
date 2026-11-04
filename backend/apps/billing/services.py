@@ -88,6 +88,7 @@ def create_invoice(
     period_start=None,
     charged_for=None,
     notes="",
+    is_opening_balance=False,
 ):
     invoice = Invoice.objects.create(
         organization=organization,
@@ -100,10 +101,13 @@ def create_invoice(
         due_date=due_date,
         charged_for=charged_for,
         notes=notes,
+        is_opening_balance=is_opening_balance,
     )
     InvoiceLine.objects.bulk_create(InvoiceLine(invoice=invoice, **line) for line in lines)
     refresh_totals(invoice)
-    smart_invoice.queue_sale_receipt(invoice)
+    # Old debt is not a new sale.
+    if not is_opening_balance:
+        smart_invoice.queue_sale_receipt(invoice)
     return invoice
 
 
@@ -119,6 +123,8 @@ def generate_rent_invoices(organization, period_start, today=None, lead_days=Non
     leases = (
         Lease.objects.for_organization(organization)
         .filter(status=Lease.Status.ACTIVE, start_date__lte=last, end_date__gte=first)
+        # Months the tenant paid for before moving to Dwella are never billed.
+        .filter(Q(billed_from__isnull=True) | Q(billed_from__lte=first))
         .select_related("tenant", "unit")
     )
     billed = set(

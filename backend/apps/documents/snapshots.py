@@ -74,7 +74,13 @@ def invoice_source(invoice):
         "lease_reference": invoice.lease.reference if invoice.lease else "",
         "issue_date": str(invoice.issue_date),
         "due_date": str(invoice.due_date),
-        "period": str(invoice.period_start) if invoice.period_start else "One-off charge",
+        "period": (
+            str(invoice.period_start)
+            if invoice.period_start
+            else "Balance brought forward"
+            if invoice.is_opening_balance
+            else "One-off charge"
+        ),
         "status": invoice.get_status_display(),
         "total": str(invoice.total),
         "amount_paid": str(invoice.amount_paid),

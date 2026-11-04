@@ -43,6 +43,10 @@ class Invoice(OrganizationScopedModel):
         "self", on_delete=models.PROTECT, related_name="follow_up_invoices", blank=True, null=True
     )
     notes = models.TextField(blank=True)
+    # What a tenant already owed when the tenancy moved to Dwella. Payable and
+    # counted in arrears like any invoice, but it is not new billing: no notice,
+    # reminders, late fee or ZRA receipt, and it stays out of monthly billed totals.
+    is_opening_balance = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-issue_date", "-created_at"]
@@ -59,6 +63,11 @@ class Invoice(OrganizationScopedModel):
                 fields=["lease", "period_start"],
                 condition=Q(period_start__isnull=False) & ~Q(status="void"),
                 name="one_rent_invoice_per_lease_period",
+            ),
+            models.UniqueConstraint(
+                fields=["lease"],
+                condition=Q(is_opening_balance=True) & ~Q(status="void"),
+                name="one_opening_balance_per_lease",
             ),
             models.CheckConstraint(
                 condition=Q(amount_paid__lte=F("total")), name="invoice_not_overpaid"

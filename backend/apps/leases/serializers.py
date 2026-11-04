@@ -59,6 +59,7 @@ class LeaseSerializer(OrganizationScopedSerializer):
             "activated_at",
             "ended_at",
             "notes",
+            "billed_from",
             "activate",
             "renewal_of_id",
             "renewal_of_reference",
@@ -67,7 +68,14 @@ class LeaseSerializer(OrganizationScopedSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["reference", "status", "activated_at", "ended_at", "is_active"]
+        read_only_fields = [
+            "reference",
+            "status",
+            "activated_at",
+            "ended_at",
+            "billed_from",
+            "is_active",
+        ]
 
     def get_fields(self):
         fields = super().get_fields()

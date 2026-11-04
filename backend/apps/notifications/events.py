@@ -78,7 +78,8 @@ def domain_event(sender, instance, created, raw=False, update_fields=None, **kwa
             safe_enqueue(instance, "repair.comment", suffix=str(instance.pk), actor=instance.author)
     elif changed:
         if label == "billing.invoice":
-            if created or value == "void":
+            # Moving old debt into Dwella, or correcting it, is not a new invoice.
+            if (created or value == "void") and not instance.is_opening_balance:
                 safe_enqueue(instance, "invoice.issued" if created else "invoice.void")
         elif label == "billing.payment":
             if created or value:

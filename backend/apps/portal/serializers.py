@@ -153,6 +153,7 @@ class InvoiceSerializer(PublicIdModelSerializer):
             "balance",
             "status",
             "days_overdue",
+            "is_opening_balance",
             "lines",
             "created_at",
         ]
