@@ -19,6 +19,7 @@ def messaging_settings(backend):
         "RESEND_DAILY_LIMIT": int(os.getenv("RESEND_DAILY_LIMIT", "100")),
         "RESEND_MONTHLY_LIMIT": int(os.getenv("RESEND_MONTHLY_LIMIT", "3000")),
         "WHATSAPP_ENABLED": env_bool("APP_WHATSAPP_ENABLED", False),
+        "WHATSAPP_SELF_SERVICE_ENABLED": env_bool("APP_WHATSAPP_SELF_SERVICE_ENABLED", False),
         "SMS_ENABLED": env_bool("APP_SMS_ENABLED", False),
         "AFRICASTALKING_USERNAME": os.getenv("AFRICASTALKING_USERNAME", ""),
         "AFRICASTALKING_API_KEY": os.getenv("AFRICASTALKING_API_KEY", ""),
