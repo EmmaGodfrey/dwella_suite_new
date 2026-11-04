@@ -207,12 +207,28 @@ export async function uploadDeductionEvidence(leaseId, deductionId, files) {
   return failed;
 }
 
-// scope: "billing" (manager) or "portal" (tenant). Opens in a new tab when the
-// browser can show it, otherwise downloads it.
-export async function openDepositEvidence(scope, item) {
+// Existing tenancies brought into Dwella, one page at a time.
+export const useOpeningBalances = (filters, options = {}) => useQuery({
+  queryKey: ["billing", "opening-balances", filters],
+  queryFn: ({ signal }) => api.get(`/billing/opening-balances/${toSearchParams(filters)}`, { signal }),
+  retry: false,
+  ...options,
+});
+
+export const useSaveOpeningBalances = () => useMutation({
+  mutationFn: (data) => api.post("/billing/opening-balances/", data),
+  retry: false,
+  onSuccess: refreshPaymentRecords,
+});
+
+// scope: "billing" (manager) or "portal" (tenant).
+export const openDepositEvidence = (scope, item) => openPrivateFile(`/${scope}/deposit-evidence/${item.id}/`, item);
+
+// Opens in a new tab when the browser can show it, otherwise downloads it.
+async function openPrivateFile(path, item) {
   const tab = window.open("", "_blank");
   try {
-    const blob = await api.get(`/${scope}/deposit-evidence/${item.id}/`, { responseType: "blob" });
+    const blob = await api.get(path, { responseType: "blob" });
     const url = URL.createObjectURL(new Blob([blob], { type: item.content_type }));
     if (tab) tab.location.href = url;
     else {

@@ -33,6 +33,109 @@
   color: var(--dwella-muted);
 }
 
+// ---- Soft explanation inside drawers ------------------------------------------
+
+.dwella-soft-note {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--dwella-info-soft);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+
+  strong { color: var(--dwella-primary); }
+  span { color: var(--dwella-ink); }
+
+  &.is-warning {
+    background: var(--dwella-warning-soft);
+
+    strong { color: var(--dwella-warning); }
+    span { color: var(--dwella-ink); }
+  }
+}
+
+// ---- Opening balances ---------------------------------------------------------
+
+.dwella-opening {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dwella-opening-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+.dwella-opening-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-opening-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-opening-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  strong { margin-right: 6px; color: var(--dwella-ink); }
+  small { color: var(--dwella-muted); font-size: var(--fs-small); }
+}
+
+.dwella-opening-recorded {
+  margin: 0;
+  color: var(--dwella-ink);
+  overflow-wrap: anywhere;
+}
+
+.dwella-opening-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.dwella-opening-note {
+  margin: 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-opening-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 8px;
+
+  p {
+    flex: 1 1 14rem;
+    margin: 0;
+    color: var(--dwella-muted);
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-opening-controls { grid-template-columns: minmax(0, 1fr); }
+  .dwella-opening-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 // ---- Invoice detail -----------------------------------------------------------
 
 .dwella-invoice-grid {

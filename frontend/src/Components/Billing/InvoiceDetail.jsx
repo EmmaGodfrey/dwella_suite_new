@@ -17,7 +17,7 @@ import { toast } from "react-toastify";
 import { useSaveInvoiceMutation, useVoidInvoiceMutation } from "../../Services/mutations";
 import { useCurrentUserQuery, useInvoiceQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from "../../shared/billing";
+import { invoiceBadgeProps, invoicePeriodLabel, lineKinds, paymentMethodLabel } from "../../shared/billing";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import RecordPaymentDrawer from "./RecordPaymentDrawer";
@@ -104,7 +104,7 @@ export default function InvoiceDetail() {
           </div>
           <p>
             {invoice.tenant_name}
-            {invoice.unit_name ? ` · ${invoice.unit_name}, ${invoice.property_name}` : ""} · {periodLabel(invoice.period_start)}
+            {invoice.unit_name ? ` · ${invoice.unit_name}, ${invoice.property_name}` : ""} · {invoicePeriodLabel(invoice)}
           </p>
         </div>
         {canManage ? (

@@ -12,16 +12,17 @@ import {
   Radio,
   RadioGroup,
 } from "@fluentui/react-components";
-import { Add20Regular, Receipt24Regular, ReceiptAdd20Regular, Search20Regular } from "@fluentui/react-icons";
+import { Add20Regular, History20Regular, Receipt24Regular, ReceiptAdd20Regular, Search20Regular } from "@fluentui/react-icons";
 import { toast } from "react-toastify";
 
 import { useGenerateInvoicesMutation } from "../../Services/mutations";
 import { useBillingSummaryQuery, useCurrentUserQuery, useInvoicesQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { invoiceBadgeProps, invoiceViews, periodLabel } from "../../shared/billing";
+import { invoiceBadgeProps, invoicePeriodLabel, invoiceViews, periodLabel } from "../../shared/billing";
 import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import ChargeDrawer from "./ChargeDrawer";
+import OpeningBalancesDrawer from "./OpeningBalancesDrawer";
 import "../../shared/records.scss";
 import "./billing.scss";
 
@@ -108,7 +109,7 @@ export default function Billing() {
   const [view, setView] = useState(() => params.get("view") || "all");
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState({ search: "", page: 1 });
-  const [dialog, setDialog] = useState(null); // null | "generate" | "charge"
+  const [dialog, setDialog] = useState(null); // null | "generate" | "charge" | "opening"
   const tenantFilter = params.get("tenant") || "";
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function Billing() {
         />
         {canManage ? (
           <PageActions>
+            <Button icon={<History20Regular />} onClick={() => setDialog("opening")}>Opening balances</Button>
             <Button icon={<Add20Regular />} onClick={() => setDialog("charge")}>New charge</Button>
             <Button appearance="primary" icon={<ReceiptAdd20Regular />} onClick={() => setDialog("generate")}>Generate rent invoices</Button>
           </PageActions>
@@ -215,7 +217,7 @@ export default function Billing() {
                     <td><strong>{invoice.reference}</strong></td>
                     <td>{invoice.tenant_name}</td>
                     <td>{invoice.unit_name ? `${invoice.unit_name} · ${invoice.property_name}` : "—"}</td>
-                    <td>{invoice.period_start ? periodLabel(invoice.period_start) : invoice.lines[0]?.description || "Charge"}</td>
+                    <td>{invoice.period_start || invoice.is_opening_balance ? invoicePeriodLabel(invoice) : invoice.lines[0]?.description || "Charge"}</td>
                     <td>{formatDate(invoice.due_date)}</td>
                     <td className="is-numeric">{formatMoney(invoice.total)}</td>
                     <td className={`is-numeric ${owing ? (invoice.days_overdue > 0 ? "is-negative" : "") : "is-muted"}`}>
@@ -242,6 +244,7 @@ export default function Billing() {
       )}
 
       {dialog === "generate" ? <GenerateDialog onClose={() => setDialog(null)} /> : null}
+      {dialog === "opening" ? <OpeningBalancesDrawer onClose={() => setDialog(null)} /> : null}
       {dialog === "charge" ? <ChargeDrawer tenantId={tenantFilter} onClose={() => setDialog(null)} onSaved={(invoice) => open(invoice.id)} /> : null}
     </div>
   );

@@ -12,7 +12,7 @@ import { ArrowDownload20Regular, Dismiss20Regular } from "@fluentui/react-icons"
 import { toast } from "react-toastify";
 
 import { downloadPortalFile, usePortalInvoice, usePortalInvoices, usePortalPayments } from "../../Services/portal";
-import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from "../../shared/billing";
+import { invoiceBadgeProps, invoicePeriodLabel, lineKinds, paymentMethodLabel } from "../../shared/billing";
 import { SegmentedFilter, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import RentCheckout from "./RentCheckout";
@@ -37,7 +37,7 @@ function InvoiceDrawer({ id, onClose }) {
         <DrawerHeaderTitle action={<Button appearance="subtle" icon={<Dismiss20Regular />} aria-label="Close" onClick={onClose} />}>
           {invoice ? `Invoice ${invoice.reference}` : "Invoice"}
         </DrawerHeaderTitle>
-        {invoice ? <p className="dwella-drawer-note">{periodLabel(invoice.period_start)} · {invoice.property_name} · {invoice.unit_name}</p> : null}
+        {invoice ? <p className="dwella-drawer-note">{invoicePeriodLabel(invoice)} · {invoice.property_name} · {invoice.unit_name}</p> : null}
       </DrawerHeader>
       <DrawerBody>
         {query.isLoading ? <span className="dwella-skeleton" style={{ height: 200, width: "100%" }} /> : null}
@@ -164,7 +164,7 @@ export default function PortalPayments() {
                         onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && (event.preventDefault(), setParam("invoice", invoice.id))}
                       >
                         <td><strong>{invoice.reference}</strong></td>
-                        <td>{periodLabel(invoice.period_start)}</td>
+                        <td>{invoicePeriodLabel(invoice)}</td>
                         <td>{formatDate(invoice.due_date)}</td>
                         <td className="is-numeric">{formatMoney(invoice.balance)}</td>
                         <td><StatusBadge {...invoiceBadgeProps(invoice)} /></td>

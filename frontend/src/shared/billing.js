@@ -53,3 +53,7 @@ export const periodLabel = (isoDate) => {
   const [year, month] = isoDate.split("-").map(Number);
   return new Date(year, month - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
+
+// What an invoice bills for: a month, old debt brought in, or a one-off charge.
+export const invoicePeriodLabel = (invoice) =>
+  invoice.is_opening_balance ? "Balance brought forward" : periodLabel(invoice.period_start);
