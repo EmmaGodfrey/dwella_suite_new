@@ -3,8 +3,11 @@ from django.urls import path
 from apps.billing import deposit_views, proof_views
 
 from . import views
+from .statements import StatementAccountListView, StatementView
 
 urlpatterns = [
+    path("statements/", StatementAccountListView.as_view()),
+    path("statements/<uuid:public_id>/", StatementView.as_view()),
     path("deposits/", deposit_views.TenantDepositsView.as_view()),
     path("deposit-evidence/<uuid:public_id>/", deposit_views.TenantEvidenceFileView.as_view()),
     path(
