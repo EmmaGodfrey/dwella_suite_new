@@ -128,6 +128,8 @@ def choose(reply, title):
 def workspace(house, role='tenant'):
     linked(house, role)
     reply = step()
+    if WhatsAppConversation.objects.get().organization_id:
+        return reply
     return step(token=reply.view['options'][0]['id'])
 
 

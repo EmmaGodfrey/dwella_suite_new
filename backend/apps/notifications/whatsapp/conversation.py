@@ -15,7 +15,7 @@ from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
 from apps.maintenance.services import create_request
 
-from .access import actor_context, memberships
+from .access import actor_context
 from .notices import ACTION_PREFIX
 
 PAGE_SIZE = 7
@@ -103,14 +103,9 @@ def website(path):
 
 
 def workspace_menu(binding, conversation, page=0):
-    rows = list(memberships(binding.user)[page:page + PAGE_SIZE + 1])
-    options = [choice(conversation, str(row.organization), 'workspace', row.organization_id,
-                      member=row) for row in rows[:PAGE_SIZE]]
-    if len(rows) > PAGE_SIZE:
-        options.append(choice(conversation, 'More workspaces', 'workspaces', page=page + PAGE_SIZE))
-    return response('Choose your workspace.', options, {'memberships': [
-        [row.pk, row.role, row.updated_at.isoformat()] for row in rows[:PAGE_SIZE]
-    ]})
+    from .recovery import workspace_options
+
+    return workspace_options(binding, conversation, page)
 
 
 def menu(ctx, conversation, note=''):
@@ -302,7 +297,7 @@ def handle(binding, conversation, inbound):
         selected = conversation.choices.get(fingerprint(payload.get('token', '')))
         if not selected:
             return _reset(binding, conversation,
-                          'That option expired. Choose your workspace again.')
+                          'That option expired. Choose from the latest menu.')
     conversation.choices = {}
     conversation.revision += 1
     conversation.expires_at = now + timedelta(minutes=10)
@@ -331,7 +326,13 @@ def handle(binding, conversation, inbound):
         # A screenshot sent before choosing a workspace must not be lost.
         conversation.draft = {'pending_attachment': payload}
     if not conversation.organization_id:
-        return workspace_menu(binding, conversation)
+        from .recovery import single_workspace
+
+        selected_context = single_workspace(binding)
+        if selected_context is None:
+            return workspace_menu(binding, conversation)
+        conversation.organization = selected_context.organization
+        conversation.role = selected_context.role
     ctx = actor_context(binding, conversation.organization_id)
     if ctx.role != conversation.role:
         raise PermissionDenied('Your workspace role changed. Reconnect in Dwella.')
@@ -388,6 +389,13 @@ def _reset(binding, conversation, note):
     conversation.choices = {}
     conversation.revision += 1
     conversation.expires_at = timezone.now() + timedelta(minutes=10)
+    from .recovery import single_workspace
+
+    ctx = single_workspace(binding)
+    if ctx is not None:
+        conversation.organization = ctx.organization
+        conversation.role = ctx.role
+        return menu(ctx, conversation, note)
     view = workspace_menu(binding, conversation)
     view['text'] = note + '\n' + view['text']
     return view

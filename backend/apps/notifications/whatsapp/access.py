@@ -17,6 +17,10 @@ from apps.tenants.models import Tenant
 from .models import WhatsAppBinding, WhatsAppConversation, WhatsAppReply
 
 
+class IdentityDenied(PermissionDenied):
+    """The verified phone identity is no longer authorised for this account."""
+
+
 def auth_stamp(user):
     proof = email_status(user)['verified_at']
     return hashlib.sha256(
@@ -27,7 +31,13 @@ def auth_stamp(user):
 def require_actor(user):
     if (not user.is_active or user.is_staff or user.is_superuser
             or not email_status(user)['verified']):
-        raise PermissionDenied('Reconnect WhatsApp from your verified Dwella account.')
+        raise IdentityDenied('Reconnect WhatsApp from your verified Dwella account.')
+
+
+def require_binding(binding):
+    require_actor(binding.user)
+    if binding.revoked_at or binding.auth_stamp != auth_stamp(binding.user):
+        raise IdentityDenied('Reconnect WhatsApp in Dwella settings.')
 
 
 def memberships(user):
@@ -62,9 +72,7 @@ class ActorContext:
 
 
 def actor_context(binding, organization_id):
-    require_actor(binding.user)
-    if binding.revoked_at or binding.auth_stamp != auth_stamp(binding.user):
-        raise PermissionDenied('Reconnect WhatsApp in Dwella settings.')
+    require_binding(binding)
     member = memberships(binding.user).filter(organization_id=organization_id).first()
     if not member:
         raise PermissionDenied('This workspace is no longer available.')

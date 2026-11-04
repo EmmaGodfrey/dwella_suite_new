@@ -12,9 +12,10 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.notifications.models import NotificationPhoneLink
 from apps.notifications.provider_webhooks import STOP_WORDS
 
-from .access import actor_context, auth_stamp, require_actor, revoke
-from .conversation import handle, menu
+from .access import IdentityDenied, require_binding, revoke
+from .conversation import handle
 from .models import WhatsAppBinding, WhatsAppConversation, WhatsAppInbound, WhatsAppReply
+from .recovery import notice_allowed, queue_stop_ack, recover
 
 logger = logging.getLogger(__name__)
 
@@ -35,18 +36,19 @@ def _process(pk):
             return
         text = event.payload.get('text', '').strip().casefold()
         if text in STOP_WORDS or text == 'connect':
+            if text in STOP_WORDS:
+                queue_stop_ack(event)
             event.status, event.reason = 'done', 'control_message'
             event.save(update_fields=['status', 'reason'])
             return
         view = {'text': 'Connect this number from your signed-in Dwella account: '
                 + settings.FRONTEND_URL.rstrip('/') + '/settings?tab=notifications',
-                'options': [], 'guards': {}}
+                'options': [], 'guards': {}, 'notice': 'connect'}
         conversation = None
+        identity_notice = False
         if binding:
             try:
-                require_actor(binding.user)
-                if binding.auth_stamp != auth_stamp(binding.user):
-                    raise PermissionDenied('Account credentials changed.')
+                require_binding(binding)
                 if event.binding_generation != binding.generation:
                     event.status, event.reason = 'done', 'old_binding_event'
                     event.save(update_fields=['status', 'reason'])
@@ -64,25 +66,36 @@ def _process(pk):
                     view = handle(binding, conversation, event)
                     conversation.last_event_at = event.happened_at
                     conversation.save()
-            except PermissionDenied:
+            except IdentityDenied:
                 revoke(user=binding.user)
                 binding = None
                 conversation = None
+                identity_notice = True
                 view = {'text': 'Your connection or access changed. Reconnect WhatsApp in '
-                        'Dwella settings.', 'options': [], 'guards': {}}
+                        'Dwella settings.', 'options': [], 'guards': {}, 'notice': 'reconnect'}
+            except PermissionDenied:
+                conversation.refresh_from_db()
+                view = recover(binding, conversation,
+                               'That record or workspace is no longer available. '
+                               'Choose another option or open Dwella.')
+                conversation.last_event_at = event.happened_at
+                conversation.save()
             except ValidationError:
                 conversation.refresh_from_db()
-                conversation.choices = {}
-                conversation.draft = {}
-                conversation.revision += 1
-                view = menu(actor_context(binding, conversation.organization_id), conversation,
-                            'That request could not be completed. Please choose an option again.')
+                view = recover(binding, conversation,
+                               'That request could not be completed. Choose an option again.')
                 conversation.save()
         # Per-number admission prevents webhook-driven unbounded auto-replies.
-        recent = WhatsAppReply.objects.filter(
+        history = WhatsAppReply.objects.filter(
             inbound__phone=event.phone, created_at__gte=now - timedelta(hours=24),
-        ).count()
-        if recent >= (60 if binding else 1):
+        )
+        if identity_notice:
+            permitted = notice_allowed(event, 'reconnect')
+        elif binding:
+            permitted = history.count() < 60
+        else:
+            permitted = not history.filter(binding__isnull=True, view__notice='connect').exists()
+        if not permitted:
             event.status, event.reason = 'done', 'daily_reply_limit'
         else:
             WhatsAppReply.objects.get_or_create(inbound=event, defaults={

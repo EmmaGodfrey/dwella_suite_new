@@ -34,7 +34,12 @@ def block(reply):
     consent = PhoneMessagingConsent.objects.filter(
         channel='whatsapp', phone=reply.inbound.phone,
     ).first()
-    if not consent or consent.revoked_at:
+    from .recovery import stop_ack_valid
+
+    stop_ack = stop_ack_valid(reply, consent)
+    if reply.view.get('notice') == 'stop_ack' and not stop_ack:
+        return 'invalid_stop_ack'
+    if not consent or (consent.revoked_at and not stop_ack):
         return 'recipient_opted_out'
     if not consent.last_inbound_at or consent.last_inbound_at <= now - timedelta(hours=24):
         return 'reply_window_closed'
