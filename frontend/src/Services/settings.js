@@ -62,3 +62,15 @@ export function useConnectNotificationPhone() {
     },
   });
 }
+
+export function useDisconnectWhatsApp() {
+  const cache = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete("/notifications/phone-link/"),
+    retry: false,
+    onSuccess: () => Promise.all([
+      cache.invalidateQueries({ queryKey: ["settings", "phone-link"] }),
+      cache.invalidateQueries({ queryKey: ["settings", "personal"] }),
+    ]),
+  });
+}
