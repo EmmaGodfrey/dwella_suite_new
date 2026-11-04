@@ -19,6 +19,14 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
     # day. Managers can still issue them by hand at any time.
     auto_invoice = models.BooleanField(default=True)
     invoice_lead_days = models.PositiveSmallIntegerField(default=7)
+    # Empty means every connected property manager gets the WhatsApp review message.
+    proof_reviewer = models.ForeignKey(
+        "organizations.OrganizationMembership",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
 
     class Meta:
         ordering = ["name"]

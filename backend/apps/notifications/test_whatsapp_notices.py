@@ -1,16 +1,21 @@
 """Approved-template proof messages: who gets them and when they must not go out."""
 from datetime import timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.access_state import mark_email_verified
 from apps.billing import proofs
+from apps.organizations.models import OrganizationMembership
 
 from . import test_whatsapp as base
 from .models import PhoneMessagingConsent
+from .money_templates import covered_by_proof_notice
 from .test_whatsapp import PHONE
 from .whatsapp.access import bind, revoke
 from .whatsapp.models import WhatsAppProofNotice
@@ -50,6 +55,57 @@ def report(house):
 
 def sent(response='wamid.sent'):
     return patch(POST, return_value={'messages': [{'id': response}]})
+
+
+def second_manager(house):
+    other = get_user_model().objects.create_user(username='second-reviewer', email='r2@example.com')
+    mark_email_verified(other)
+    return other, OrganizationMembership.objects.create(
+        organization=house['invoice'].organization, user=other, role='landlord',
+    )
+
+
+def choose(house, membership):
+    workspace = house['invoice'].organization
+    workspace.proof_reviewer = membership
+    workspace.save(update_fields=['proof_reviewer'])
+
+
+def test_chosen_reviewer_alone_gets_the_review_message(house):
+    connect(house['manager'], PHONE)
+    other, membership = second_manager(house)
+    binding = connect(other, '+260971234569')
+    choose(house, membership)
+    report(house)
+    assert [row.binding_id for row in WhatsAppProofNotice.objects.all()] == [binding.pk]
+
+
+def test_review_reaches_all_managers_without_a_usable_reviewer(house):
+    connect(house['manager'], PHONE)
+    other, membership = second_manager(house)
+    # Chosen, but never connected WhatsApp.
+    choose(house, membership)
+    report(house)
+    assert WhatsAppProofNotice.objects.count() == 1
+    # Chosen and connected, then removed: they get nothing, and the others still do.
+    connect(other, '+260971234569')
+    membership.is_active = False
+    membership.save(update_fields=['is_active'])
+    proof = report(house)
+    notice = WhatsAppProofNotice.objects.get(proof=proof)
+    assert notice.binding.user == house['manager']
+
+
+def test_manager_whatsapp_notice_steps_aside_for_the_review_message(house):
+    unconnected = report(house)
+    row = SimpleNamespace(event='proof.submitted', audience='manager', target_id=unconnected.pk)
+    # Nobody received a review message, so the ordinary notice must still go out.
+    assert not covered_by_proof_notice(row)
+    connect(house['manager'], PHONE)
+    row.target_id = report(house).pk
+    assert covered_by_proof_notice(row)
+    WhatsAppProofNotice.objects.update(status='cancelled')
+    assert not covered_by_proof_notice(row)
 
 
 def test_review_goes_to_connected_manager_with_private_action_buttons(house):

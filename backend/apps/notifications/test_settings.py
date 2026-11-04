@@ -99,6 +99,31 @@ def test_workspace_settings_validate_and_do_not_change_money_currency(home):
     assert home["org"].display_name == "My rentals" and home["org"].currency == "ZMW"
 
 
+def test_proof_reviewer_must_be_a_current_manager_of_this_workspace(home):
+    from apps.organizations.models import Organization, OrganizationMembership
+
+    client = client_for(home["manager"])
+    url = BASE + "workspace-settings/"
+    data = client.get(url).json()["response_data"]
+    assert data["proof_reviewer"] is None
+    member = OrganizationMembership.objects.get(organization=home["org"], user=home["manager"])
+    assert data["proof_reviewer_options"][0]["id"] == str(member.public_id)
+    other = OrganizationMembership.objects.create(
+        organization=Organization.objects.create(name="Another workspace"),
+        user=home["manager"],
+        role="landlord",
+    )
+    assert client.patch(
+        url, {"proof_reviewer": str(other.public_id)}, format="json"
+    ).status_code == 400
+    response = client.patch(url, {"proof_reviewer": str(member.public_id)}, format="json")
+    assert response.status_code == 200
+    assert response.json()["response_data"]["proof_reviewer"] == str(member.public_id)
+    assert client.patch(url, {"proof_reviewer": None}, format="json").status_code == 200
+    home["org"].refresh_from_db()
+    assert home["org"].proof_reviewer is None
+
+
 def test_platform_limits_cannot_activate_sending_and_reject_bad_input(home):
     client = client_for(home["admin"])
     url = BASE + "platform-settings/"

@@ -46,6 +46,12 @@ def _recipients(proof, purpose):
         ).values('user_id')
         role = 'landlord'
         query = WhatsAppBinding.objects.filter(user_id__in=users)
+        # A reviewer who left or disconnected must not leave the proof unseen.
+        reviewer = proof.organization.proof_reviewer
+        if reviewer and reviewer.is_active and reviewer.role == 'landlord':
+            chosen = query.filter(user_id=reviewer.user_id, revoked_at__isnull=True)
+            if chosen.exists():
+                query = chosen
     else:
         role = 'tenant'
         query = WhatsAppBinding.objects.filter(user_id=proof.tenant.user_id)

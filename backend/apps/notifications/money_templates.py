@@ -49,11 +49,18 @@ def money_template(row, target):
 
 
 def covered_by_proof_notice(row):
-    """A confirmed proof already tells this tenant, so a second message would repeat it."""
-    if row.event != "payment.confirmed" or row.audience != "tenant":
-        return False
+    """A proof's own WhatsApp message already covers this notice, so do not repeat it."""
     from .whatsapp.models import WhatsAppProofNotice
 
+    # Managers other than the chosen reviewer still get email and in-app notices.
+    if row.event == "proof.submitted":
+        return (
+            WhatsAppProofNotice.objects.filter(proof_id=row.target_id, purpose="review")
+            .exclude(status__in=["cancelled", "failed"])
+            .exists()
+        )
+    if row.event != "payment.confirmed" or row.audience != "tenant":
+        return False
     return (
         WhatsAppProofNotice.objects.filter(
             proof__payment_id=row.target_id,

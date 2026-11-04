@@ -16,7 +16,7 @@ from apps.audit.runtime_settings import runtime_settings
 from apps.audit.services import record_event
 from apps.common.permissions import CanManageOrganization, IsPlatformSuperuser
 from apps.common.workspaces import resolve_workspace
-from apps.organizations.models import Organization
+from apps.organizations.models import Organization, OrganizationMembership
 
 from .messaging import channel_readiness
 from .models import MessagingSettings, NotificationPreferences, ReminderPreferences
@@ -76,10 +76,44 @@ class MessagingSerializer(StrictSerializer):
         return attrs
 
 
+def eligible_reviewers(organization):
+    return (
+        OrganizationMembership.objects.filter(
+            organization=organization,
+            role="landlord",
+            is_active=True,
+            user__is_active=True,
+            user__is_staff=False,
+            user__is_superuser=False,
+        )
+        .select_related("user")
+        .order_by("user__first_name", "user__last_name", "pk")
+    )
+
+
+class ReviewerField(serializers.SlugRelatedField):
+    def get_queryset(self):
+        return eligible_reviewers(self.root.instance)
+
+
 class WorkspaceSerializer(StrictSerializer):
+    proof_reviewer = ReviewerField(slug_field="public_id", required=False, allow_null=True)
+    proof_reviewer_options = serializers.SerializerMethodField()
+
+    def get_proof_reviewer_options(self, organization):
+        return [
+            {
+                "id": str(member.public_id),
+                "name": member.user.get_full_name() or member.user.email,
+            }
+            for member in eligible_reviewers(organization)[:100]
+        ]
+
     class Meta:
         model = Organization
         fields = [
+            "proof_reviewer",
+            "proof_reviewer_options",
             "display_name",
             "email",
             "phone_number",
