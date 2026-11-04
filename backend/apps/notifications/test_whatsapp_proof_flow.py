@@ -241,6 +241,50 @@ def test_invoice_paid_during_the_flow_is_not_reported(house):
     assert not PaymentProof.objects.exists()
 
 
+def second_invoice(house):
+    second = Invoice.objects.get(pk=house['invoice'].pk)
+    second.pk = None
+    second.public_id = uuid4()
+    second.reference = 'INV-SECOND'
+    second.period_start = second.period_start - timedelta(days=31)
+    second.save()
+    return second
+
+
+def test_pay_rent_links_to_the_only_unpaid_invoice_and_changes_nothing(house):
+    invoice = house['invoice']
+    reply = tap(session(house), 'Pay rent')
+    assert f'billing/invoices/{invoice.public_id}' in reply.view['text']
+    assert invoice.reference in reply.view['text']
+    invoice.refresh_from_db()
+    assert invoice.amount_paid == 0 and not Payment.objects.exists()
+    # Someone who already paid directly is one tap from reporting it.
+    assert 'How much did you pay?' in tap(reply, 'I have already paid').view['text']
+
+
+def test_pay_rent_asks_which_invoice_when_there_are_several(house):
+    second = second_invoice(house)
+    choosing = tap(session(house), 'Pay rent')
+    assert 'Which invoice do you want to pay?' in choosing.view['text']
+    reply = tap(choosing, 'INV-SECOND')
+    assert f'billing/invoices/{second.public_id}' in reply.view['text']
+
+
+def test_pay_rent_with_nothing_owed_says_so(house):
+    Invoice.objects.filter(pk=house['invoice'].pk).update(status='paid')
+    reply = tap(session(house), 'Pay rent')
+    assert 'You have nothing to pay right now.' in reply.view['text']
+
+
+def test_pay_rent_for_an_invoice_paid_meanwhile_links_to_nothing(house):
+    second = second_invoice(house)
+    choosing = tap(session(house), 'Pay rent')
+    Invoice.objects.filter(pk=second.pk).update(status='paid')
+    reply = tap(choosing, 'INV-SECOND')
+    assert 'no longer has a balance' in reply.view['text']
+    assert str(second.public_id) not in reply.view['text']
+
+
 def test_several_invoices_are_chosen_from_a_list(house):
     second = Invoice.objects.get(pk=house['invoice'].pk)
     second.pk = None

@@ -72,6 +72,43 @@ def _invoice(ctx, draft):
     return _open_invoices(ctx).filter(public_id=draft.get('invoice')).first()
 
 
+# Tenant: pay rent. Paying happens in signed-in Dwella; a chat never takes money or card details.
+
+
+def _pay_link(ctx, conversation, invoice):
+    conversation.draft = {}
+    return response(
+        f'{invoice.reference}: {_money(ctx, invoice.balance)} to pay, '
+        f'due {invoice.due_date:%d %b %Y}.\nPay securely in Dwella: '
+        + website(f'billing/invoices/{invoice.public_id}'), [
+            _button(ctx, conversation, 'I have already paid', 'payment_proof'),
+            _button(ctx, conversation, 'Main menu', 'menu'),
+        ], {'invoices': invoice_snapshot([invoice])})
+
+
+def start_pay(ctx, conversation):
+    rows = list(_open_invoices(ctx)[:MAX_LISTED])
+    if not rows:
+        return _leave(ctx, conversation, 'You have nothing to pay right now.')
+    if len(rows) == 1:
+        return _pay_link(ctx, conversation, rows[0])
+    conversation.draft = {'intent': 'pay_rent'}
+    lines = '\n'.join(f'{r.reference}: {_money(ctx, r.balance)}' for r in rows)
+    return response(f'Which invoice do you want to pay?\n{lines}', [
+        *[_button(ctx, conversation, r.reference, 'pay_invoice', r.public_id) for r in rows],
+        _cancel(ctx, conversation),
+    ], {'invoices': invoice_snapshot(rows)})
+
+
+def _pay_turn(ctx, conversation, selected):
+    if not selected or selected['action'] != 'pay_invoice':
+        return start_pay(ctx, conversation)
+    invoice = _open_invoices(ctx).filter(public_id=selected['target']).first()
+    if not invoice:
+        return _leave(ctx, conversation, 'That invoice no longer has a balance to pay.')
+    return _pay_link(ctx, conversation, invoice)
+
+
 # Tenant: report a payment
 
 
@@ -451,6 +488,8 @@ class ProofAdapter:
     def start(self, ctx, conversation, intent, target):
         if intent == 'payment_proof':
             return start_report(ctx, conversation)
+        if intent == 'pay_rent':
+            return start_pay(ctx, conversation)
         if intent == 'review_proof':
             return start_review(ctx, conversation)
         return _leave(ctx, conversation, 'This is not on WhatsApp yet. You can do it in Dwella: '
@@ -462,6 +501,8 @@ class ProofAdapter:
     def handle(self, ctx, conversation, payload, selected):
         if conversation.draft['intent'] == 'payment_proof' and ctx.role == 'tenant':
             return _report_turn(ctx, conversation, payload, selected)
+        if conversation.draft['intent'] == 'pay_rent' and ctx.role == 'tenant':
+            return _pay_turn(ctx, conversation, selected)
         if conversation.draft['intent'] == 'review_proof' and ctx.role == 'landlord':
             return _review_turn(ctx, conversation, payload, selected)
         return _leave(ctx, conversation, 'That option is not available for this account.')

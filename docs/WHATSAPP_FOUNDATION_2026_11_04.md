@@ -40,6 +40,8 @@ Template sends in `notices.py` require a template listed in `APP_APPROVED_WHATSA
 
 Required template list for this flow: `dwella_payment_proof_review:en`, `dwella_payment_received:en`, `dwella_payment_proof_declined:en`, `dwella_payment_proof_question:en`.
 
+Pay rent replies with a link to the invoice in signed-in Dwella, choosing first when several are unpaid. No money, card or mobile-money detail passes through the chat. The website page decides which ways to pay are offered.
+
 Known limits: the website has no payment-proof screens yet, so the API and WhatsApp are the only routes. All connected managers receive the review template, because no designated reviewer setting exists. Sending and receiving against Meta has been exercised only with synthetic webhooks and mocked provider calls, including button payloads, media download and evidence upload.
 
 ## Release and operations
