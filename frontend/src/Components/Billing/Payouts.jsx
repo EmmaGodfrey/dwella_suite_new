@@ -94,11 +94,11 @@ function WithdrawDrawer({ summary, onClose, onChangeAccount }) {
           <h3>Review</h3>
           <dl>
             <div><dt>You receive</dt><dd>{quote ? formatMoney(quote.amount) : "—"}</dd></div>
-            <div><dt>Lenco transfer fee</dt><dd>{quote ? formatMoney(quote.fee) : "—"}</dd></div>
-            <div className="is-total"><dt>Taken from your balance</dt><dd>{quote ? formatMoney(quote.total) : "—"}</dd></div>
+            <div><dt>Most Lenco can charge</dt><dd>{quote ? formatMoney(quote.fee) : "—"}</dd></div>
+            <div className="is-total"><dt>Held from your balance</dt><dd>{quote ? formatMoney(quote.total) : "—"}</dd></div>
             <div><dt>Balance after</dt><dd>{quote ? formatMoney(quote.balance_after) : "—"}</dd></div>
           </dl>
-          <p className="dwella-withdraw-note">The fee shown is the most Lenco charges for this amount. If Lenco charges less, the difference stays in your balance.</p>
+          <p className="dwella-withdraw-note">This is the highest fee for this amount. If Lenco charges less, the difference returns to your balance after delivery.</p>
         </section>
         <div className="dwella-withdraw-account">
           <strong>Sent to</strong>
