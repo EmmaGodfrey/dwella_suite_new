@@ -373,7 +373,7 @@ function Workspace() {
           resource="workspace"
           data={query.data}
           key={JSON.stringify(query.data)}
-          body={({ currency, ...values }) => values}
+          body={({ currency, proof_reviewer_options, ...values }) => values}
           validate={(v) => ({
             email: () =>
               !v.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)
@@ -459,6 +459,28 @@ function Workspace() {
                   </Field>
                 )}
               </SettingsSection>
+              {draft.proof_reviewer_options.length > 1 && (
+                <SettingsSection
+                  title="Payment proofs"
+                  note="Choose who gets the WhatsApp message when a tenant reports a payment. Every manager still gets the email and in-app notice, and can review it."
+                >
+                  <Field
+                    label="Send WhatsApp review messages to"
+                    hint="If this person has not connected WhatsApp, every connected manager gets the message."
+                    {...errors.fieldProps("proof_reviewer")}
+                  >
+                    <Select
+                      value={draft.proof_reviewer || ""}
+                      onChange={(_, d) => change("proof_reviewer", d.value || null)}
+                    >
+                      <option value="">All connected managers</option>
+                      {draft.proof_reviewer_options.map((member) => (
+                        <option key={member.id} value={member.id}>{member.name}</option>
+                      ))}
+                    </Select>
+                  </Field>
+                </SettingsSection>
+              )}
               <SettingsSection
                 title="Regional defaults"
                 note="Times for this workspace use its selected time zone."
