@@ -1,7 +1,7 @@
 # Tenant portal statements
 
 Beta scope: let tenants read and export their own recorded account activity.
-This slice adds the API; the portal screen follows Figma review. It does not
+The API and approved portal screen are implemented locally. They do not
 change invoices, payments, opening-balance entry or manager report permissions.
 
 ## Access and API
@@ -131,3 +131,51 @@ Claude's reference frames were only read and cloned, never edited.
 The backend's earlier test evidence predates Claude's opening-balance changes.
 Recheck statement integration with that newer ledger behavior before shipping
 the frontend. This design-only revision does not claim new backend validation.
+
+## Frontend implemented and validated — 5 November 2026
+
+The user approved the revised structure with “okay build and lets move”.
+The tenant Payments toolbar now links to `/billing/statement`; non-tenant
+accounts return to Billing. Existing Payments navigation and application shell
+are retained. The page follows the approved grouped period controls, prominent
+closing balance, secondary figures and activity structure. Narrow content uses
+compact entries and period/account sheets. Sheets restore focus on close.
+
+Service hooks in `frontend/src/Services/portalStatements.js` own the API calls
+and TanStack Query cache. A sole account is selected automatically; multiple
+accounts require a choice, with bounded pagination for the account list too.
+The server supplies the initial statement period and currency. Date drafts
+remain local until applied, and CSV always uses the applied period without page
+slicing. Loading, empty, permission, malformed-response and retry states avoid
+fabricated zero balances. CSV throttling keeps the read view available.
+
+Money formatting preserves the server's decimal cents, including large amounts
+and negative credits. The shared helper validates real dates, workspace-local
+today, order and the 366-day inclusive limit; backend validation remains
+authoritative. Access and response-shape failures suppress financial results.
+
+Validation on a frozen backend source snapshot, matching the shared tree:
+
+- Full SQLite: 1,484 passed, 28 PostgreSQL-only skips.
+- PostgreSQL 17 portal/reports: 105 passed; local instance stopped afterward.
+- Focused portal/opening-balance/reports checks: 111 passed.
+- Django check, Ruff, migration drift and whitespace checks passed.
+- Frontend production build and all 41 Node checks passed.
+- Production-bundle browser checks with synthetic API responses passed Payments
+  entry, single/multiple accounts, applied/draft dates, CSV download/limit,
+  server pagination, empty/credit/loading/error/access recovery, dark mode,
+  period-sheet validation and Escape focus return with reduced motion.
+  Layout checks include 320px/390px widths, long names, large money and 200%
+  text sizing. The table switches to stacked activity by available content width.
+
+New integration regressions prove that brought-forward debt and its payments
+reach statements and CSV, voided opening debt is restated away, and held deposits
+or paid-ahead months do not invent statement payments. Financial services are
+unchanged by this frontend slice.
+
+Private test evidence remains under `output/portal-statements/`; browser captures
+are under `output/playwright/statement-*`. These checks use synthetic users and
+disposable databases, not a deployed authenticated end-to-end pilot. Backend
+suites use the guarded test-only faster password hasher described above.
+Existing application-shell differences from the static Figma references were
+preserved. No live messages, money movement, push or deployment was performed.
