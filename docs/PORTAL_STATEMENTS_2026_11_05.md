@@ -63,6 +63,38 @@ collections remains 4. These are query budgets, not a production capacity claim.
 Existing report review frames are on Figma page `275:106`; the desktop manager
 statement is `275:311`, mobile is `275:741`. They are reference material for the
 tenant portal adaptation, not proof that its UI was approved or implemented.
-Next: prepare the tenant statement view with the established portal navigation,
-date validation, account choice when needed, balances, paginated activity and CSV
-download; obtain design review before frontend implementation.
+## Portal design review — 5 November 2026
+
+The tenant adaptation is ready for review on the existing Reports page:
+
+- [Start here](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-1052)
+- [Desktop](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-440)
+- [Mobile](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-657)
+- [Dark](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-783)
+- [Invalid dates](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-845)
+- [Account choice](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-921)
+- [Loading, error, empty and access-changed states](https://www.figma.com/design/aHlQPzHBsvGR4rNoabRQyW/Dwella-Suite?node-id=297-1014)
+
+Entry is Payments → Statement; Payments remains the highlighted navigation
+destination. The sole account is selected automatically. When several linked
+records exist, the account choice comes before loading a statement. The sample
+uses names plus an ordinal to distinguish matching names, without inventing
+home labels the account API does not provide.
+
+The screen shows the applied period, exact opening/charges/payments/closing
+figures and paginated activity. CSV is the primary action. Dates are applied
+explicitly; invalid periods disable applying/exporting. Empty periods retain
+opening/closing balances; failed loads show Retry without fabricated zeros.
+Mobile activity stacks each entry with its running balance.
+
+All screens use editable text and component instances, existing Dwella tokens
+and Figtree/Montserrat styles. Shared responsive activity-row variants are at
+`300:694`. Visual review corrected layout sizing, mobile variant widths,
+punctuation and alias-colour fallbacks. Checked content fits the frames without
+horizontal or vertical overflow. The only image-filled content is the reused
+brand mark; no complete-screen raster is used as the deliverable.
+
+These are static review frames with fictional data. No prototype, frontend
+implementation, new API behavior, live data change, deployment or release is
+implied. Next: user design review, then frontend query hooks, screen/navigation,
+date validation, production build and desktop/mobile flow checks.
