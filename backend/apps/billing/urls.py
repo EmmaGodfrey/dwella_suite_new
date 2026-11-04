@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from . import deposit_views as deposit
 from . import proof_views as proof
+from .opening_views import OpeningBalancesView
 from .views import InvoiceViewSet, PaymentInstructionViewSet, PaymentViewSet
 
 app_name = "billing"
@@ -13,6 +14,7 @@ router.register("payments", PaymentViewSet, basename="payment")
 router.register("payment-instructions", PaymentInstructionViewSet, basename="payment-instruction")
 
 urlpatterns = [
+    path("opening-balances/", OpeningBalancesView.as_view()),
     path("deposits/<uuid:public_id>/", deposit.DepositView.as_view()),
     path("deposits/<uuid:public_id>/request/", deposit.DepositRequestView.as_view()),
     path("deposits/<uuid:public_id>/opening/", deposit.DepositOpeningView.as_view()),
