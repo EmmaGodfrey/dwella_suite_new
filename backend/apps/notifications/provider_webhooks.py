@@ -1,4 +1,4 @@
-"""Signed Meta callbacks. Store delivery evidence, never an inbound chat history."""
+"""Signed Meta callbacks with bounded private self-service inbox capture."""
 
 import hashlib
 import hmac
@@ -58,6 +58,9 @@ def apply_status(data):
         query |= Q(public_id=reference, channel="whatsapp", status="sending", provider_id="")
     row = MessageDelivery.objects.select_for_update().filter(query, channel="whatsapp").first()
     if not row:
+        from .whatsapp.transport import apply_reply_status
+
+        apply_reply_status(data, stamp)
         return
     if normalize_phone("+" + str(data.get("recipient_id", ""))) != normalize_phone(row.recipient):
         return
@@ -120,6 +123,14 @@ def apply_inbound(message):
         not consent.granted_at or stamp >= consent.granted_at.replace(microsecond=0)
     )
     if revoked:
+        from .models import NotificationPhoneLink
+        from .whatsapp.access import revoke
+
+        revoke(phone=phone)
+        NotificationPhoneLink.objects.filter(
+            channel="whatsapp", phone=phone, consumed_at__isnull=True,
+            created_at__lt=stamp + timedelta(seconds=1),
+        ).update(consumed_at=timezone.now())
         consent.allowed, consent.revoked_at, consent.source = False, stamp, "whatsapp_stop"
     # A greeting or START alone does not grant ongoing reminder consent.
     consent.save()
@@ -130,6 +141,9 @@ def apply_inbound(message):
             recipient__in=phone_variants(phone),
             status__in=["held", "queued"],
         ).update(status="cancelled", reason="recipient_opted_out")
+    from .whatsapp.inbox import capture
+
+    capture(message, phone, stamp)
 
 
 class WhatsAppWebhookView(APIView):
@@ -197,7 +211,13 @@ class WhatsAppWebhookView(APIView):
                         for status in statuses:
                             apply_status(status)
                         for message in messages:
-                            apply_inbound(message)
+                            try:
+                                with transaction.atomic():
+                                    apply_inbound(message)
+                            except (ValueError, TypeError, KeyError, AttributeError):
+                                from .whatsapp.inbox import quarantine
+
+                                quarantine(message)
         except (ValueError, TypeError, KeyError, AttributeError):
             return Response({"detail": "Invalid callback."}, status=400)
         return Response({"received": True})

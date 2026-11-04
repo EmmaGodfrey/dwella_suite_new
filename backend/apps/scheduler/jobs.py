@@ -17,6 +17,7 @@ class Job:
 
 
 JOBS = {
+    "whatsapp": Job(command="run_whatsapp", every=timedelta(minutes=1)),
     "operational_messages": Job(command="run_operational_messages", every=timedelta(minutes=5)),
     "messages": Job(command="run_messages", every=timedelta(minutes=5)),
     "beta_emails": Job(command="send_beta_emails", every=timedelta(minutes=15)),
