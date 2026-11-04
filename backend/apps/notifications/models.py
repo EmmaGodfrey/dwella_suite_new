@@ -222,7 +222,18 @@ class NotificationPhoneLink(models.Model):
     expires_at = models.DateTimeField()
     consumed_at = models.DateTimeField(null=True)
     verified_at = models.DateTimeField(null=True)
+    actions_enabled = models.BooleanField(default=False)
+    notification_consent = models.BooleanField(default=True)
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Phone verification {self.pk}"
+
+
+from .whatsapp.models import (  # noqa: E402,F401
+    WhatsAppBinding,
+    WhatsAppConversation,
+    WhatsAppInbound,
+    WhatsAppReply,
+)
