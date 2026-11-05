@@ -280,7 +280,9 @@ def invoice_pdf(s):
     if s.get("tax_reference"):
         flow += [p(f"Issuer TPIN: {s['tax_reference']}", "small")]
     # Internal invoice notes are deliberately not part of the recipient document.
-    return build(flow, f"Issued via Dwella · {s['reference']} · Snapshot v{s['version']}")
+    footer = (f"Issued via Dwella · {s['reference']} · Snapshot v{s['version']}"
+              if 'version' in s else f"Current ledger copy · {s['reference']}")
+    return build(flow, footer)
 
 
 def payment_instructions(s):

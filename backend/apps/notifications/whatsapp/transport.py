@@ -7,20 +7,24 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
-from apps.common.provider_http import ProviderRejected, post_json
+from apps.common.provider_http import ProviderRejected, post_json, post_request
 from apps.notifications.models import PhoneMessagingConsent
 from apps.notifications.phone_messaging import normalize_phone, phone_allowed, whatsapp_ready
 
 from .access import actor_context, auth_stamp, memberships, require_actor
 from .conversation import guards_current
-from .evidence import FAILED_NOTE, send_evidence
+from .evidence import FAILED_NOTE, _multipart, send_evidence
 from .models import WhatsAppBinding, WhatsAppConversation, WhatsAppReply
 
 
 def block(reply):
     now = timezone.now()
+    if reply.view.get('document') and not (
+        reply.binding_id and reply.organization_id and reply.role
+    ):
+        return 'document_scope_required'
     if reply.binding_generation is not None and reply.binding_id is None:
         return 'binding_removed'
     if reply.role and reply.organization_id is None:
@@ -58,6 +62,11 @@ def block(reply):
             ctx = actor_context(binding, reply.organization_id)
             if ctx.role != reply.role or not guards_current(ctx, reply.view.get('guards', {})):
                 return 'access_or_target_changed'
+            if reply.view.get('document'):
+                from .documents import available
+
+                if not available(ctx, reply.view['document']):
+                    return 'document_changed'
         elif 'memberships' in reply.view.get('guards', {}):
             expected = reply.view['guards']['memberships']
             actual = [[r.pk, r.role, r.updated_at.isoformat()] for r in
@@ -71,10 +80,16 @@ def block(reply):
     return ''
 
 
-def payload(reply):
+def payload(reply, document_media=None, filename=None):
     view = reply.view
     result = {'messaging_product': 'whatsapp', 'to': reply.inbound.phone[1:],
               'biz_opaque_callback_data': str(reply.public_id)}
+    if view.get('document'):
+        if not document_media:
+            raise ValueError('A requested PDF must be prepared before sending.')
+        return {**result, 'type': 'document', 'document': {
+            'id': document_media, 'filename': filename, 'caption': view['text'][:1024],
+        }}
     options = view.get('options', [])
     if not options:
         return {**result, 'type': 'text', 'text': {'body': view['text']}}
@@ -134,9 +149,47 @@ def dispatch_replies(limit=20, seconds=30):
                 continue
             if reply.view.get('evidence') and not send_evidence(reply):
                 reply.view['text'] += FAILED_NOTE
+            document_media, filename = None, None
+            if reply.view.get('document'):
+                from .documents import current, prepare
+
+                ctx = actor_context(reply.binding, reply.organization_id)
+                try:
+                    item, expected = prepare(ctx, reply.view['document'])
+                except ValidationError:
+                    reply.view.pop('document')
+                    reply.view['text'] = ('This PDF could not be prepared here. '
+                                          'Open it in Dwella.\n' + reply.view['text'])
+                    reason = block(reply)
+                    if reason:
+                        raise PermissionDenied('This connection changed.') from None
+                else:
+                    auth = {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'}
+                    base = (f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
+                            f'{settings.WHATSAPP_PHONE_NUMBER_ID}')
+                    body, content_type = _multipart(
+                        {'messaging_product': 'whatsapp', 'type': item.content_type}, item,
+                    )
+                    document_media = post_request(f'{base}/media', body, content_type, auth)['id']
+                    if (not isinstance(document_media, str) or not document_media
+                            or len(document_media) > 160):
+                        raise ValueError('Invalid uploaded media identity.')
+                    filename = item.name
+                    reason = block(reply)
+                    # Upload can take time: re-read both identity and the entire bounded
+                    # document source before disclosing its uploaded ID to a recipient.
+                    if reason or not current(actor_context(reply.binding, reply.organization_id),
+                                             reply.view['document'], expected):
+                        WhatsAppReply.objects.filter(
+                            pk=pk, claim_token=token, status='sending',
+                        ).update(
+                            status='cancelled', reason=reason or 'document_changed',
+                        )
+                        continue
             result = post_json(
                 f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
-                f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages', payload(reply),
+                f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages',
+                payload(reply, document_media, filename),
                 {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'},
             )
             provider_id = result['messages'][0]['id']

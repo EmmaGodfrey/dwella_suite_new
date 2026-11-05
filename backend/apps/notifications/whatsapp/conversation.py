@@ -112,7 +112,7 @@ def menu(ctx, conversation, note=''):
     entries = ([('What do I owe?', 'balance'), ('My invoices', 'invoices'),
                 ('My receipts', 'receipts'), ('Pay rent', 'pay_rent'),
                 ("I have already paid", 'payment_proof'), ('My repairs', 'repairs'),
-                ('Report a repair', 'report_repair')]
+                ('Report a repair', 'report_repair'), ('This month statement', 'statements')]
                if ctx.role == 'tenant' else
                [('Who owes me?', 'balance'), ('Invoices', 'invoices'), ('Receipts', 'receipts'),
                 ('Create invoice', 'create_invoice'), ('Review payment proof', 'review_proof'),
@@ -160,6 +160,24 @@ def listing(ctx, conversation, action, page):
 
 
 def run_action(ctx, conversation, action, target='', page=0):
+    if action in {'invoice_pdf', 'receipt_pdf', 'statement_pdf'}:
+        from .documents import request
+
+        return request(ctx, conversation, action.removesuffix('_pdf'), target)
+    if action == 'statements' and ctx.role == 'tenant':
+        from apps.tenants.models import Tenant
+
+        rows = list(Tenant.objects.filter(
+            pk__in=ctx.tenant_ids, organization=ctx.organization, is_active=True,
+        ).order_by('pk')[page:page + PAGE_SIZE + 1])
+        if len(rows) == 1 and page == 0:
+            return run_action(ctx, conversation, 'statement_pdf', rows[0].public_id)
+        options = [choice(conversation, row.full_name, 'statement_pdf', row.public_id,
+                          member=ctx.membership) for row in rows[:PAGE_SIZE]]
+        if len(rows) > PAGE_SIZE:
+            options.append(choice(conversation, 'More accounts', 'statements',
+                                  page=page + PAGE_SIZE, member=ctx.membership))
+        return response('Choose the tenant account for this month’s statement.', options)
     if action in MONEY_INTENTS:
         allowed = ({'pay_rent', 'payment_proof'} if ctx.role == 'tenant' else
                    {'create_invoice', 'review_proof'})
@@ -197,7 +215,9 @@ def run_action(ctx, conversation, action, target='', page=0):
         return response(f'{row.reference}\nTotal: {ctx.organization.currency} {row.total:,.2f}'
                         f'\nBalance: {ctx.organization.currency} {row.balance:,.2f}'
                         f'\nDue: {row.due_date:%d %b %Y}\nOpen securely in Dwella: '
-                        + website(path), guards={'invoices': invoice_snapshot([row])})
+                        + website(path), [choice(conversation, 'Download PDF', 'invoice_pdf',
+                                                 row.public_id, member=ctx.membership)],
+                        guards={'invoices': invoice_snapshot([row])})
     if action == 'receipt':
         row = ctx.scope(Payment.objects.all()).filter(
             public_id=target, reversed_at__isnull=True,
@@ -207,7 +227,8 @@ def run_action(ctx, conversation, action, target='', page=0):
         path = f'billing/receipts/{row.public_id}'
         return response(f'{row.receipt_number}\n{ctx.organization.currency} {row.amount:,.2f}'
                         f'\nPaid: {row.paid_on:%d %b %Y}\nOpen securely in Dwella: '
-                        + website(path), guards={
+                        + website(path), [choice(conversation, 'Download PDF', 'receipt_pdf',
+                                                 row.public_id, member=ctx.membership)], guards={
                             'payments': [[str(row.public_id), str(row.amount), False]],
                         })
     if action == 'repair':
@@ -371,6 +392,7 @@ def handle(binding, conversation, inbound):
         return MONEY_ADAPTER.start_attachment(ctx, conversation, payload)
     aliases = {'balance': 'balance', 'what do i owe': 'balance', 'who owes me': 'balance',
                'invoices': 'invoices', 'receipts': 'receipts', 'repairs': 'repairs',
+               'statement': 'statements',
                'pop': 'payment_proof', "i've paid": 'payment_proof', 'i have paid': 'payment_proof',
                'i paid': 'payment_proof', 'paid': 'payment_proof', 'pay rent': 'pay_rent'}
     if lower in aliases:
