@@ -3,6 +3,7 @@
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 import pytest
 from django.utils import timezone
@@ -44,12 +45,13 @@ def reminder_preview(house, settings):
         allowed=True,
         granted_at=timezone.now(),
     )
+    local = timezone.now().astimezone(ZoneInfo(house["org"].timezone))
     MessagingSettings.objects.update_or_create(
         pk=1,
         defaults={
             "reminders_enabled": True,
-            "quiet_from": "23:58",
-            "quiet_until": "00:01",
+            "quiet_from": (local + timedelta(hours=1)).time(),
+            "quiet_until": (local + timedelta(hours=2)).time(),
         },
     )
     menu = workspace(house, "manager")
@@ -68,7 +70,8 @@ def send_reminders():
             return_value={"messages": [{"id": "wamid.reminder"}]},
         ) as send,
     ):
-        dispatch_messages(now=timezone.now().replace(hour=12))
+        # Never move dispatch before the real queue timestamp on evening runs.
+        dispatch_messages(now=timezone.now())
     return send
 
 
@@ -195,13 +198,17 @@ def test_requested_reminder_requires_approved_template_and_respects_quiet_hours(
             "apps.notifications.phone_messaging.post_json",
         ) as send,
     ):
-        dispatch_messages(now=timezone.now().replace(hour=12))
+        dispatch_messages(now=timezone.now())
     send.assert_not_called()
     assert MessageDelivery.objects.get().reason == "whatsapp_template_required"
     MessageDelivery.objects.update(status="queued")
-    MessagingSettings.objects.update(quiet_from="10:00", quiet_until="15:00")
+    local = timezone.now().astimezone(ZoneInfo(house["org"].timezone))
+    MessagingSettings.objects.update(
+        quiet_from=(local - timedelta(hours=1)).time(),
+        quiet_until=(local + timedelta(hours=1)).time(),
+    )
     assert send_reminders().call_count == 0
-    assert MessageDelivery.objects.get().available_at > timezone.now().replace(hour=12)
+    assert MessageDelivery.objects.get().available_at > timezone.now()
 
 
 def test_requested_reminder_rate_limit_and_cross_workspace_scope(house, settings):
