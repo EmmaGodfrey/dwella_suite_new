@@ -1,9 +1,10 @@
-"""Minimal, bounded webhook capture. No network I/O or domain writes here."""
+"""Bounded inbox capture; best-effort wake after commit, no provider I/O here."""
 import hashlib
 import json
 from datetime import timedelta
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 
 from .models import WhatsAppBinding, WhatsAppInbound
@@ -52,12 +53,16 @@ def capture(message, phone, stamp):
     ).count() >= 120:
         return
     stale = stamp < timezone.now() - timedelta(hours=24)
-    WhatsAppInbound.objects.get_or_create(
+    _, created = WhatsAppInbound.objects.get_or_create(
         number_id=settings.WHATSAPP_PHONE_NUMBER_ID, provider_id=provider_id,
         defaults={'phone': phone, 'happened_at': stamp, 'payload': payload,
                   'binding_generation': binding.generation if binding else None,
                   'status': 'done' if stale else 'queued', 'reason': 'stale' if stale else ''},
     )
+    if created and not stale:
+        from .wakeup import wake
+
+        transaction.on_commit(wake)
 
 
 def quarantine(message):

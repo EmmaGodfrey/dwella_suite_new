@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
@@ -109,13 +109,25 @@ def _process(pk):
         event.save(update_fields=['status', 'reason', 'attempts'])
 
 
-def process_inbox(limit=50, seconds=20):
+def process_inbox(limit=50, seconds=20, *, ordered=False):
     if not settings.WHATSAPP_SELF_SERVICE_ENABLED:
         return 0
     started, count = time.monotonic(), 0
-    ids = list(WhatsAppInbound.objects.filter(
+    queue = WhatsAppInbound.objects.filter(
         status='queued', available_at__lte=timezone.now(),
-    ).order_by('happened_at', 'pk').values_list('pk', flat=True)[:min(limit, 100)])
+    )
+    if ordered:
+        earlier = WhatsAppInbound.objects.filter(phone=OuterRef('phone'), status='queued').filter(
+            Q(happened_at__lt=OuterRef('happened_at'))
+            | Q(happened_at=OuterRef('happened_at'), pk__lt=OuterRef('pk')),
+        )
+        pending = WhatsAppReply.objects.filter(
+            inbound__phone=OuterRef('phone'), status__in=['queued', 'sending'],
+        )
+        queue = queue.alias(earlier=Exists(earlier), pending=Exists(pending)).filter(
+            earlier=False, pending=False,
+        )
+    ids = list(queue.order_by('happened_at', 'pk').values_list('pk', flat=True)[:min(limit, 100)])
     for pk in ids:
         if time.monotonic() - started >= seconds:
             break

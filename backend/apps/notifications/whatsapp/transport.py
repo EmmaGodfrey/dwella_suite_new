@@ -104,7 +104,9 @@ def payload(reply, document_media=None, filename=None):
     return {**result, 'type': 'interactive', 'interactive': interactive}
 
 
-def dispatch_replies(limit=20, seconds=30):
+def dispatch_replies(limit=20, seconds=30, *, lane=None):
+    if lane not in {None, 'fast', 'files'}:
+        raise ValueError('Unknown reply lane.')
     if not settings.WHATSAPP_SELF_SERVICE_ENABLED or not whatsapp_ready():
         return 0
     now = timezone.now()
@@ -114,7 +116,13 @@ def dispatch_replies(limit=20, seconds=30):
     ).update(
         status='review', reason='send_outcome_unknown',
     )
-    ids = list(WhatsAppReply.objects.filter(status='queued').order_by('pk').values_list(
+    queue = WhatsAppReply.objects.filter(status='queued')
+    files = Q(view__has_key='document') | Q(view__has_key='evidence')
+    if lane == 'fast':
+        queue = queue.exclude(files)
+    elif lane == 'files':
+        queue = queue.filter(files)
+    ids = list(queue.order_by('pk').values_list(
         'pk', flat=True,
     )[:min(limit, 50)])
     started, accepted = time.monotonic(), 0
