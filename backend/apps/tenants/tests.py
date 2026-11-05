@@ -323,3 +323,44 @@ def test_archive_keeps_history_and_leaves_the_everyday_list():
     assert client.post(f"{url}/restore/").status_code == 200
     assert client.post("/api/v1/leases/", new_lease, format="json").status_code == 201
     assert AuditEvent.objects.filter(action__in=["tenant.archived", "tenant.restored"]).count() == 2
+
+
+@pytest.mark.django_db
+def test_tenant_list_filters_by_any_lease_on_a_property(manager, org):
+    from datetime import date, timedelta
+    from decimal import Decimal
+
+    from apps.leases.services import create_lease
+
+    def lease_for(tenant, unit, start):
+        return create_lease(
+            organization=org, tenant=tenant, unit=unit, start_date=start,
+            end_date=start + timedelta(days=30), monthly_rent=Decimal("1000"),
+            late_fee_percent=Decimal("0"), late_fee_grace_days=0, activate=False,
+        )
+
+    def tenant(name, phone):
+        return Tenant.objects.create(organization=org, full_name=name, phone_number=phone)
+
+    def names(query):
+        response = manager.get(f"/api/v1/tenants/?{query}")
+        assert response.status_code == 200
+        rows = response.json()["response_data"]
+        return [row["full_name"] for row in rows]
+
+    first, second = make_unit(org, "1A"), make_unit(org, "1B")
+    elsewhere = make_unit(org, "2A", property_name="Garden Court")
+    twice = tenant("Two leases here", "+260971111111")
+    lease_for(twice, first, date(2026, 1, 1))
+    lease_for(twice, second, date(2026, 3, 1))
+    lease_for(tenant("Other property", "+260971111112"), elsewhere, date(2026, 1, 1))
+    tenant("No lease", "+260971111113")
+    property_id = first.property.public_id
+    # Two leases on one property must still list the tenant once.
+    assert names(f"property={property_id}") == ["Two leases here"]
+    assert names(f"property={elsewhere.property.public_id}") == ["Other property"]
+    assert len(names("page_size=25")) == 3
+    # Another workspace's property shows nothing, and a bad id is refused.
+    other = Organization.objects.create(name="Other Landlord")
+    assert names(f"property={make_unit(other, property_name='Theirs').property.public_id}") == []
+    assert manager.get("/api/v1/tenants/?property=not-a-uuid").status_code == 400

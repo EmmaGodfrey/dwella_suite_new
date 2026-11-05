@@ -1,7 +1,8 @@
 from decimal import Decimal
 
-from django.db.models import F, Prefetch, Q, Sum
+from django.db.models import Exists, F, OuterRef, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
+from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -34,6 +35,20 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
         # Archived tenants leave the everyday list; ?is_active=false shows them.
         if self.action == "list" and "is_active" not in self.request.query_params:
             queryset = queryset.filter(is_active=True)
+        if self.action == "list" and "property" in self.request.query_params:
+            try:
+                property_id = serializers.UUIDField().run_validation(
+                    self.request.query_params["property"],
+                )
+            except ValidationError as error:
+                raise ValidationError({"property": error.detail}) from error
+            # Lease history keeps former tenants discoverable for statements. EXISTS
+            # avoids duplicate tenants and multiplying the annotated invoice balance.
+            queryset = queryset.filter(Exists(Lease.objects.filter(
+                tenant_id=OuterRef("pk"), organization_id=OuterRef("organization_id"),
+                unit__property__public_id=property_id,
+                unit__property__organization_id=OuterRef("organization_id"),
+            )))
         if self.action == "list" and self.request.query_params.get("details") == "missing":
             queryset = queryset.filter(
                 Q(tpin="")
