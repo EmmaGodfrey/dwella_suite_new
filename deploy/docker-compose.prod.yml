@@ -106,6 +106,7 @@ services:
     entrypoint: ["python", "manage.py", "run_scheduler"]
     volumes:
       - ../data/backups:/backups
+      - ../data/media:/app/backend/media
 
   whatsapp-worker:
     <<: *runtime
@@ -123,6 +124,8 @@ services:
         condition: service_healthy
     entrypoint: ["python", "manage.py", "run_whatsapp_worker"]
     stop_grace_period: 90s
+    volumes:
+      - ../data/media:/app/backend/media
 
   # Nightly verified database dump and media archive under data/backups.
   # Restore with deploy/restore-backup.sh. Copy data/backups off this server too.

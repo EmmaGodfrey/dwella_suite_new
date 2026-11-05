@@ -43,6 +43,8 @@ lane; the service does not promise a particular handset delivery time.
 
 The Compose service `whatsapp-worker` uses the existing backend image, dropped
 capabilities, bounded logs, a 384MiB memory limit, and a 90-second shutdown grace.
+The worker and retention scheduler share the backend's private media volume so
+filesystem-stored repair photos survive restarts and remain available to the app.
 No new dependency, database table or migration is required.
 
 `APP_WHATSAPP_WORKER_ENABLED` defaults to **false**. With it false, the existing

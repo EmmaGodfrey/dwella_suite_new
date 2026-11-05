@@ -41,6 +41,9 @@ def violations(config):
             reject(port.get("host_ip") not in {"127.0.0.1", "::1"}, "published ports must bind to loopback")
         for mount in service.get("volumes", []):
             reject(mount.get("source") in {"/", "/var/run/docker.sock", "/run/docker.sock"}, "host root and Docker socket mounts are forbidden")
+        if name == "whatsapp-worker":
+            reject(not any(m.get("target") == "/app/backend/media"
+                           for m in service.get("volumes", [])), "shared application media mount is required")
     return errors
 
 
