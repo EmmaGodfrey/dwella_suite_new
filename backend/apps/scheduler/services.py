@@ -76,6 +76,8 @@ def run_due_jobs(now=None):
 
 
 def scheduler_status():
+    from apps.notifications.whatsapp.wakeup import heartbeats
+
     jobs = []
     for name, job in JOBS.items():
         last = JobRun.objects.filter(job=name).first()
@@ -106,4 +108,8 @@ def scheduler_status():
     return {"heartbeat": cache.get(HEARTBEAT_KEY), "jobs": jobs,
             "signing_mailer": {"heartbeat": cache.get("signing-mailer:heartbeat"),
                                "counts": counts},
-            "payments_worker": {"heartbeat": cache.get("payments-worker:heartbeat")}}
+            "payments_worker": {"heartbeat": cache.get("payments-worker:heartbeat")},
+            "whatsapp_worker": {
+                "enabled": settings.WHATSAPP_WORKER_ENABLED,
+                "heartbeats": heartbeats(),
+            }}

@@ -55,6 +55,11 @@ class RuntimePolicyTests(unittest.TestCase):
     def test_empty_config_fails_closed(self):
         self.assertTrue(policy.violations({}))
 
+    def test_whatsapp_worker_must_drop_all_capabilities(self):
+        self.assertEqual(policy.violations({"services": {"whatsapp-worker": self.service}}), [])
+        unsafe = {**self.service, "cap_drop": []}
+        self.assertTrue(policy.violations({"services": {"whatsapp-worker": unsafe}}))
+
 
 if __name__ == "__main__":
     unittest.main()
