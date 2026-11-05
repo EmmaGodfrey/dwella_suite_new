@@ -23,7 +23,7 @@ export function StatementBalances({ data }) {
   );
 }
 
-export function StatementActivity({ data, onPage }) {
+export function StatementActivity({ data, onPage, locationLabel = "Home" }) {
   const money = (value, full = false) => statementMoney(value, data.currency, full);
   const home = (row) => [row.property, row.unit].filter(Boolean).join(" · ");
   const label = (row) => `${row.type === "charge" ? "Charge" : "Payment"} · ${row.reference}`;
@@ -36,7 +36,7 @@ export function StatementActivity({ data, onPage }) {
         <div className="portal-statement__desktop">
           <table className="dwella-table portal-statement__table">
             <caption className="portal-statement__sr-only">Charges, payments and running balance in {data.currency}</caption>
-            <thead><tr><th scope="col">Date</th><th scope="col">Activity / reference</th><th scope="col">Home</th>
+            <thead><tr><th scope="col">Date</th><th scope="col">Activity / reference</th><th scope="col">{locationLabel}</th>
               <th scope="col" className="is-numeric">Charges ({data.currency})</th><th scope="col" className="is-numeric">Payments ({data.currency})</th>
               <th scope="col" className="is-numeric">Balance ({data.currency})</th></tr></thead>
             <tbody>{data.rows.map((row) => <tr key={`${row.type}-${row.id}`}>

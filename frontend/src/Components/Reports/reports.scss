@@ -27,7 +27,8 @@
 .report-filter-panel__dates > .fui-Field { flex: 0 1 13.75rem; min-width: 0; }
 .report-filter-panel__dates > .fui-Button { margin-top: 1.625rem; }
 .report-filter-panel__scope { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1rem; }
-.report-filter-panel__scope .fui-Button { justify-content: flex-start; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.report-filter-panel__scope .fui-Button { justify-content: space-between; white-space: normal; overflow-wrap: anywhere; text-align: left; }
+.report-choose-tenant { justify-self: start; }
 .report-collections-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 1.5rem; padding: 1.25rem; background: var(--dwella-paper); border-radius: var(--radius-lg); }
 .report-collections-summary__primary { display: grid; align-content: start; gap: .25rem; min-width: 0; }
 .report-collections-summary__primary > span { color: var(--dwella-muted); }

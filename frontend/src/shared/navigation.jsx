@@ -29,7 +29,6 @@ export const navigationGroups = [
 const operationalItems = [
   { to: "/messages", value: "messages", group: "operations", label: "Messages", icon: <Mail24Regular />, personas: ["landlord"] },
   { to: "/admin/messages", value: "admin-messages", group: "platform", label: "Messages", icon: <Mail24Regular />, personas: ["platform_admin"] },
-  { to: "/settings", value: "settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin", "landlord", "tenant", "unassigned"] },
   { to: "/admin/transactions", value: "transactions", group: "platform", label: "Transactions", icon: <Payment24Regular />, personas: ["platform_admin"] },
   { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
@@ -48,6 +47,7 @@ const operationalItems = [
   { to: "/beta-signups", value: "beta-signups", group: "platform", label: "Beta signups", icon: <FormMultiple24Regular />, personas: ["platform_admin"] },
   { to: "/admin/audit-log", value: "audit-log", group: "platform", label: "Audit log", icon: <DocumentText24Regular />, personas: ["platform_admin"] },
   { to: "/admin/outreach", value: "outreach", group: "platform", label: "Outreach", icon: <Mail24Regular />, personas: ["platform_admin"] },
+  { to: "/settings", value: "settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin", "landlord", "tenant", "unassigned"] },
 ];
 
 export function getNavigationItems(user) {

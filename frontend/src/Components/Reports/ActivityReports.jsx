@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button, Checkbox, DrawerBody, DrawerHeader, DrawerHeaderTitle, Field, Input, OverlayDrawer, Select } from "@fluentui/react-components";
-import { ArrowDownload20Regular, Dismiss20Regular } from "@fluentui/react-icons";
+import { ArrowDownload20Regular, ChevronDown20Regular, Dismiss20Regular } from "@fluentui/react-icons";
 import { useCurrentUserQuery, usePropertiesQuery, useTenantsQuery } from "../../Services/queries";
 import { useActivityReport, useExportActivityReport } from "../../Services/activityReports";
 import { PageActions, SegmentedFilter } from "../../shared/components";
@@ -11,13 +11,13 @@ import { statementDateErrors, statementMoney, workspaceToday } from "../../share
 import { formatDate } from "../../shared/format";
 import "../Portal/statement.scss";
 
-function ScopePicker({ kind, onChoose, onClose }) {
+function ScopePicker({ kind, propertyId, onChoose, onClose }) {
   const tenant = kind === "tenant";
   const [search, setSearch] = useState("");
   const [submitted, setSubmitted] = useState("");
   const [archived, setArchived] = useState(false);
   const [page, setPage] = useState(1);
-  const filters = { search: submitted, page, page_size: 25, ...(tenant ? { is_active: !archived } : {}) };
+  const filters = { search: submitted, page, page_size: 25, ...(tenant ? { is_active: !archived, property: propertyId } : {}) };
   const tenants = useTenantsQuery(filters, { enabled: tenant });
   const properties = usePropertiesQuery(filters, { enabled: !tenant });
   const query = tenant ? tenants : properties;
@@ -116,22 +116,22 @@ export default function ActivityReports({ report }) {
         <Button type="submit" disabled={Boolean(Object.keys(errors).length)}>Apply dates</Button>
       </form>
       <div className="report-filter-panel__scope">
-        <Field label="Property"><Button ref={propertyTrigger} onClick={() => setPicker("property")}>{property?.name || "All properties"}</Button></Field>
-        <Field label={statement ? "Tenant (required)" : "Tenant"}><Button ref={tenantTrigger} onClick={() => setPicker("tenant")}>{tenant ? `${tenant.name}${tenant.archived ? " · Archived" : ""}` : statement ? "Choose tenant" : "All tenants"}</Button></Field>
+        <Field label="Property"><Button ref={propertyTrigger} icon={<ChevronDown20Regular />} iconPosition="after" aria-haspopup="dialog" aria-expanded={picker === "property"} onClick={() => setPicker("property")}>{property?.name || "All properties"}</Button></Field>
+        <Field label={statement ? "Tenant (required)" : "Tenant"}><Button ref={tenantTrigger} icon={<ChevronDown20Regular />} iconPosition="after" aria-haspopup="dialog" aria-expanded={picker === "tenant"} onClick={() => setPicker("tenant")}>{tenant ? `${tenant.name}${tenant.archived ? " · Archived" : ""}` : statement ? "Choose tenant" : "All tenants"}</Button></Field>
         {!statement && <Field label="Payment method"><Select value={method} onChange={(_, next) => { pinPeriod(); setMethod(next.value); reset(); }}><option value="">All methods</option>
           {Object.entries(paymentMethods).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</Select></Field>}
       </div>
     </section>
     <p className="portal-statement__basis">{statement ? "Current ledger restated for the selected period, including later corrections. Deposits are shown separately; negative balances are credits."
       : "Gross recorded payments by payment date. Reversed payments and void invoices are excluded. This is not net settlement."}</p>
-    {statement && !tenant ? <section className="portal-statement__activity"><h2>Choose a tenant to view their statement</h2><p>Search active or archived tenants. Each statement includes recorded charges, payments and running balances.</p><Button onClick={() => setPicker("tenant")}>Choose tenant account</Button></section>
+    {statement && !tenant ? <section className="portal-statement__activity"><h2>Choose a tenant to view their statement</h2><p>Search active or archived tenants. Each statement includes recorded charges, payments and running balances.</p><Button className="report-choose-tenant" onClick={() => setPicker("tenant")}>Choose tenant account</Button></section>
       : query.isPending ? <div className="portal-statement__loading" role="status" aria-busy="true"><span>Loading report…</span><div className="dwella-skeleton" /><div className="dwella-skeleton" /></div>
         : query.isError ? <section className="dwella-surface portal-statement__error" role="alert"><h2>Could not load this report</h2>
           <p>{[403, 404].includes(query.error?.status) ? "Your access may have changed. Check your workspace and report selection." : query.error?.status === 400 ? "Check your filters. If records changed, return to the first page." : "Try again to load the recorded activity."}</p>
           <div><Button onClick={() => query.refetch()}>Retry report</Button>{page > 1 && <Button onClick={() => setPage(1)}>First page</Button>}</div></section>
-          : data && <>{statement ? <><div className="report-tenant-context"><h2>{data.tenant.name}</h2>{data.tenant.archived && <span>Archived tenant</span>}</div><StatementBalances data={data} /><StatementActivity data={data} onPage={next => { pinPeriod(); setPage(next); download.reset(); }} /></>
+          : data && <>{statement ? <><div className="report-tenant-context"><h2>{data.tenant.name}</h2>{data.tenant.archived && <span>Archived tenant</span>}</div><StatementBalances data={data} /><StatementActivity data={data} locationLabel="Property / unit" onPage={next => { pinPeriod(); setPage(next); download.reset(); }} /></>
             : <Collections data={data} onPage={next => { pinPeriod(); setPage(next); download.reset(); }} />}</>}
     {download.isError && <p role="alert">{download.error?.status === 429 ? "CSV download limit reached. Try again later." : "Could not export this report. Check your access and try again."}</p>}
-    {picker && <ScopePicker kind={picker} onClose={closePicker} onChoose={value => { pinPeriod(); if (picker === "tenant") setTenant(value); else setProperty(value); reset(); closePicker(); }} />}
+    {picker && <ScopePicker kind={picker} propertyId={property?.id} onClose={closePicker} onChoose={value => { pinPeriod(); if (picker === "tenant") setTenant(value); else { if (value?.id !== property?.id) setTenant(null); setProperty(value); } reset(); closePicker(); }} />}
   </div>;
 }
