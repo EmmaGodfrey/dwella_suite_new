@@ -92,7 +92,9 @@ class WhatsAppReply(models.Model):
 class WhatsAppMedia(models.Model):
     """A file sent during a draft, held only until the draft is submitted or abandoned."""
 
-    binding = models.ForeignKey(WhatsAppBinding, on_delete=models.CASCADE)
+    # Keep the cleanup pointer when an account/link is deleted. An unbound row
+    # cannot be downloaded or submitted and is removed by bounded media cleanup.
+    binding = models.ForeignKey(WhatsAppBinding, on_delete=models.SET_NULL, null=True)
     binding_generation = models.UUIDField()
     media_id = models.CharField(max_length=160)
     created_at = models.DateTimeField(default=timezone.now, db_index=True)

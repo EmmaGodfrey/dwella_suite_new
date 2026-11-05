@@ -257,33 +257,48 @@ def run_action(ctx, conversation, action, target='', page=0):
                         'Send BACK to discard this draft.')
     if action in {'repair_allow_entry', 'repair_no_entry'} and ctx.role == 'tenant':
         draft = conversation.draft
-        if draft.get('step') != 'entry':
+        if draft.get('intent') != 'repair' or draft.get('step') != 'entry':
             raise ValidationError('Start this repair again from the menu.')
         _repair_lease(ctx, draft['lease'])
         draft.update(step='confirm', permission_to_enter=action == 'repair_allow_entry')
-        return response(f'Report repair: {draft["title"]}\n{draft["description"]}\n'
-                        f'Permission to enter: {"Yes" if draft["permission_to_enter"] else "No"}'
-                        '\nPhotos can be added securely in Dwella after submission.', [
-                            choice(conversation, 'Confirm repair', 'repair_confirm',
-                                   member=ctx.membership),
-                            choice(conversation, 'Cancel', 'menu', member=ctx.membership),
-                        ])
+        from .repair_photos import summary
+
+        return summary(ctx, conversation)
+    if action == 'repair_remove_photos' and ctx.role == 'tenant':
+        from .repair_photos import summary
+
+        if (conversation.draft.get('intent') != 'repair' or
+                conversation.draft.get('step') != 'confirm'):
+            raise ValidationError('Start this repair again.')
+        conversation.draft['files'] = []
+        return summary(ctx, conversation, 'Photos removed from this draft.')
     if action == 'repair_confirm' and ctx.role == 'tenant':
         draft = conversation.draft
-        if draft.get('step') != 'confirm':
+        if draft.get('intent') != 'repair' or draft.get('step') != 'confirm':
             raise ValidationError('Start this repair again from the menu.')
         lease = _repair_lease(ctx, draft['lease'])
+        from .repair_photos import attach, ready, summary
+
+        try:
+            photos = ready(ctx, conversation)
+        except ValidationError:
+            return summary(ctx, conversation,
+                           'Photos are still being checked or were rejected. '
+                           'Try confirming shortly, or remove the photos.')
         job = create_request(
             organization=ctx.organization, reported_by=ctx.user, property=lease.unit.property,
             unit=lease.unit, tenant=lease.tenant, source='tenant', title=draft['title'],
             description=draft['description'], permission_to_enter=draft['permission_to_enter'],
         )
+        attach(job, ctx.user, photos)
         AuditEvent.objects.create(actor=ctx.user, organization=ctx.organization,
                                   action='maintenance.tenant_reported',
                                   resource_type='maintenance.maintenancerequest',
                                   resource_id=str(job.public_id), metadata={'channel': 'whatsapp'})
         conversation.draft = {}
-        return response(f'Repair {job.reference} submitted. Add photos or follow its progress '
+        return response(f'Repair {job.reference} submitted with {len(photos)} '
+                        f'{"photo" if len(photos) == 1 else "photos"}. '
+                        'Follow its progress '
                         'in Dwella: ' + website('maintenance'))
     raise ValidationError('Choose a current option from the menu.')
 
@@ -372,8 +387,22 @@ def handle(binding, conversation, inbound):
         draft = conversation.draft
         _repair_lease(ctx, draft['lease'])
         if payload.get('type') == 'attachment':
-            return response('Please upload photos securely in Dwella. Continue by typing '
-                            'the repair details here, or send BACK.')
+            from .repair_photos import add, summary
+
+            note = add(ctx, conversation, payload)
+            if draft['step'] == 'confirm':
+                return summary(ctx, conversation, note)
+            if draft['step'] == 'entry':
+                return response(note + '\nMay the property manager enter for this repair?', [
+                    choice(conversation, 'Entry allowed', 'repair_allow_entry',
+                           member=ctx.membership),
+                    choice(conversation, 'Contact me first', 'repair_no_entry',
+                           member=ctx.membership),
+                ])
+            prompt = ('Enter a short repair title (up to 160 characters).'
+                      if draft['step'] == 'title' else
+                      'Describe the problem (up to 700 characters).')
+            return response(note + '\n' + prompt + ' Send BACK to discard the draft.')
         if draft['step'] == 'title':
             if not text or len(text) > 160:
                 return response('Enter a title between 1 and 160 characters.')
