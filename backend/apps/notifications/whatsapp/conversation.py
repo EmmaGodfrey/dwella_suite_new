@@ -116,7 +116,7 @@ def menu(ctx, conversation, note=''):
                if ctx.role == 'tenant' else
                [('Who owes me?', 'balance'), ('Invoices', 'invoices'), ('Receipts', 'receipts'),
                 ('Create invoice', 'create_invoice'), ('Review payment proof', 'review_proof'),
-                ('Repairs', 'repairs')])
+                ('Repairs', 'repairs'), ('Send rent reminder', 'reminders')])
     options = [choice(conversation, title, action, member=ctx.membership)
                for title, action in entries]
     options.append(choice(conversation, 'Switch workspace', 'workspaces'))
@@ -178,6 +178,22 @@ def run_action(ctx, conversation, action, target='', page=0):
             options.append(choice(conversation, 'More accounts', 'statements',
                                   page=page + PAGE_SIZE, member=ctx.membership))
         return response('Choose the tenant account for this month’s statement.', options)
+    if action in {'reminders', 'reminder', 'reminder_confirm'}:
+        from . import reminders
+
+        if action == 'reminder':
+            return reminders.preview(ctx, conversation, target)
+        if action == 'reminder_confirm':
+            return reminders.confirm(ctx, conversation)
+        rows = list(reminders.eligible(ctx).order_by('due_date', 'pk')[page:page + PAGE_SIZE + 1])
+        options = [choice(conversation, row.reference, 'reminder', row.public_id,
+                          member=ctx.membership) for row in rows[:PAGE_SIZE]]
+        if len(rows) > PAGE_SIZE:
+            options.append(choice(conversation, 'More invoices', 'reminders',
+                                  page=page + PAGE_SIZE, member=ctx.membership))
+        options.append(choice(conversation, 'Main menu', 'menu', member=ctx.membership))
+        return response('Choose an unpaid invoice to preview its reminder.' if rows else
+                        'There are no invoices to remind anyone about.', options)
     if action in MONEY_INTENTS:
         allowed = ({'pay_rent', 'payment_proof'} if ctx.role == 'tenant' else
                    {'create_invoice', 'review_proof'})
@@ -421,7 +437,7 @@ def handle(binding, conversation, inbound):
         return MONEY_ADAPTER.start_attachment(ctx, conversation, payload)
     aliases = {'balance': 'balance', 'what do i owe': 'balance', 'who owes me': 'balance',
                'invoices': 'invoices', 'receipts': 'receipts', 'repairs': 'repairs',
-               'statement': 'statements',
+               'statement': 'statements', 'reminders': 'reminders',
                'pop': 'payment_proof', "i've paid": 'payment_proof', 'i have paid': 'payment_proof',
                'i paid': 'payment_proof', 'paid': 'payment_proof', 'pay rent': 'pay_rent'}
     if lower in aliases:

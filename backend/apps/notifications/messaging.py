@@ -390,6 +390,14 @@ def dispatch_messages(*, now=None, limit=50):
                 continue
             if row.channel in {"sms", "whatsapp"}:
                 provider_config = runtime_settings()
+                if row.request_id and row.request.source == 'wa_reminder':
+                    from .whatsapp.reminders import current
+
+                    if not current(row):
+                        MessageDelivery.objects.filter(pk=pk, status="sending").update(
+                            status="cancelled", reason="permission_removed",
+                        )
+                        continue
                 reason = phone_block(row, now, provider_config)
                 if reason:
                     MessageDelivery.objects.filter(pk=pk, status="sending").update(
@@ -493,6 +501,13 @@ def dispatch_block(row, config, now):
         return "operational_email_owned"
     if is_rent_reminder(row):
         invoice = row.invoice
+        requested = bool(row.request_id and row.request.source == 'wa_reminder')
+        if requested:
+            from .whatsapp.reminders import current
+
+            if not current(row):
+                return "permission_removed"
+            invoice = row.invoice
         pref = ReminderPreferences.objects.filter(organization=organization).first()
         today = now.astimezone(ZoneInfo(organization.timezone)).date()
         # A reminder held back by quiet hours or the daily allowance may go a day late.
@@ -503,7 +518,9 @@ def dispatch_block(row, config, now):
             or not today - timedelta(days=1) <= row.reminder_date <= today
         ):
             return "invoice_no_longer_due"
-        if not config.reminders_enabled or not pref or not getattr(pref, f"{row.channel}_enabled"):
+        if not config.reminders_enabled or (
+            not requested and (not pref or not getattr(pref, f"{row.channel}_enabled"))
+        ):
             return "reminders_disabled"
         # Re-render from the fresh balance after partial payments.
         invoice.organization = organization
