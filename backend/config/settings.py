@@ -16,6 +16,8 @@ ROOT_DIR = BASE_DIR.parent
 SECRET_KEY = __import__("os").getenv("APP_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("APP_DEBUG", False)
 APP_ENVIRONMENT = __import__("os").getenv("APP_ENVIRONMENT", "production")
+NATIVE_ADMIN_ENABLED = env_bool("APP_NATIVE_ADMIN_ENABLED", DEBUG)
+REQUIRE_ADMIN_MFA = env_bool("APP_REQUIRE_ADMIN_MFA", APP_ENVIRONMENT == "production")
 ALLOWED_HOSTS = env_list("APP_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("APP_CSRF_TRUSTED_ORIGINS", "")
 
@@ -59,6 +61,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "apps.common.middleware.NativeAdminBoundaryMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",

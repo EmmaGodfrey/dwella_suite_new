@@ -7,6 +7,9 @@ class WorkspaceAuthenticationMixin:
     def authenticate(self, request):
         result = super().authenticate(request)
         if result:
+            from apps.accounts.admin_mfa import require_enrollment
+
+            require_enrollment(request, result[0])
             resolve_workspace(request, user=result[0], required=False)
         return result
 

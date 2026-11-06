@@ -201,6 +201,12 @@ class TwoFactorSetupVerifyView(APIView):
         serializer = TwoFactorSetupVerifySerializer(data=request.data, context={"device": device})
         serializer.is_valid(raise_exception=True)
         device.mark_confirmed()
+        from .admin_mfa import required
+
+        if required(request.user):
+            # Existing password-only tokens cannot become MFA-authenticated by
+            # merely observing a newly enrolled device. Sign in again with a code.
+            Token.objects.filter(user=request.user).delete()
         record_event(request, "account.2fa_enabled", request.user)
         return Response({"enabled": True})
 
@@ -212,6 +218,12 @@ class TwoFactorDisableView(APIView):
     @transaction.atomic
     def post(self, request):
         request.user = User.objects.select_for_update().get(pk=request.user.pk)
+        from .admin_mfa import required
+
+        if required(request.user):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied('Two-factor authentication is required for this account.')
         from .access_security import TwoFactorRemovalSerializer
 
         data = TwoFactorRemovalSerializer(data=request.data, context={"request": request})

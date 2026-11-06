@@ -61,6 +61,7 @@ class IdentityVerificationSerializer(serializers.ModelSerializer):
 
 
 class CurrentUserSerializer(serializers.ModelSerializer):
+    admin_mfa_required = serializers.SerializerMethodField()
     email_verification = serializers.SerializerMethodField()
     has_two_factor = serializers.SerializerMethodField()
     profile = serializers.SerializerMethodField()
@@ -85,6 +86,7 @@ class CurrentUserSerializer(serializers.ModelSerializer):
             "is_superuser",
             "is_active",
             "has_two_factor",
+            "admin_mfa_required",
             "profile",
             "identity_verification",
             "memberships",
@@ -102,6 +104,11 @@ class CurrentUserSerializer(serializers.ModelSerializer):
 
     def get_has_two_factor(self, obj):
         return hasattr(obj, "two_factor_device") and obj.two_factor_device.is_confirmed
+
+    def get_admin_mfa_required(self, obj):
+        from .admin_mfa import enrollment_required
+
+        return enrollment_required(obj)
 
     def get_email_verification(self, obj):
         from .access_state import email_status
