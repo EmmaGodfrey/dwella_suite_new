@@ -122,3 +122,16 @@ reminder handset branches require their own controlled pilot evidence. The code
 tests cover those behaviors; they do not substitute for the phone pilot.
 
 No production release, email activation or parked K1 reconciliation is included.
+
+## TEST release verification
+
+Released as `test-v2026.11.06.4` (`02df3c3`), with all CI gates and staging deployment
+successful. Live source hashes and migration 0014 matched; the public TEST frontend
+serves the new verification code and the API health check passes. Both existing
+verified phone links and the two-phone allowlist remain intact. The OTP switch is
+still off because Meta's authentication-template permission is unresolved.
+
+After the restricted database-login transition, receipt and statement PDF rendering
+still passed. Invoice rendering still correctly reports missing TPIN and billing
+address; actual tenant details must be completed before retrying that PDF. These
+read-only checks did not send messages or modify financial records.

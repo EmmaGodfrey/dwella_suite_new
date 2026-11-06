@@ -145,9 +145,26 @@ excluded from frozen-source validation and all commits. No live money writes, pr
 send activation, email rollout or parked K1 reconciliation was performed by these
 preparation steps.
 
+TEST release `test-v2026.11.06.4` (`02df3c3`) completed all four CI gates and staging
+deployment successfully ([release run](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/42261141201)).
+Live source hashes matched, no migrations remained, and all ten TEST services were
+running with configured health checks passing. Public TEST health and the deployed
+website verification bundle passed checks. Native Django admin returned 404 directly
+from the TEST backend; `/test/admin/` on the public frontend is a SPA fallback.
+
+The five TEST app services were then recreated with a distinct restricted database
+login and filtered credentials, after a protected database dump and environment backup.
+The live privilege check passed, and container inspection confirmed maintenance and
+bootstrap credentials were absent from all five services. Administrator MFA enforcement
+is enabled on TEST, with one administrator still needing normal authenticator enrollment.
+Both verified phone links, the two-phone allowlist and existing channel settings were
+preserved. OTP remains off. All three WhatsApp worker heartbeats and the recent offsite
+backup check passed. Read-only receipt and statement rendering also passed with the
+restricted login. The 19 non-TEST container identities remained unchanged.
+
 Open release dependencies: Meta authentication-template permission/approval for the
-new code flow; actual code/exception-branch handset checks; live restricted-role
-transition and administrator enrollment; remaining host firewall/reboot policy and
+new code flow; actual code/exception-branch handset checks; administrator enrollment;
+production restricted-role transition; remaining host firewall/reboot policy and
 monitoring acceptance. Earlier findings about browser token lifetime/origin isolation
 and stored authenticator seeds are not claimed resolved. Production requires a
 separate approved promotion after these dependencies are assessed.
