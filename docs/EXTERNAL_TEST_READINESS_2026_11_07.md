@@ -69,6 +69,12 @@ OTP and unassigned roadmap features are excluded from the initial alpha.
 
 ## Verified activation
 
+The participant deliverable is now the compact in-app checklist at `/test/uat`.
+See [TEST_CHECKLIST_2026_11_07.md](TEST_CHECKLIST_2026_11_07.md) for its 131
+manager/tenant flows, saved results and administrator CSV review. The original
+handbook is retained as historical preparation; administrator UAT is excluded
+from the participant site.
+
 Released to the existing TEST project as `test-v2026.11.07.1` (`ab14c81`). All four
 CI gates and staging deployment passed in
 [run 42305810652](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/42305810652).
