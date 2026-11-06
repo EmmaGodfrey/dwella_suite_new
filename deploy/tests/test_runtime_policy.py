@@ -61,6 +61,11 @@ class RuntimePolicyTests(unittest.TestCase):
         unsafe = {**worker, "cap_drop": []}
         self.assertTrue(policy.violations({"services": {"whatsapp-worker": unsafe}}))
 
+    def test_maintenance_profile_cannot_gain_container_capabilities(self):
+        self.assertEqual(policy.violations({"services": {"maintenance": self.service}}), [])
+        unsafe = {**self.service, "cap_drop": []}
+        self.assertTrue(policy.violations({"services": {"maintenance": unsafe}}))
+
     def test_whatsapp_worker_requires_shared_media(self):
         self.assertTrue(policy.violations({"services": {"whatsapp-worker": self.service}}))
 

@@ -12,6 +12,21 @@ x-runtime: &runtime
       max-file: "5"
 
 services:
+  maintenance:
+    <<: *runtime
+    profiles: [maintenance]
+    mem_limit: 512m
+    cap_drop: [ALL]
+    image: dwella-suite-backend:latest
+    pull_policy: never
+    env_file:
+      - ../.env.prod
+    entrypoint: ["python", "manage.py"]
+    command: ["migrate", "--noinput"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     <<: *runtime
     mem_limit: ${POSTGRES_MEMORY_LIMIT:-1024m}
@@ -54,7 +69,7 @@ services:
     image: dwella-suite-backend:latest
     restart: unless-stopped
     env_file:
-      - ../.env.prod
+      - ${APP_RUNTIME_ENV_FILE:-../.env.prod}
     environment:
       # Shared by every gunicorn worker: rate limits and rendered document pages.
       APP_CACHE_URL: redis://redis:6379/1
@@ -92,7 +107,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.prod
+      - ${APP_RUNTIME_ENV_FILE:-../.env.prod}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
       APP_SCHEDULER_JOBS: ${APP_SCHEDULER_JOBS:-beta_emails,media_snapshots,offsite_backups}
@@ -116,7 +131,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.prod
+      - ${APP_RUNTIME_ENV_FILE:-../.env.prod}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
     depends_on:
@@ -137,7 +152,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.prod
+      - ${APP_RUNTIME_ENV_FILE:-../.env.prod}
     depends_on:
       backend:
         condition: service_healthy
@@ -154,7 +169,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.prod
+      - ${APP_RUNTIME_ENV_FILE:-../.env.prod}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
     depends_on:

@@ -1,7 +1,12 @@
 #!/bin/sh
 set -eu
 
-python manage.py migrate --noinput
+if [ "${APP_RUN_MIGRATIONS:-true}" = "true" ]; then
+  python manage.py migrate --noinput
+else
+  # Maintenance migrations run separately; web processes cannot administer the DB.
+  python manage.py check_runtime_database
+fi
 python manage.py collectstatic --noinput
 
 if [ -n "${DJANGO_SUPERUSER_USERNAME:-}" ] && [ -n "${DJANGO_SUPERUSER_EMAIL:-}" ] && [ -n "${DJANGO_SUPERUSER_PASSWORD:-}" ]; then

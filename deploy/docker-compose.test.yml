@@ -12,6 +12,21 @@ x-runtime: &runtime
       max-file: "5"
 
 services:
+  maintenance:
+    <<: *runtime
+    profiles: [maintenance]
+    mem_limit: 512m
+    cap_drop: [ALL]
+    image: dwella-suite-test-backend:latest
+    pull_policy: never
+    env_file:
+      - ../.env.test
+    entrypoint: ["python", "manage.py"]
+    command: ["migrate", "--noinput"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     <<: *runtime
     mem_limit: ${POSTGRES_MEMORY_LIMIT:-1024m}
@@ -85,7 +100,7 @@ services:
     image: dwella-suite-test-backend:latest
     restart: unless-stopped
     env_file:
-      - ../.env.test
+      - ${APP_RUNTIME_ENV_FILE:-../.env.test}
     environment:
       # Shared by every gunicorn worker: rate limits and rendered document pages.
       APP_CACHE_URL: redis://redis:6379/1
@@ -123,7 +138,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.test
+      - ${APP_RUNTIME_ENV_FILE:-../.env.test}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
       # Staging email only reaches these test inboxes; add testers comma-separated.
@@ -149,7 +164,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.test
+      - ${APP_RUNTIME_ENV_FILE:-../.env.test}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
     depends_on:
@@ -170,7 +185,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.test
+      - ${APP_RUNTIME_ENV_FILE:-../.env.test}
     environment:
       APP_OUTBOUND_EMAIL_ALLOWLIST: ${APP_OUTBOUND_EMAIL_ALLOWLIST:-eglabs.dev@gmail.com}
     depends_on:
@@ -189,7 +204,7 @@ services:
     pull_policy: never
     restart: unless-stopped
     env_file:
-      - ../.env.test
+      - ${APP_RUNTIME_ENV_FILE:-../.env.test}
     environment:
       APP_CACHE_URL: redis://redis:6379/1
     depends_on:

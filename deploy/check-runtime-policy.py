@@ -14,7 +14,7 @@ def violations(config):
     services = config.get("services", {})
     if not services:
         return ["No services found"]
-    unprivileged = {"backend", "scheduler", "signing-mailer", "payments-worker",
+    unprivileged = {"backend", "maintenance", "scheduler", "signing-mailer", "payments-worker",
                     "whatsapp-worker", "backup", "db-gateway"}
     for name, service in services.items():
         def reject(condition, message):

@@ -9,6 +9,11 @@ shared="${target}.shared"
 compose_file="deploy/docker-compose.test.yml"
 
 test -f "${release}/.env.test"
+runtime_database=false
+if grep -q '^APP_RUNTIME_ENV_FILE=' "${release}/.env.test"; then
+  python3 "${release}/deploy/prepare-runtime-env.py" --source "${release}/.env.test" --target "${release}/.env.runtime"
+  runtime_database=true
+fi
 mkdir -p "${shared}/data/media"
 
 if [ -d "${target}/data" ] && [ ! -L "${target}/data" ]; then
@@ -39,6 +44,14 @@ if [ -d "${target}" ] && (
   ) > "${dump}.tmp"
   mv "${dump}.tmp" "${dump}"
   ls -1t "${shared}"/data/backups/pre-deploy-*.dump | tail -n +11 | xargs -r rm -f
+fi
+
+if [ "${runtime_database}" = "true" ]; then
+  (
+    cd "${release}"
+    docker compose --env-file .env.test -f "${compose_file}" run --rm --no-deps maintenance migrate --noinput
+    docker compose --env-file .env.test -f "${compose_file}" run --rm --no-deps maintenance provision_runtime_database
+  )
 fi
 
 rm -rf "${previous}"
