@@ -225,6 +225,10 @@ class NotificationPhoneLink(models.Model):
     actions_enabled = models.BooleanField(default=False)
     notification_consent = models.BooleanField(default=True)
     failed_attempts = models.PositiveSmallIntegerField(default=0)
+    verification_nonce = models.UUIDField(null=True, editable=False)
+    auth_stamp = models.CharField(max_length=64, blank=True)
+    delivery_status = models.CharField(max_length=12, blank=True)
+    provider_id = models.CharField(max_length=160, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
