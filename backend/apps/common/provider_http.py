@@ -3,7 +3,7 @@
 import json
 from urllib.error import HTTPError
 from urllib.parse import urlencode
-from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 class ProviderRejected(Exception):
@@ -55,7 +55,7 @@ def post_request(url, data, content_type, headers):
         method="POST",
     )
     try:
-        with urlopen(request, timeout=10) as response:
+        with _no_redirect.open(request, timeout=10) as response:
             return json.loads(response.read(262145))
     except HTTPError as error:
         # An explicit HTTP rejection is distinct from an uncertain network outcome.
