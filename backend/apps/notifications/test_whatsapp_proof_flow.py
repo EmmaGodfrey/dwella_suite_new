@@ -129,15 +129,14 @@ def test_tenant_reports_a_payment_step_by_step(house):
     assert house['invoice'].amount_paid == 0
 
 
-def test_screenshot_sent_first_starts_the_flow_and_is_kept(house):
+def test_screenshot_sent_outside_requested_step_returns_safe_menu(house):
     session(house)
     reply = send_file()
-    assert reply.view['text'].startswith('File received.')
-    assert 'How much did you pay?' in reply.view['text']
-    assert WhatsAppMedia.objects.count() == 1
+    assert 'Choose I have already paid or Report a repair first' in reply.view['text']
+    assert WhatsAppMedia.objects.count() == 0
 
 
-def test_screenshot_before_choosing_a_workspace_is_kept(house):
+def test_screenshot_before_choosing_a_workspace_is_not_imported_into_a_draft(house):
     from apps.organizations.models import Organization, OrganizationMembership
     from apps.tenants.models import Tenant
 
@@ -151,8 +150,8 @@ def test_screenshot_before_choosing_a_workspace_is_kept(house):
 
     reply = step(token=first['id'])
 
-    assert reply.view['text'].startswith('File received.')
-    assert WhatsAppMedia.objects.count() == 1
+    assert 'How can Dwella help?' in reply.view['text']
+    assert WhatsAppMedia.objects.count() == 0
 
 
 def test_bank_and_mobile_money_need_a_file_but_cash_does_not(house):

@@ -115,7 +115,8 @@ def menu(ctx, conversation, note=''):
                 ('Report a repair', 'report_repair'), ('This month statement', 'statements')]
                if ctx.role == 'tenant' else
                [('Who owes me?', 'balance'), ('Invoices', 'invoices'), ('Receipts', 'receipts'),
-                ('Create invoice', 'create_invoice'), ('Review payment proof', 'review_proof'),
+                ('Create invoice in Dwella', 'create_invoice'),
+                ('Review payment proof', 'review_proof'),
                 ('Repairs', 'repairs'), ('Send rent reminder', 'reminders')])
     options = [choice(conversation, title, action, member=ctx.membership)
                for title, action in entries]
@@ -160,6 +161,9 @@ def listing(ctx, conversation, action, page):
 
 
 def run_action(ctx, conversation, action, target='', page=0):
+    if action == 'create_invoice' and ctx.role == 'landlord':
+        return response('Create and review invoices in Dwella:\n' + website('billing') +
+                        '\nSend MENU to return to WhatsApp options.')
     if action in {'invoice_pdf', 'receipt_pdf', 'statement_pdf'}:
         from .documents import request
 
@@ -365,18 +369,12 @@ def handle(binding, conversation, inbound):
             raise PermissionDenied('Your workspace access changed. Reconnect in Dwella.')
         conversation.organization = ctx.organization
         conversation.role = ctx.role
-        pending = conversation.draft.pop('pending_attachment', None)
-        if pending and ctx.role == 'tenant' and MONEY_ADAPTER is not None:
-            return MONEY_ADAPTER.start_attachment(ctx, conversation, pending)
         return menu(ctx, conversation)
     if lower == 'workspace' or (selected and selected['action'] == 'workspaces'):
         conversation.organization = None
         conversation.role = ''
         conversation.draft = {}
         return workspace_menu(binding, conversation, selected['page'] if selected else 0)
-    if not conversation.organization_id and payload.get('type') == 'attachment':
-        # A screenshot sent before choosing a workspace must not be lost.
-        conversation.draft = {'pending_attachment': payload}
     if not conversation.organization_id:
         from .recovery import single_workspace
 
@@ -398,11 +396,21 @@ def handle(binding, conversation, inbound):
         return run_action(ctx, conversation, selected['action'], selected['target'],
                           selected['page'])
     if conversation.draft.get('intent') in MONEY_INTENTS and MONEY_ADAPTER is not None:
+        if payload.get('type') == 'attachment' and conversation.draft.get('step') not in {
+            'files', 'review',
+        }:
+            # Re-show the expected field; never download an unsolicited file.
+            payload = {'type': 'unsupported'}
         return MONEY_ADAPTER.handle(ctx, conversation, payload, None)
     if conversation.draft.get('intent') == 'repair':
         draft = conversation.draft
         _repair_lease(ctx, draft['lease'])
         if payload.get('type') == 'attachment':
+            if draft['step'] not in {'entry', 'confirm'}:
+                prompt = ('Enter a short repair title (up to 160 characters).'
+                          if draft['step'] == 'title' else
+                          'Describe the problem (up to 700 characters).')
+                return response('Add photos after the repair details. ' + prompt)
             from .repair_photos import add, summary
 
             note = add(ctx, conversation, payload)
@@ -433,8 +441,11 @@ def handle(binding, conversation, inbound):
                 choice(conversation, 'Contact me first', 'repair_no_entry', member=ctx.membership),
             ])
         return response('Choose a button from the latest repair message, or send BACK.')
-    if payload.get('type') == 'attachment' and ctx.role == 'tenant' and MONEY_ADAPTER:
-        return MONEY_ADAPTER.start_attachment(ctx, conversation, payload)
+    if payload.get('type') == 'attachment':
+        return menu(ctx, conversation,
+                    'Choose I have already paid or Report a repair first. '
+                    'Send a file only when that step asks for it.' if ctx.role == 'tenant' else
+                    'Please choose an option below. Files are accepted only when requested.')
     aliases = {'balance': 'balance', 'what do i owe': 'balance', 'who owes me': 'balance',
                'invoices': 'invoices', 'receipts': 'receipts', 'repairs': 'repairs',
                'statement': 'statements', 'reminders': 'reminders',
@@ -446,7 +457,7 @@ def handle(binding, conversation, inbound):
         return menu(ctx, conversation, 'Cancelled. Nothing was sent.')
     return menu(ctx, conversation, '' if lower in {'menu', 'hi', 'hello', 'help', 'back',
                                                   'cancel', 'start'} else
-                'Choose an option below. For attachments or detailed account changes, use Dwella.')
+                'Please choose an option below.')
 
 
 def _reset(binding, conversation, note):
