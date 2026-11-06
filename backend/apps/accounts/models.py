@@ -5,6 +5,30 @@ from django.utils import timezone
 from apps.common.models import TimeStampedModel, UUIDModel
 
 
+class UatResult(TimeStampedModel):
+    class Status(models.TextChoices):
+        NOT_TESTED = "not_tested", "Not tested"
+        PASSED = "passed", "Passed"
+        PARTIAL = "partial", "Partial"
+        FAILED = "failed", "Failed"
+        BLOCKED = "blocked", "Blocked"
+        NOT_APPLICABLE = "not_applicable", "Not applicable"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    campaign = models.CharField(max_length=40)
+    case_id = models.CharField(max_length=24)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_TESTED)
+    notes = models.CharField(max_length=2000, blank=True)
+    user_agent = models.CharField(max_length=256, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "campaign", "case_id"], name="unique_uat_result_per_user_case",
+            ),
+        ]
+
+
 class AccountAccessState(TimeStampedModel):
     tenant_access_removed = models.BooleanField(default=False)
     user = models.OneToOneField(
