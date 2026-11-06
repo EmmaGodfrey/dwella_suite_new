@@ -27,6 +27,7 @@ export const navigationGroups = [
 ];
 
 const operationalItems = [
+  { to: "/uat", value: "uat", group: "utility", label: "Test checklist", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "tenant", "unassigned", "platform_admin"] },
   { to: "/messages", value: "messages", group: "operations", label: "Messages", icon: <Mail24Regular />, personas: ["landlord"] },
   { to: "/admin/messages", value: "admin-messages", group: "platform", label: "Messages", icon: <Mail24Regular />, personas: ["platform_admin"] },
   { to: "/admin/transactions", value: "transactions", group: "platform", label: "Transactions", icon: <Payment24Regular />, personas: ["platform_admin"] },
@@ -53,6 +54,7 @@ const operationalItems = [
 export function getNavigationItems(user) {
   const access = getUserAccess(user);
   return operationalItems
+    .filter((item) => item.value !== "uat" || import.meta.env.VITE_BASE_PATH === "/test/")
     .filter((item) => item.personas.includes(access.persona))
     .filter((item) => access.persona !== "platform_admin" || ["platform", "utility"].includes(item.group) || Boolean(access.acting_workspace))
     .map((item) => ({
