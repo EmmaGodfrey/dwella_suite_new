@@ -5,7 +5,7 @@ from copy import deepcopy
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
-from django.core.cache import cache
+from django.core.cache import cache, caches
 from django.core.signing import TimestampSigner
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient, APIRequestFactory
@@ -244,6 +244,8 @@ def test_atomic_account_counter_has_no_thread_overshoot(settings, monkeypatch):
 
 def test_counter_recovers_from_eviction_without_server_error(monkeypatch):
     throttle = LoginAccountThrottle()
+    # Patch the concrete backend, rather than attributes forwarded by Django's proxy.
+    monkeypatch.setattr(throttle, "cache", caches["default"])
     monkeypatch.setattr(throttle.cache, "add", lambda *args: False)
     monkeypatch.setattr(throttle.cache, "incr", lambda *args: (_ for _ in ()).throw(ValueError()))
     assert not throttle.allow_request(request({"email": "one@example.com"}), None)

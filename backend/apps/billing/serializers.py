@@ -127,7 +127,9 @@ class ReversePaymentSerializer(serializers.Serializer):
 class InvoiceSerializer(OrganizationScopedSerializer):
     tenant = serializers.SlugRelatedField(slug_field="public_id", queryset=Tenant.objects.none())
     lease = serializers.SlugRelatedField(
-        slug_field="public_id", queryset=Lease.objects.none(), required=False, allow_null=True
+        slug_field="public_id", queryset=Lease.objects.none(), required=False, allow_null=True,
+        # DRF's conditional uniqueness validation must retain optional one-off invoices.
+        default=None,
     )
     tenant_name = serializers.CharField(source="tenant.full_name", read_only=True)
     tenant_phone = serializers.CharField(source="tenant.phone_number", read_only=True)
