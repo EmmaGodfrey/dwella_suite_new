@@ -14,6 +14,11 @@ class RequestAuditContextMiddleware:
 
     def __call__(self, request):
         request.request_id = (request.headers.get("X-Request-ID") or str(uuid.uuid4()))[:120]
+        # This personal-account endpoint owns short audited transactions around its
+        # code challenge. Its bounded Meta call must not hold a request-wide lock.
+        # It rejects staff/support actors before writes; portfolio scoping remains intact.
+        if request.path_info.rstrip('/') == '/api/v1/notifications/phone-verification':
+            return self.get_response(request)
         if request.method in SAFE_METHODS or not is_workspace_scoped(request):
             return self.get_response(request)
         # Keep the business write and its audit record in the same transaction.

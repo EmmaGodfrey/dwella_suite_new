@@ -27,6 +27,49 @@ def digest(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def complete_link(request, link, now):
+    """Caller holds the challenge lock in a transaction after proving its secret."""
+    channel = link.channel
+    consent, _ = PhoneMessagingConsent.objects.get_or_create(
+        channel=channel, phone=link.phone, defaults={"source": "verified_link"},
+    )
+    consent = PhoneMessagingConsent.objects.select_for_update().get(pk=consent.pk)
+    if consent.user_id not in {None, request.user.pk} and consent.allowed:
+        raise ValidationError("This number cannot be connected. Contact support.")
+    PhoneMessagingConsent.objects.filter(user=request.user, channel=channel).exclude(
+        pk=consent.pk,
+    ).update(allowed=False, revoked_at=now)
+    if channel == "whatsapp":
+        from .whatsapp.access import bind, revoke
+
+        if link.actions_enabled:
+            bind(request.user, link.phone)
+        else:
+            revoke(user=request.user)
+    consent.user = request.user
+    consent.allowed = link.notification_consent
+    consent.source = "verified_link"
+    consent.granted_at = now
+    # Receiving an outbound code does not open Meta's inbound 24-hour window.
+    if link.verification_nonce is None:
+        consent.last_inbound_at = link.verified_at
+    consent.revoked_at = None
+    consent.save()
+    link.consumed_at = now
+    link.save(update_fields=["consumed_at"])
+    pref, _ = NotificationPreferences.objects.get_or_create(user=request.user)
+    setattr(pref, f"{channel}_enabled", link.notification_consent)
+    pref.save(update_fields=[f"{channel}_enabled"])
+    record_event(request, "notifications.phone_connected", pref, channel=channel)
+    if channel == "whatsapp":
+        from .non_money_templates import safely_enqueue_connection
+
+        safely_enqueue_connection(link, resolve_workspace(request))
+    return {"connected": True, "channel": channel, "phone": link.phone,
+            "actions_connected": link.actions_enabled,
+            "notification_consent": link.notification_consent}
+
+
 def receive_link(channel, phone, text, stamp):
     """Called only after provider signature/token + business-number checks."""
     parts = text.strip().split()
@@ -45,12 +88,14 @@ def receive_link(channel, phone, text, stamp):
             # Meta timestamps have whole-second precision.
             created_at__lt=stamp + timedelta(seconds=1),
             user__is_active=True,
+            verification_nonce__isnull=True,
         ).update(verified_at=now)
     )
     if not verified:
         NotificationPhoneLink.objects.filter(
             channel=channel, phone=phone, expires_at__gt=now, consumed_at__isnull=True,
             verified_at__isnull=True, failed_attempts__lt=5,
+            verification_nonce__isnull=True,
         ).update(failed_attempts=F('failed_attempts') + 1)
     return verified
 
@@ -148,8 +193,16 @@ class PhoneLinkView(APIView):
                     .values("id", "channel", "phone", "verified_at")[:5]
                 ),
                 "whatsapp_binding": self.binding_state(request.user),
+                "whatsapp_destination": normalize_phone(settings.WHATSAPP_PUBLIC_NUMBER),
+                "whatsapp_verification_available": self.verification_available(),
             }
         )
+
+    @staticmethod
+    def verification_available():
+        from .phone_codes import ready
+
+        return ready()
 
     @staticmethod
     def binding_state(user):
@@ -198,49 +251,13 @@ class PhoneLinkView(APIView):
                     verified_at__isnull=False,
                     expires_at__gt=now,
                     failed_attempts__lt=5,
+                    verification_nonce__isnull=True,
                 )
                 .first()
             )
             if not link:
                 raise ValidationError("Verify your number before completing this connection.")
-            consent, _ = PhoneMessagingConsent.objects.get_or_create(
-                channel=channel,
-                phone=link.phone,
-                defaults={"source": "verified_link"},
-            )
-            consent = PhoneMessagingConsent.objects.select_for_update().get(pk=consent.pk)
-            if consent.user_id not in {None, request.user.pk} and consent.allowed:
-                raise ValidationError("This number cannot be connected. Contact support.")
-            # One current verified notification number per user/channel.
-            PhoneMessagingConsent.objects.filter(user=request.user, channel=channel).exclude(
-                pk=consent.pk,
-            ).update(allowed=False, revoked_at=now)
-            if channel == "whatsapp":
-                from .whatsapp.access import bind, revoke
-
-                if link.actions_enabled:
-                    bind(request.user, link.phone)
-                else:
-                    revoke(user=request.user)
-            consent.user = request.user
-            consent.allowed = link.notification_consent
-            consent.source = "verified_link"
-            consent.granted_at, consent.last_inbound_at = now, link.verified_at
-            consent.revoked_at = None
-            consent.save()
-            link.consumed_at = now
-            link.save(update_fields=["consumed_at"])
-            pref, _ = NotificationPreferences.objects.get_or_create(user=request.user)
-            setattr(pref, f"{channel}_enabled", link.notification_consent)
-            pref.save(update_fields=[f"{channel}_enabled"])
-            record_event(request, "notifications.phone_connected", pref, channel=channel)
-            if channel == "whatsapp":
-                from .non_money_templates import safely_enqueue_connection
-
-                safely_enqueue_connection(link, resolve_workspace(request))
-            return Response({"connected": True, "channel": channel, "phone": link.phone,
-                             "actions_connected": link.actions_enabled,
-                             "notification_consent": link.notification_consent})
+            return Response(complete_link(request, link, now))
         configured_destination = (
             settings.WHATSAPP_PUBLIC_NUMBER
             if channel == "whatsapp" else settings.SMS_INCOMING_NUMBER

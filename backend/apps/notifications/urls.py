@@ -9,6 +9,7 @@ from .message_views import (
     RecipientsView,
 )
 from .operational_views import OperationalMessagesView, PlatformOperationalMessagesView
+from .phone_codes import PhoneCodeView
 from .phone_links import PhoneLinkView
 from .provider_webhooks import SMSWebhookView, WhatsAppWebhookView
 from .settings_views import (
@@ -37,6 +38,7 @@ urlpatterns = [
     path("", NotificationsView.as_view(), name="notifications"),
     path("preferences/", PreferenceView.as_view()),
     path("phone-link/", PhoneLinkView.as_view()),
+    path("phone-verification/", PhoneCodeView.as_view()),
     path("reminders/", ReminderSettingsView.as_view()),
     path("platform-settings/", PlatformMessagingView.as_view()),
     path("workspace-settings/", WorkspaceSettingsView.as_view()),
