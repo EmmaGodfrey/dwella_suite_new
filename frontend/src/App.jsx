@@ -40,7 +40,7 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <DwellaThemeContext.Provider value={themeContext}>
           <FluentProvider theme={darkMode ? dwellaDarkTheme : dwellaLightTheme} customStyleHooks_unstable={customStyleHooks}>
-            {isTest ? <aside className="dwella-environment-banner" aria-label="Test environment"><strong>TEST</strong><span>Separate test data. Changes here do not affect production.</span></aside> : null}
+            {isTest ? <aside className="dwella-environment-banner" aria-label="Test environment"><strong>TEST</strong><span>Alpha test. Use test data only.</span></aside> : null}
             <Routers />
             <ToastContainer position="top-right" newestOnTop />
           </FluentProvider>

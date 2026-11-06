@@ -10,7 +10,6 @@ import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navig
 import { SupportAccessProvider, SupportBanner } from "../Components/Platform/SupportAccess";
 import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
-import GuidedTour from "../Components/GuidedTour";
 import AccessRemoved from "../Components/Portal/AccessRemoved";
 
 const getCachedUser = () => {
@@ -88,7 +87,7 @@ const AppLayout = () => {
       {mobileOpen ? <button className="dwella-nav-scrim" type="button" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /> : null}
 
       <div className="dwella-main-frame">
-        <AppTopbar onMobileOpen={() => setMobileOpen(true)} tour={<GuidedTour key={`${user?.id}:${getUserAccess(user).organization_id}`} user={user} enabled={Boolean(user) && !user.email_verification?.required && !getUserAccess(user).workspace_suspended && persona !== "platform_admin" && (persona === "tenant" || setup.data?.needs_setup === false)} />} />
+        <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
         <SupportBanner />
 
         <main className="dwella-content" data-tour="dashboard-overview">
