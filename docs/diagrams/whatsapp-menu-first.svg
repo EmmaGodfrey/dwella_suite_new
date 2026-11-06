@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1872" viewBox="0 0 1440 1872">
+  <title>Dwella WhatsApp — proposed menu-first flows</title>
+  <desc>Verified role menus, controlled input, and tenant proof of payment reviewed by a manager before any payment is recorded. This is a proposal, not an activated menu policy.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10Z" fill="#71839b"/></marker>
+    <style>
+      text {font-family:Arial,sans-serif;fill:#172a42}
+      .label {font-size:15px;font-weight:700;letter-spacing:2px;fill:#486483}
+      .title {font-size:43px;font-weight:700;letter-spacing:-1px}
+      .section {font-size:30px;font-weight:700}
+      .head {font-size:24px;font-weight:700}
+      .body {font-size:21px}
+      .small {font-size:17px;fill:#52657b}
+      .muted {fill:#52657b}
+      .web {font-size:16px;fill:#52657b}
+      .line {stroke:#71839b;stroke-width:2;fill:none;marker-end:url(#arrow)}
+      .branch {stroke:#71839b;stroke-width:2;fill:none}
+      .box {fill:#fff;stroke:#c8d3df;stroke-width:1.5;rx:9}
+    </style>
+  </defs>
+  <rect width="1440" height="1872" fill="#fff"/>
+  <text x="64" y="56" class="label">DWELLA · PROPOSED CHAT EXPERIENCE</text>
+  <text x="64" y="113" class="title">Choose a task. Follow the steps.</text>
+  <text x="64" y="149" class="body muted">Preset menus guide the conversation. Current permissions decide what is allowed.</text>
+
+  <rect x="420" y="190" width="600" height="135" class="box"/>
+  <text x="720" y="227" text-anchor="middle" class="head">Open the Dwella chat</text>
+  <rect x="486" y="247" width="210" height="48" rx="24" fill="#edf3fb"/>
+  <text x="591" y="278" text-anchor="middle" class="body" fill="#1d417e">Open menu</text>
+  <rect x="720" y="247" width="234" height="48" rx="24" fill="#edf3fb"/>
+  <text x="837" y="278" text-anchor="middle" class="body" fill="#1d417e">Connect account</text>
+  <text x="720" y="353" text-anchor="middle" class="small">Starter prompts where supported; Dwella responds after the user starts.</text>
+  <path d="M720 365 V392" class="line"/>
+  <rect x="420" y="402" width="600" height="100" class="box"/>
+  <text x="720" y="442" text-anchor="middle" class="head">Verify account + current workspace</text>
+  <text x="720" y="474" text-anchor="middle" class="small">Not linked? Connect through signed-in Dwella Settings first.</text>
+  <path d="M720 502 V530 H376 V556" class="line"/>
+  <path d="M720 530 H1064 V556" class="line"/>
+
+  <rect x="64" y="566" width="624" height="300" class="box"/>
+  <rect x="64" y="566" width="624" height="62" rx="9" fill="#1d417e"/>
+  <rect x="64" y="612" width="624" height="16" fill="#1d417e"/>
+  <text x="92" y="607" class="head" style="fill:white">Tenant menu</text>
+  <text x="92" y="666" class="body">My balance</text>
+  <text x="92" y="701" class="body">Invoices, receipts + PDF copies</text>
+  <text x="92" y="736" class="body">This month's statement</text>
+  <text x="92" y="771" class="body">Pay rent</text><text x="250" y="771" class="web">opens secure Dwella checkout</text>
+  <text x="92" y="806" class="body">Report a payment / POP</text>
+  <text x="92" y="841" class="body">Report a repair + optional photos</text>
+
+  <rect x="752" y="566" width="624" height="300" class="box"/>
+  <rect x="752" y="566" width="624" height="62" rx="9" fill="#1d417e"/>
+  <rect x="752" y="612" width="624" height="16" fill="#1d417e"/>
+  <text x="780" y="607" class="head" style="fill:white">Property manager menu</text>
+  <text x="780" y="666" class="body">Workspace balance</text>
+  <text x="780" y="701" class="body">Invoices, receipts + PDF copies</text>
+  <text x="780" y="736" class="body">Review payment proofs</text>
+  <text x="780" y="771" class="body">Preview + queue a rent reminder</text>
+  <text x="780" y="806" class="body">View open repairs</text>
+  <text x="780" y="841" class="body">Create invoice</text><text x="975" y="841" class="web">clearly labelled website action</text>
+
+  <text x="64" y="930" class="section">Only accept what the current step needs.</text>
+  <rect x="64" y="955" width="400" height="130" class="box"/>
+  <text x="88" y="994" class="head">A current option</text>
+  <text x="88" y="1028" class="body">Tap a button or list item.</text>
+  <text x="88" y="1059" class="small">Expired choices return a fresh menu.</text>
+  <rect x="520" y="955" width="400" height="130" class="box"/>
+  <text x="544" y="994" class="head">An expected field</text>
+  <text x="544" y="1028" class="body">Amount, date, reference, details.</text>
+  <text x="544" y="1059" class="small">Validate the value before continuing.</text>
+  <rect x="976" y="955" width="400" height="130" class="box"/>
+  <text x="1000" y="994" class="head">A requested attachment</text>
+  <text x="1000" y="1028" class="body">POP evidence or repair photos.</text>
+  <text x="1000" y="1059" class="small">No unsolicited file starts an action.</text>
+  <text x="64" y="1120" class="small">Unexpected text or files → return to the safe menu. MENU, CANCEL/BACK and STOP/UNSUBSCRIBE remain available.</text>
+
+  <path d="M64 1160 H1376" stroke="#dce3eb"/>
+  <text x="64" y="1212" class="section">Proof of payment: the manager stays in control.</text>
+  <rect x="64" y="1240" width="400" height="145" class="box"/>
+  <text x="88" y="1277" class="label">1 · TENANT</text>
+  <text x="88" y="1314" class="head">Choose invoice + payment facts</text>
+  <text x="88" y="1350" class="small">Amount, method, date and reference.</text>
+  <path d="M464 1312 H510" class="line"/>
+  <rect x="520" y="1240" width="400" height="145" class="box"/>
+  <text x="544" y="1277" class="label">2 · TENANT</text>
+  <text x="544" y="1314" class="head">Attach, review + submit</text>
+  <text x="544" y="1350" class="small">The invoice balance is still unchanged.</text>
+  <path d="M920 1312 H966" class="line"/>
+  <rect x="976" y="1240" width="400" height="145" class="box"/>
+  <text x="1000" y="1277" class="label">3 · DWELLA</text>
+  <text x="1000" y="1314" class="head">Notify the reviewer</text>
+  <text x="1000" y="1350" class="small">Connected + opted-in property manager.</text>
+  <path d="M1176 1385 V1414" class="line"/>
+  <rect x="976" y="1424" width="400" height="100" class="box"/>
+  <text x="1000" y="1464" class="head">4 · Review facts + evidence</text>
+  <text x="1000" y="1496" class="small">Check that the money actually arrived.</text>
+  <path d="M1176 1524 V1553 H264 V1580" class="line"/>
+  <path d="M1176 1553 H720 V1580" class="line"/>
+  <path d="M1176 1553 V1580" class="line"/>
+  <rect x="64" y="1590" width="400" height="130" rx="9" fill="#edf7ef" stroke="#79b98a"/>
+  <text x="88" y="1631" class="head" style="fill:#216e3a">Confirm received</text>
+  <text x="88" y="1667" class="body">Record payment + receipt.</text>
+  <text x="88" y="1698" class="small">Update balance; notify the tenant.</text>
+  <rect x="520" y="1590" width="400" height="130" class="box"/>
+  <text x="544" y="1631" class="head">Ask for details</text>
+  <text x="544" y="1667" class="body">Require a specific question.</text>
+  <text x="544" y="1698" class="small">Tenant corrects and resubmits.</text>
+  <rect x="976" y="1590" width="400" height="130" class="box"/>
+  <text x="1000" y="1631" class="head">Not received</text>
+  <text x="1000" y="1667" class="body">Require a reason.</text>
+  <text x="1000" y="1698" class="small">Keep the invoice balance unchanged.</text>
+  <text x="64" y="1764" class="body">A screenshot never marks rent paid. Only the manager's confirmation records the payment.</text>
+  <text x="64" y="1813" class="small">Proposal: menu-first entry and stricter input rules. Existing verified POP/payment services remain authoritative.</text>
+  <text x="64" y="1844" class="small">WhatsApp keeps its text box. Native WhatsApp Flows forms are a separate future upgrade.</text>
+</svg>
