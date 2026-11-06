@@ -21,6 +21,7 @@ def messaging_settings(backend):
         "WHATSAPP_ENABLED": env_bool("APP_WHATSAPP_ENABLED", False),
         "WHATSAPP_SELF_SERVICE_ENABLED": env_bool("APP_WHATSAPP_SELF_SERVICE_ENABLED", False),
         "WHATSAPP_WORKER_ENABLED": env_bool("APP_WHATSAPP_WORKER_ENABLED", False),
+        "WHATSAPP_TYPING_ENABLED": env_bool("APP_WHATSAPP_TYPING_ENABLED", False),
         "WHATSAPP_WORKER_REDIS_URL": os.getenv("APP_CACHE_URL", ""),
         "SMS_ENABLED": env_bool("APP_SMS_ENABLED", False),
         "AFRICASTALKING_USERNAME": os.getenv("AFRICASTALKING_USERNAME", ""),

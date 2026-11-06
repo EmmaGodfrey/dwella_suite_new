@@ -155,6 +155,17 @@ def dispatch_replies(limit=20, seconds=30, *, lane=None):
                     status='cancelled', reason=reason,
                 )
                 continue
+            from .typing import indicate
+
+            indicate(reply)
+            if settings.WHATSAPP_TYPING_ENABLED:
+                # Consent/access can change while the best-effort status is in flight.
+                reason = block(reply)
+                if reason:
+                    WhatsAppReply.objects.filter(pk=pk, claim_token=token, status='sending').update(
+                        status='cancelled', reason=reason,
+                    )
+                    continue
             if reply.view.get('evidence') and not send_evidence(reply):
                 reply.view['text'] += FAILED_NOTE
             document_media, filename = None, None
