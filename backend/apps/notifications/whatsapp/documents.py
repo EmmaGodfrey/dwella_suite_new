@@ -18,13 +18,27 @@ from apps.documents.services import validate_pdf_size
 from apps.documents.snapshots import fingerprint, invoice_source, issuer
 from apps.reports.common import organization_today
 from apps.reports.statements import STATEMENT_BASIS, TenantStatement
-from apps.tenants.details import require_document_details
+from apps.tenants.details import LABELS, require_document_details
 from apps.tenants.models import Tenant
 
 MAX_EVENTS = 300
 MAX_INVOICE_LINES = 100
 MAX_INVOICE_PAYMENTS = 100
 DAILY_LIMIT = 12
+
+
+def preparation_failure(ctx, error):
+    """Explain document requirements without leaking internal exception values."""
+    if isinstance(error.detail, dict) and "missing_fields" in error.detail:
+        labels = [LABELS[field] for field in error.detail["missing_fields"] if field in LABELS]
+        fields = ", ".join(labels)
+        instruction = (
+            "Ask your property manager to complete your tenant details in Dwella."
+            if ctx.role == "tenant" else
+            "Open Tenants in Dwella and complete this tenant's details, then request the PDF again."
+        )
+        return f"The invoice PDF needs complete tenant details: {fields}. {instruction}"
+    return "This PDF could not be prepared here. Open it in Dwella."
 
 
 def available(ctx, document):

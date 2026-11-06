@@ -150,7 +150,9 @@ def test_incomplete_invoice_and_large_statement_fall_back_to_authenticated_web(h
         assert dispatch_replies() == 1
     upload.assert_not_called()
     assert send.call_args.args[1]["type"] == "text"
-    assert "could not be prepared" in send.call_args.args[1]["text"]["body"]
+    body = send.call_args.args[1]["text"]["body"]
+    assert "invoice PDF needs complete tenant details: TPIN" in body
+    assert "Ask your property manager" in send.call_args.args[1]["text"]["body"]
     assert str(house["invoice"].public_id) in send.call_args.args[1]["text"]["body"]
     reply.refresh_from_db()
     assert reply.status == "sent"

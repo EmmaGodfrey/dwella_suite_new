@@ -170,15 +170,14 @@ def dispatch_replies(limit=20, seconds=30, *, lane=None):
                 reply.view['text'] += FAILED_NOTE
             document_media, filename = None, None
             if reply.view.get('document'):
-                from .documents import current, prepare
+                from .documents import current, preparation_failure, prepare
 
                 ctx = actor_context(reply.binding, reply.organization_id)
                 try:
                     item, expected = prepare(ctx, reply.view['document'])
-                except ValidationError:
+                except ValidationError as error:
                     reply.view.pop('document')
-                    reply.view['text'] = ('This PDF could not be prepared here. '
-                                          'Open it in Dwella.\n' + reply.view['text'])
+                    reply.view['text'] = preparation_failure(ctx, error) + '\n' + reply.view['text']
                     reason = block(reply)
                     if reason:
                         raise PermissionDenied('This connection changed.') from None
