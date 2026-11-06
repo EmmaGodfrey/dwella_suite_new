@@ -40,6 +40,9 @@ def office():
     from openpyxl.worksheet.table import Table, TableStyleInfo
 
     doc = Document()
+    doc.core_properties.title = "Dwella Suite Alpha Tester Handbook"
+    doc.core_properties.author = "Dwella Suite"
+    doc.core_properties.subject = "User acceptance testing in the existing TEST application"
     section = doc.sections[0]
     section.page_width, section.page_height = Inches(8.27), Inches(11.69)
     section.top_margin = section.bottom_margin = Inches(.65)
@@ -113,6 +116,7 @@ def office():
     summary = book.active
     summary.title = "Start here"
     summary.append(["DWELLA SUITE · ALPHA RESULTS"])
+    summary.merge_cells("A1:B1")
     summary.append(["Environment", "https://app.dwella.properties/test/"])
     summary.append(["Pack date", "7 November 2026"])
     summary.append(["Tester / team", ""])

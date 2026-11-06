@@ -66,3 +66,35 @@ The organiser assigns roles/pairs, supplies dummy tax fields and sample files,
 chooses a feedback channel/test window, and runs one genuine signup-to-WhatsApp
 journey before inviting the wider group. SMS, real money movement, native outbound
 OTP and unassigned roadmap features are excluded from the initial alpha.
+
+## Verified activation
+
+Released to the existing TEST project as `test-v2026.11.07.1` (`ab14c81`). All four
+CI gates and staging deployment passed in
+[run 42305810652](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/42305810652).
+The final local SQLite suite passed 1,662 tests with 34 PostgreSQL-only skips;
+the complete PostgreSQL baseline passed 1,692 before the final four scheduler
+cases, and CI's complete PostgreSQL suite passed against the final release.
+Production builds, 45 Node checks, 21 synthetic browser groups, 23 deployment
+unit checks, real Compose policy checks and explicit-empty email configuration
+checks passed. All 559 frozen backend Python sources matched the committed release.
+
+The protected cutover completed successfully. Public registration reports open;
+direct intended-recipient email and operational email are enabled; SMTP connection
+and authentication passed. Online checkout is denied before invoice/provider work,
+and collections, payouts and automatic payouts are all disabled. New normalised
+phone recipients pass the test-only recipient boundary. Existing verified phone
+links, optional consent, approved templates and quiet hours were preserved.
+
+All ten TEST services are running and configured health checks pass, with fresh
+WhatsApp lane heartbeats, zero pending migrations, administrator MFA enrolled,
+native admin closed, restricted database roles and a recent successful offsite
+backup. Inspection confirmed filtered credentials/direct email in all five app
+services. The 19 non-TEST container identities were unchanged. Four historic unsent
+operational transport intents were cancelled with a retained cutover reason;
+no financial records were deleted. Protected environment, runtime state and database
+backups remain on the host. No production deployment was performed.
+
+Inbox placement and a new participant's handset delivery are still human UAT
+evidence, not established by SMTP connectivity or synthetic browser checks. The
+initial end-to-end rehearsal remains required before the organiser widens access.
