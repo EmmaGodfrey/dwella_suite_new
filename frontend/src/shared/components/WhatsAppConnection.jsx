@@ -1,38 +1,39 @@
 import React, { useEffect, useState } from "react";
 import { Button, Checkbox, Field, Input } from "@fluentui/react-components";
-import { useDisconnectWhatsApp, useNotificationPhone, useWhatsAppVerification } from "../../Services/settings";
+import { useConnectNotificationPhone, useDisconnectWhatsApp, useNotificationPhone } from "../../Services/settings";
 import { useFormErrors } from "../useFormErrors";
 import "./whatsappConnection.scss";
 
 export default function WhatsAppConnection({ onboarding = false }) {
   const query = useNotificationPhone();
-  const verify = useWhatsAppVerification();
+  const connect = useConnectNotificationPhone();
   const disconnect = useDisconnectWhatsApp();
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const [challenge, setChallenge] = useState(null);
-  const [code, setCode] = useState("");
+  const [checking, setChecking] = useState(false);
   const [notice, setNotice] = useState("");
   const [failure, setFailure] = useState("");
-  const [retryAt, setRetryAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const errors = useFormErrors();
   const connected = query.data?.whatsapp_binding;
   const destination = typeof query.data?.whatsapp_destination === "string"
     ? query.data.whatsapp_destination.replace(/\D/g, "") : "";
-  const available = query.data?.whatsapp_verification_available;
-  const busy = verify.isPending || disconnect.isPending;
-  const remaining = Math.max(0, Math.ceil((retryAt - now) / 1000));
+  const available = /^[1-9]\d{7,14}$/.test(destination);
+  const busy = connect.isPending || disconnect.isPending || checking;
+  const challengeDestination = challenge?.destination?.replace(/\D/g, "") || "";
+  const chatLink = /^[1-9]\d{7,14}$/.test(challengeDestination)
+    ? `https://wa.me/${challengeDestination}?text=${encodeURIComponent(challenge.message)}` : "";
   const expired = challenge && Date.parse(challenge.expires_at) <= now;
   useEffect(() => {
-    if (!challenge && !retryAt) return;
+    if (!challenge) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, [challenge, retryAt]);
+  }, [challenge]);
 
-  async function requestCode(event) {
+  async function requestConnection(event) {
     event?.preventDefault();
-    if (busy || remaining || !available) return;
+    if (busy || !available) return;
     const targetPhone = challenge?.phone || phone;
     if (!errors.validate({
       phone: () => /^\+?[0-9 ()-]{9,24}$/.test(targetPhone) ? "" : "Enter a valid phone number, including its country code.",
@@ -40,34 +41,38 @@ export default function WhatsAppConnection({ onboarding = false }) {
     setFailure("");
     setNotice("");
     try {
-      const result = await verify.mutateAsync({ phone: targetPhone, consent });
-      setChallenge(result);
-      setCode("");
+      const result = await connect.mutateAsync({ channel: "whatsapp", phone: targetPhone, consent, actions: true });
+      setChallenge({ ...result, phone: targetPhone });
       setNow(Date.now());
-      setRetryAt(Date.now() + result.retry_after * 1000);
+      connect.reset();
     } catch (error) {
       if (!errors.showServerErrors(error.data, ["phone"]))
-        setFailure(error.message || "Could not request a code. Please try again.");
-      verify.reset();
+        setFailure(error.message || "Could not start your connection. Please try again.");
+      connect.reset();
     }
   }
 
-  async function confirmCode(event) {
+  async function confirmConnection(event) {
     event.preventDefault();
-    if (busy || expired || !challenge) return;
-    if (!errors.validate({ code: () => /^\d{6}$/.test(code) ? "" : "Enter the six-digit code from WhatsApp." }, event.currentTarget)) return;
+    if (busy || !challenge || Date.parse(challenge.expires_at) <= Date.now()) return;
     setFailure("");
+    setNotice("");
+    setChecking(true);
     try {
-      await verify.mutateAsync({ complete: challenge.id, code });
+      const result = await query.refetch();
+      if (result.isError) throw new Error("Could not check your message. Please try again.");
+      if (!result.data?.pending?.some(link => link.id === challenge.id && link.verified_at)) {
+        setNotice("We haven't received your connection message yet. Send it from the number you entered, then check again.");
+        return;
+      }
+      await connect.mutateAsync({ channel: "whatsapp", complete: challenge.id, actions: true });
       setChallenge(null);
-      setCode("");
-      setRetryAt(0);
       setNotice("WhatsApp connected. You can now open our chat and choose Menu.");
-      verify.reset();
     } catch (error) {
-      if (!errors.showServerErrors(error.data, ["code"]))
-        setFailure(error.message || "Could not verify this code. Please try again.");
-      verify.reset();
+      setFailure(error.message || "Could not complete your connection. Please try again.");
+    } finally {
+      setChecking(false);
+      connect.reset();
     }
   }
 
@@ -75,7 +80,7 @@ export default function WhatsAppConnection({ onboarding = false }) {
     <section className={`dwella-whatsapp-connection${onboarding ? "" : " settings-section"}`} aria-labelledby={`whatsapp-title-${onboarding ? "setup" : "settings"}`}>
       <header>
         <h2 id={`whatsapp-title-${onboarding ? "setup" : "settings"}`}>Connect WhatsApp {onboarding && <span className="dwella-muted-copy">(optional)</span>}</h2>
-        <p>Get invoices, receipts and updates, and use Dwella from your phone. We send you a code; enter it here to connect.</p>
+        <p>Get invoices, receipts and updates, and use Dwella from your phone. Send a prefilled WhatsApp message to connect your number.</p>
       </header>
       {query.isLoading ? <p role="status">Loading your WhatsApp connection…</p> : query.isError ? (
         <p role="alert">Could not load your connection. <Button onClick={() => query.refetch()}>Retry</Button></p>
@@ -88,31 +93,28 @@ export default function WhatsAppConnection({ onboarding = false }) {
             try {
               await disconnect.mutateAsync();
               setChallenge(null);
-              setCode("");
               setNotice("WhatsApp disconnected. Access and optional notices are disabled.");
             } catch (error) { setFailure(error.message || "Could not disconnect WhatsApp."); }
           }}>Disconnect</Button>
         </div>
       ) : !available ? (
-        <p>WhatsApp verification is being connected. You can finish setup and connect later from Settings → Notifications.</p>
+        <p>WhatsApp is not connected yet. You can finish setup and connect later from Settings → Notifications.</p>
       ) : challenge ? (
-        <form onSubmit={confirmCode} noValidate>
-          <p role="status">Check WhatsApp on <strong>{challenge.phone}</strong> for your verification code. It expires in 10 minutes.</p>
-          <Field label="Verification code" {...errors.fieldProps("code")}>
-            <Input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-              value={code} onChange={(_, data) => { setCode(data.value.replace(/\D/g, "")); errors.clearError("code"); }}
-              disabled={busy || expired} autoFocus />
+        <form onSubmit={confirmConnection} noValidate>
+          <p>Open WhatsApp and send the prefilled message from <strong>{challenge.phone}</strong>. Then return here to finish connecting. The message expires in 10 minutes.</p>
+          <Field label="Connection message">
+            <Input name="connection-message" value={challenge.message} readOnly autoComplete="off" />
           </Field>
-          {expired && <p role="alert">This code has expired. Request a new one.</p>}
+          {expired && <p role="alert">This connection message has expired. Start again to get a new one.</p>}
           <div className="dwella-whatsapp-actions">
-            <Button type="submit" appearance="primary" disabled={busy || expired}>{verify.isPending ? "Verifying…" : "Verify and connect"}</Button>
-            <Button type="button" disabled={busy || remaining > 0} onClick={() => requestCode()}>{remaining ? `Resend in ${remaining}s` : "Send a new code"}</Button>
-            <Button type="button" appearance="subtle" disabled={busy} onClick={() => { setPhone(challenge.phone); setChallenge(null); setCode(""); setFailure(""); }}>Change number</Button>
+            {chatLink && !expired && <Button as="a" href={chatLink} target="_blank" rel="noreferrer" appearance="primary">Open WhatsApp</Button>}
+            <Button type="submit" disabled={busy || expired}>{checking || connect.isPending ? "Checking…" : "I've sent the message"}</Button>
+            <Button type="button" appearance="subtle" disabled={busy} onClick={() => { setPhone(challenge.phone); setChallenge(null); setFailure(""); setNotice(""); connect.reset(); }}>{expired ? "Start again" : "Change number"}</Button>
           </div>
-          <p className="dwella-muted-copy">You do not need to send us a WhatsApp message. Never share this code with anyone.</p>
+          <p className="dwella-muted-copy">Send the message exactly as shown to Dwella. Do not share it with anyone else.</p>
         </form>
       ) : (
-        <form onSubmit={requestCode} noValidate>
+        <form onSubmit={requestConnection} noValidate>
           <Field label="Your WhatsApp number" {...errors.fieldProps("phone")}>
             <Input name="phone" type="tel" autoComplete="tel" maxLength={24} placeholder="e.g. +260 97 123 4567" value={phone}
               disabled={busy} onChange={(_, data) => { setPhone(data.value); errors.clearError("phone"); }} />
@@ -120,7 +122,7 @@ export default function WhatsAppConnection({ onboarding = false }) {
           <Checkbox label="Send me optional Dwella notifications on WhatsApp." checked={consent}
             disabled={busy} onChange={(_, data) => setConsent(Boolean(data.checked))} />
           <p className="dwella-muted-copy">Connecting verifies your number. Notifications are optional; you can turn them off in Settings or send STOP.</p>
-          <Button type="submit" appearance="primary" disabled={busy || remaining > 0}>{verify.isPending ? "Requesting code…" : remaining ? `Send code in ${remaining}s` : "Send code on WhatsApp"}</Button>
+          <Button type="submit" appearance="primary" disabled={busy}>{connect.isPending ? "Preparing…" : "Connect WhatsApp"}</Button>
         </form>
       )}
       {failure && <p role="alert" className="dwella-alert danger">{failure}</p>}

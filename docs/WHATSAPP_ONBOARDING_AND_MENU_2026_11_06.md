@@ -1,7 +1,35 @@
 # WhatsApp onboarding and menu-first beta flow
 
-6 November 2026. Implemented locally; deployment and real verification-code delivery
-are separate from the validation below.
+6 November 2026. Current connection method: inbound CONNECT. The user chose to
+restore this method while outbound authentication templates remain unavailable.
+
+## Current connection flow
+
+Get Started and Settings share the optional number/notice form. The user enters
+their WhatsApp number, leaves notices off or explicitly opts in, then selects
+**Connect WhatsApp**. The website prepares a ten-minute `CONNECT <code>` message.
+**Open WhatsApp** opens the configured business number with that exact message.
+After sending it from the entered number, the user returns and selects
+**I've sent the message**. The website checks for inbound proof before asking the
+backend to complete the connection; the backend independently validates the proof,
+identity, number, expiry, attempts and current access.
+
+Unreceived messages leave the connection pending; failures can be retried, and an
+expired message requires starting again. Message text stays in component memory,
+with zero-retention mutation results, and is cleared on reload/unmount. Existing
+connections, MENU entry, disconnect, separate notice consent and SMS are retained.
+This method does not depend on an authentication template or the outbound OTP flag.
+The outbound OTP implementation remains dormant for later activation.
+
+Restoration validation: production build, 45 Node checks, and 14 synthetic browser
+scenario groups passed (manager Get Started, tenant Settings, mobile/light/dark,
+exact chat message, unverified/failed confirmation, expiry, change number,
+disconnect, notice consent and unavailable/retry states). No OTP API requests or
+real sends occurred. Existing backend pairing/WhatsApp/notice/code tests passed:
+142 passed, four PostgreSQL-only skips; Django check and Ruff passed against the
+previously validated backend source, which this UI restoration does not change.
+
+## Earlier outbound-code design (superseded in the UI)
 
 ## Result
 

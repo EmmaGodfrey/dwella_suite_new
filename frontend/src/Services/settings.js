@@ -52,6 +52,7 @@ export function useNotificationPhone() {
 export function useConnectNotificationPhone() {
   const cache = useQueryClient();
   return useMutation({
+    gcTime: 0,
     mutationFn: (data) => api.post("/notifications/phone-link/", data),
     retry: false,
     onSuccess: async () => {
