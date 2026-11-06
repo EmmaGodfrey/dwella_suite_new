@@ -63,6 +63,19 @@ export function useConnectNotificationPhone() {
   });
 }
 
+export function useWhatsAppVerification() {
+  const cache = useQueryClient();
+  return useMutation({
+    gcTime: 0,
+    mutationFn: (data) => api.post("/notifications/phone-verification/", data),
+    retry: false,
+    onSuccess: () => Promise.all([
+      cache.invalidateQueries({ queryKey: ["settings", "phone-link"] }),
+      cache.invalidateQueries({ queryKey: ["settings", "personal"] }),
+    ]),
+  });
+}
+
 export function useDisconnectWhatsApp() {
   const cache = useQueryClient();
   return useMutation({
