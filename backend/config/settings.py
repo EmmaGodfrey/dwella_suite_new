@@ -326,6 +326,12 @@ BACKUP_DIR = __import__("os").getenv("APP_BACKUP_DIR", str(BASE_DIR / "backups")
 CELERY_BROKER_URL = __import__("os").getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
+# Requested verification codes are separate from optional operational notices.
+# Enable only after the authentication template is approved and configured.
+WHATSAPP_OTP_ENABLED = env_bool("APP_WHATSAPP_OTP_ENABLED", False)
+WHATSAPP_OTP_TEMPLATE = __import__("os").getenv("WHATSAPP_OTP_TEMPLATE", "dwella_verify_number")
+WHATSAPP_OTP_LANGUAGE = __import__("os").getenv("WHATSAPP_OTP_LANGUAGE", "en")
+
 # Throttles and rendered document pages must be shared by every gunicorn worker.
 # Without an explicit cache URL each process keeps its own in-memory copy.
 if __import__("os").getenv("APP_CACHE_URL"):
