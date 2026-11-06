@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
@@ -11,7 +12,9 @@ class Command(BaseCommand):
     help = "Queue required operational notices and dispatch bounded outbox work."
 
     def handle(self, *args, **options):
-        scheduled = schedule_operational()
+        # Alpha users exercise fresh, explicit events without sweeping historical
+        # tenancy records into newly unrestricted email/phone destinations.
+        scheduled = 0 if settings.ALPHA_TEST_ENABLED else schedule_operational()
         sent = dispatch_operational()
         # Operational metadata only. Invoices, payments and signing evidence are retained.
         old = list(OperationalDelivery.objects.filter(

@@ -90,6 +90,10 @@ def send_sms(row, config=None):
 
 
 def phone_allowed(phone):
+    if settings.APP_ENVIRONMENT == "test" and settings.ALPHA_TEST_ENABLED:
+        # An explicit external-alpha switch replaces the operator-only recipient
+        # list. Binding, consent, access, signature and window guards still apply.
+        return bool(phone and normalize_phone(phone) == phone)
     allowed = {normalize_phone(p) for p in settings.OUTBOUND_PHONE_ALLOWLIST}
     if settings.APP_ENVIRONMENT == "test" or allowed:
         return phone in allowed and bool(phone)

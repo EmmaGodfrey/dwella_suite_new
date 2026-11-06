@@ -16,6 +16,9 @@ ROOT_DIR = BASE_DIR.parent
 SECRET_KEY = __import__("os").getenv("APP_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("APP_DEBUG", False)
 APP_ENVIRONMENT = __import__("os").getenv("APP_ENVIRONMENT", "production")
+ALPHA_TEST_ENABLED = env_bool("APP_ALPHA_TEST_ENABLED", False)
+if ALPHA_TEST_ENABLED and APP_ENVIRONMENT != "test":
+    raise ImproperlyConfigured("APP_ALPHA_TEST_ENABLED is restricted to test.")
 NATIVE_ADMIN_ENABLED = env_bool("APP_NATIVE_ADMIN_ENABLED", DEBUG)
 REQUIRE_ADMIN_MFA = env_bool("APP_REQUIRE_ADMIN_MFA", APP_ENVIRONMENT == "production")
 ALLOWED_HOSTS = env_list("APP_ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -358,6 +361,11 @@ LENCO_PAYOUTS_ENABLED = env_bool("LENCO_PAYOUTS_ENABLED", False)
 LENCO_ALLOW_UNVERIFIED_DESTINATIONS = env_bool("LENCO_ALLOW_UNVERIFIED_DESTINATIONS", False)
 # Legacy: pay each settled collection out on its own. Landlords now withdraw.
 LENCO_AUTOMATIC_PAYOUTS = env_bool("LENCO_AUTOMATIC_PAYOUTS", False)
+if ALPHA_TEST_ENABLED:
+    # External alpha users may create invoices/manual records, but never move money.
+    LENCO_PAYMENTS_ENABLED = False
+    LENCO_PAYOUTS_ENABLED = False
+    LENCO_AUTOMATIC_PAYOUTS = False
 # Highest public Lenco transfer fee per amount band (upper bound, fee), reserved
 # on top of each withdrawal; Lenco's reported fee is charged up to this.
 LENCO_WITHDRAWAL_FEES = {
