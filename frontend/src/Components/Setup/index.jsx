@@ -8,6 +8,7 @@ import { useFormErrors } from "../../shared/useFormErrors";
 import { scopedStorageKey } from "../../shared/storage";
 import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
 import { FormPage } from "../../shared/components/FormFlow";
+import WhatsAppConnection from "../../shared/components/WhatsAppConnection";
 import "./setup.scss";
 
 const initial = {
@@ -347,6 +348,7 @@ export default function Setup() {
             </li>
           ))}
         </ol>
+        <WhatsAppConnection onboarding />
       </div>
       <p className="dwella-muted-copy">
         Return here at any time from Get started in the sidebar.
