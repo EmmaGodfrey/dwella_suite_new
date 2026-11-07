@@ -9,6 +9,11 @@ shared="${target}.shared"
 compose_file="deploy/docker-compose.prod.yml"
 
 test -f "${release}/.env.prod"
+runtime_database=false
+if grep -q '^APP_RUNTIME_ENV_FILE=' "${release}/.env.prod"; then
+  python3 "${release}/deploy/prepare-runtime-env.py" --source "${release}/.env.prod" --target "${release}/.env.runtime"
+  runtime_database=true
+fi
 mkdir -p "${shared}/data/media"
 
 if [ -d "${target}/data" ] && [ ! -L "${target}/data" ]; then
@@ -20,6 +25,7 @@ ln -s "${shared}/data" "${release}/data"
 
 (
   cd "${release}"
+  docker compose --env-file .env.prod -f "${compose_file}" config --format json | python3 deploy/check-runtime-policy.py
   docker compose --env-file .env.prod -f "${compose_file}" build
 )
 
@@ -38,6 +44,14 @@ if [ -d "${target}" ] && (
   ) > "${dump}.tmp"
   mv "${dump}.tmp" "${dump}"
   ls -1t "${shared}"/data/backups/pre-deploy-*.dump | tail -n +11 | xargs -r rm -f
+fi
+
+if [ "${runtime_database}" = "true" ]; then
+  (
+    cd "${release}"
+    docker compose --env-file .env.prod -f "${compose_file}" run --rm --no-deps maintenance migrate --noinput
+    docker compose --env-file .env.prod -f "${compose_file}" run --rm --no-deps maintenance provision_runtime_database
+  )
 fi
 
 rm -rf "${previous}"

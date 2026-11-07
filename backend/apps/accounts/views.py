@@ -15,13 +15,12 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 
-from .handy_agent import handy_agent_enabled, issue_handy_agent_token
+from .handy_agent import issue_handy_agent_token
 from .models import IdentityVerification, PasswordResetRequest, TwoFactorDevice, UserProfile
 from .security import (
     frontend_reset_url,
     get_client_ip,
     make_totp_secret,
-    throttle_by_key,
     totp_uri,
     verify_totp,
 )
@@ -36,6 +35,15 @@ from .serializers import (
     TwoFactorChallengeSerializer,
     TwoFactorSetupVerifySerializer,
 )
+from .throttles import (
+    LoginAccountThrottle,
+    LoginIPThrottle,
+    PasswordResetAccountThrottle,
+    PasswordResetConfirmThrottle,
+    PasswordResetIPThrottle,
+    TwoFactorAccountThrottle,
+    TwoFactorIPThrottle,
+)
 
 User = get_user_model()
 signer = TimestampSigner(salt="accounts.two_factor.challenge")
@@ -45,7 +53,19 @@ class HandyAgentConfigView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({"enabled": handy_agent_enabled()})
+        from rest_framework.exceptions import PermissionDenied
+
+        from apps.audit.runtime_settings import assistant_payload
+
+        from .access_state import require_verified_access
+        from .handy_agent import token_access
+
+        try:
+            require_verified_access(request.user, request)
+            token_access(request.user, request)
+        except PermissionDenied:
+            return Response({"enabled": False}, headers={"Cache-Control": "private, no-store"})
+        return Response(assistant_payload(), headers={"Cache-Control": "private, no-store"})
 
 
 class HandyAgentTokenView(APIView):
@@ -83,7 +103,11 @@ def issue_auth_response(user, request):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "login"
+    # Credentials authenticate this public endpoint; a revoked browser token
+    # must not prevent a new login. Password validation and throttling still apply.
+    authentication_classes = []
+    # Account protection remains strict without exhausting a shared office/carrier IP.
+    throttle_classes = [LoginIPThrottle, LoginAccountThrottle]
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={"request": request})
@@ -108,7 +132,8 @@ class LoginView(APIView):
 
 class TwoFactorLoginVerifyView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "two_factor"
+    authentication_classes = []
+    throttle_classes = [TwoFactorIPThrottle, TwoFactorAccountThrottle]
 
     def post(self, request):
         serializer = TwoFactorChallengeSerializer(data=request.data)
@@ -176,6 +201,12 @@ class TwoFactorSetupVerifyView(APIView):
         serializer = TwoFactorSetupVerifySerializer(data=request.data, context={"device": device})
         serializer.is_valid(raise_exception=True)
         device.mark_confirmed()
+        from .admin_mfa import required
+
+        if required(request.user):
+            # Existing password-only tokens cannot become MFA-authenticated by
+            # merely observing a newly enrolled device. Sign in again with a code.
+            Token.objects.filter(user=request.user).delete()
         record_event(request, "account.2fa_enabled", request.user)
         return Response({"enabled": True})
 
@@ -187,6 +218,12 @@ class TwoFactorDisableView(APIView):
     @transaction.atomic
     def post(self, request):
         request.user = User.objects.select_for_update().get(pk=request.user.pk)
+        from .admin_mfa import required
+
+        if required(request.user):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied('Two-factor authentication is required for this account.')
         from .access_security import TwoFactorRemovalSerializer
 
         data = TwoFactorRemovalSerializer(data=request.data, context={"request": request})
@@ -301,14 +338,14 @@ class IdentityVerificationSubmitView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "password_reset"
+    authentication_classes = []
+    throttle_classes = [PasswordResetIPThrottle, PasswordResetAccountThrottle]
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"]
         ip_address = get_client_ip(request)
-        throttle_by_key("password_reset_email", email, limit=3, timeout=60 * 60)
 
         PasswordResetRequest.objects.create(
             email=email,
@@ -337,7 +374,8 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
-    throttle_scope = "password_reset"
+    authentication_classes = []
+    throttle_classes = [PasswordResetIPThrottle, PasswordResetConfirmThrottle]
 
     @transaction.atomic
     def post(self, request):

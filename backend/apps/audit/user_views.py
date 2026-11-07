@@ -21,8 +21,11 @@ User = get_user_model()
 class PlatformUserViewSet(
     UserAccountActions,
     UserSecurityActions,
-    mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.CreateModelMixin,
-    mixins.UpdateModelMixin, viewsets.GenericViewSet,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
 ):
     permission_classes = [IsPlatformAdmin]
     serializer_class = PlatformUserSerializer
@@ -30,9 +33,16 @@ class PlatformUserViewSet(
     search_fields = ["first_name", "last_name", "email", "profile__phone_number"]
 
     def get_queryset(self):
-        query = User.objects.select_related(
-            "profile", "identity_verification", "two_factor_device",
-        ).prefetch_related("organization_memberships__organization").order_by("-date_joined", "pk")
+        query = (
+            User.objects.select_related(
+                "profile",
+                "identity_verification",
+                "two_factor_device",
+                "account_access_state",
+            )
+            .prefetch_related("organization_memberships__organization")
+            .order_by("-date_joined", "pk")
+        )
         filters = UserFilters(data=dict(self.request.query_params.items()))
         filters.is_valid(raise_exception=True)
         data = filters.validated_data
@@ -87,8 +97,12 @@ class PlatformUserViewSet(
         try:
             with transaction.atomic():
                 user = User.objects.create_user(
-                    username=data["email"], email=data["email"], first_name=first, last_name=last,
-                    password=None, is_staff=data["account_type"] == "platform_admin",
+                    username=data["email"],
+                    email=data["email"],
+                    first_name=first,
+                    last_name=last,
+                    password=None,
+                    is_staff=data["account_type"] == "platform_admin",
                     is_superuser=data["account_type"] == "platform_admin",
                 )
         except IntegrityError as exc:
@@ -125,7 +139,8 @@ class PlatformUserViewSet(
             raise ValidationError({"email": "This email is already in use."}) from exc
         if "phone_number" in data:
             UserProfile.objects.update_or_create(
-                user=user, defaults={"phone_number": data["phone_number"]},
+                user=user,
+                defaults={"phone_number": data["phone_number"]},
             )
         record_event(request, "user.updated", user, fields=list(data))
         return Response(self.get_serializer(self.get_queryset().get(pk=user.pk)).data)

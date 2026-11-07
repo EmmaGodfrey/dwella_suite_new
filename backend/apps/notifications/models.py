@@ -1,5 +1,56 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
+
+from apps.common.models import OrganizationScopedModel
+
+
+class NotificationPreferences(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    in_app_payment = models.BooleanField(default=True)
+    in_app_payout = models.BooleanField(default=True)
+    in_app_lease = models.BooleanField(default=True)
+    in_app_maintenance = models.BooleanField(default=True)
+    # What a tenant receives until they choose otherwise. Settings shows these same
+    # defaults. WhatsApp stays off: business-initiated messages need explicit opt-in.
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=True)
+    whatsapp_enabled = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Notification preferences for user {self.user_id}"
+
+
+class ReminderPreferences(models.Model):
+    organization = models.OneToOneField("organizations.Organization", on_delete=models.CASCADE)
+    email_enabled = models.BooleanField(default=False)
+    sms_enabled = models.BooleanField(default=False)
+    whatsapp_enabled = models.BooleanField(default=False)
+    before_due_days = models.PositiveSmallIntegerField(default=3)
+    due_hour = models.PositiveSmallIntegerField(default=9)
+    overdue_every_days = models.PositiveSmallIntegerField(default=3)
+    overdue_repeats = models.PositiveSmallIntegerField(default=3)
+    # Today's resumable reminder run: its local date and the last invoice handled.
+    # A null run_after_id with today's run_date means today's run is finished.
+    run_date = models.DateField(null=True, editable=False)
+    run_after_id = models.BigIntegerField(null=True, editable=False)
+    # When the scheduler should next look at this workspace. Null means "work it out".
+    next_run_at = models.DateTimeField(null=True, editable=False)
+
+    class Meta:
+        indexes = [models.Index(fields=["next_run_at"], name="notifications_reminder_due")]
+
+    def __str__(self):
+        return f"Reminder preferences for workspace {self.organization_id}"
+
+
+class MessagingSettings(models.Model):
+    quiet_from = models.TimeField(default="20:00")
+    quiet_until = models.TimeField(default="07:00")
+    reminders_enabled = models.BooleanField(default=False)
+
+    def __str__(self):
+        return "Platform messaging settings"
 
 
 class NotificationRead(models.Model):
@@ -19,3 +70,176 @@ class NotificationRead(models.Model):
 
     def __str__(self):
         return f"{self.user_id}: {self.key}"
+
+
+class MessageRequest(OrganizationScopedModel):
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    channel = models.CharField(
+        max_length=12, choices=[(c, c.title()) for c in ("email", "sms", "whatsapp")]
+    )
+    subject = models.CharField(max_length=160)
+    body = models.TextField(max_length=2000)
+    recipients = models.JSONField(default=list)
+    expires_at = models.DateTimeField()
+    confirmed_at = models.DateTimeField(null=True)
+    source = models.CharField(max_length=16, default="manager")
+
+    class Meta:
+        indexes = [models.Index(fields=["organization", "created_at"])]
+
+
+class MessageDelivery(OrganizationScopedModel):
+    class Status(models.TextChoices):
+        HELD = "held", "Held"
+        QUEUED = "queued", "Queued"
+        SENDING = "sending", "Sending"
+        SENT = "sent", "Accepted by provider"
+        DELIVERED = "delivered", "Delivered"
+        READ = "read", "Read"
+        FAILED = "failed", "Failed"
+        CANCELLED = "cancelled", "Cancelled"
+        REVIEW = "review", "Needs review"
+
+    request = models.ForeignKey(MessageRequest, on_delete=models.PROTECT, null=True)
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.PROTECT)
+    invoice = models.ForeignKey("billing.Invoice", on_delete=models.PROTECT, null=True)
+    channel = models.CharField(max_length=12)
+    recipient = models.CharField(max_length=254)
+    subject = models.CharField(max_length=160)
+    body = models.TextField()
+    identity = models.CharField(max_length=140, unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.HELD)
+    reason = models.CharField(max_length=80, blank=True)
+    reminder_date = models.DateField(null=True)
+    claimed_at = models.DateTimeField(null=True)
+    available_at = models.DateTimeField(default=timezone.now)
+    sent_at = models.DateTimeField(null=True)
+    provider_id = models.CharField(max_length=160, blank=True)
+    provider = models.CharField(max_length=16, blank=True)
+    delivered_at = models.DateTimeField(null=True)
+    read_at = models.DateTimeField(null=True)
+    provider_updated_at = models.DateTimeField(null=True)
+    failure_code = models.CharField(max_length=80, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["provider", "provider_id"], name="notifications_provider_id"),
+            models.Index(fields=["organization", "created_at"]),
+            models.Index(fields=["status", "created_at"]),
+            models.Index(
+                fields=["channel", "claimed_at"],
+                condition=models.Q(claimed_at__isnull=False),
+                name="notifications_delivery_sent",
+            ),
+        ]
+
+
+class PhoneMessagingConsent(models.Model):
+    """Business-wide consent for an exact number; changing a tenant's number does not copy it."""
+
+    channel = models.CharField(max_length=12, choices=[("sms", "SMS"), ("whatsapp", "WhatsApp")])
+    phone = models.CharField(max_length=16)
+    allowed = models.BooleanField(default=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    source = models.CharField(max_length=20)
+    granted_at = models.DateTimeField(null=True)
+    revoked_at = models.DateTimeField(null=True)
+    last_inbound_at = models.DateTimeField(null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["channel", "phone"], name="phone_channel_consent")
+        ]
+
+    def __str__(self):
+        return f"{self.channel} consent {self.pk}"
+
+
+class OperationalDelivery(OrganizationScopedModel):
+    """Private transactional outbox; email is independent of outreach preferences."""
+
+    identity = models.CharField(max_length=240, unique=True)
+    event = models.CharField(max_length=60)
+    target_model = models.CharField(max_length=60)
+    target_id = models.PositiveBigIntegerField()
+    target_state = models.CharField(max_length=40, blank=True)
+    recipient_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+    )
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.SET_NULL, null=True)
+    audience = models.CharField(
+        max_length=8, choices=[("manager", "Manager"), ("tenant", "Tenant")]
+    )
+    channel = models.CharField(
+        max_length=12, choices=[(c, c) for c in ("email", "sms", "whatsapp")]
+    )
+    recipient = models.CharField(max_length=254, blank=True)
+    status = models.CharField(
+        max_length=12, default="queued", choices=MessageDelivery.Status.choices
+    )
+    reason = models.CharField(max_length=80, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    available_at = models.DateTimeField(default=timezone.now)
+    claimed_at = models.DateTimeField(null=True)
+    claim_token = models.UUIDField(null=True)
+    sent_at = models.DateTimeField(null=True)
+    provider_id = models.CharField(max_length=160, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["status", "available_at", "id"], name="operational_due_work"),
+            models.Index(fields=["organization", "-created_at"], name="operational_workspace"),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(audience="manager", tenant__isnull=True)
+                    | models.Q(audience="tenant")
+                ),
+                name="operational_recipient_shape",
+            ),
+        ]
+
+
+class OperationalScan(models.Model):
+    """One resumable, bounded daily scan per source, not a full-history polling log."""
+
+    source = models.CharField(max_length=80, primary_key=True)
+    day = models.DateField()
+    after_id = models.PositiveBigIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.source}: {self.day}"
+
+
+class NotificationPhoneLink(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    channel = models.CharField(max_length=12, choices=[("sms", "SMS"), ("whatsapp", "WhatsApp")])
+    phone = models.CharField(max_length=16)
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    consumed_at = models.DateTimeField(null=True)
+    verified_at = models.DateTimeField(null=True)
+    actions_enabled = models.BooleanField(default=False)
+    notification_consent = models.BooleanField(default=True)
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
+    verification_nonce = models.UUIDField(null=True, editable=False)
+    auth_stamp = models.CharField(max_length=64, blank=True)
+    delivery_status = models.CharField(max_length=12, blank=True)
+    provider_id = models.CharField(max_length=160, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Phone verification {self.pk}"
+
+
+from .whatsapp.models import (  # noqa: E402,F401
+    WhatsAppBinding,
+    WhatsAppConversation,
+    WhatsAppInbound,
+    WhatsAppMedia,
+    WhatsAppProofNotice,
+    WhatsAppReply,
+)

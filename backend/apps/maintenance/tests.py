@@ -48,7 +48,12 @@ def place(org):
     )
     unit = Unit.objects.create(organization=org, property=property_obj, name="1A", rent_amount=3900)
     tenant = Tenant.objects.create(
-        organization=org, full_name="Natasha Banda", phone_number="+260974123381"
+        organization=org,
+        full_name="Natasha Banda",
+        phone_number="+260974123381",
+        national_id="123456/10/1",
+        tpin="0123456789",
+        billing_address="Plot 1, Lusaka",
     )
     today = timezone.localdate()
     create_lease(

@@ -1,6 +1,10 @@
 //Pages
+import { Navigate } from "react-router-dom";
 import Billing from "../Components/Billing";
 import InvoiceDetail from "../Components/Billing/InvoiceDetail";
+import Settings, { LegacySettings } from "../Components/Settings";
+import Transactions from "../Components/Platform/Transactions";
+import Messages from "../Components/Messages";
 import Dashboard from "../Components/Dashboard";
 import LeaseDetail from "../Components/Leases/LeaseDetail";
 import Leases from "../Components/Leases";
@@ -12,8 +16,6 @@ import Receipts from "../Components/Billing/Receipts";
 import Reports from "../Components/Reports";
 import Setup from "../Components/Setup";
 import Properties from "../Components/Properties";
-import Profile from "../Components/Profile";
-import Security from "../Components/Security";
 import BetaSignups from "../Components/BetaSignups";
 import Users from "../Components/Platform/Users";
 import UserDetail from "../Components/Platform/UserDetail";
@@ -26,16 +28,28 @@ import OutreachContact from "../Components/Outreach/ContactDetail";
 import OutreachSequences from "../Components/Outreach/Sequences";
 import OutreachReview from "../Components/Outreach/ReviewQueue";
 import OutreachOutbox from "../Components/Outreach/Outbox";
-import OutreachSettings from "../Components/Outreach/Settings";
-import PlatformSettings from "../Components/Platform/Settings";
+import PortalLease from "../Components/Portal/MyLease";
+import PortalMaintenance from "../Components/Portal/Maintenance";
+import PortalPayments from "../Components/Portal/Payments";
+import PortalStatement from "../Components/Portal/Statement";
+import Payouts from "../Components/Billing/Payouts";
+import PaymentProofs from "../Components/Billing/PaymentProofs";
+import PortalReceipt from "../Components/Portal/Receipt";
+import PortalRepairDetail from "../Components/Portal/RepairDetail";
+import ForTenant from "./ForTenant";
 
 export const routes = [
-  { path: "/admin/settings", Component: <PlatformSettings /> },
+  { path: "/messages", title: "Messages", Component: <Messages /> },
+  { path: "/admin/messages", title: "Messages", Component: <Messages /> },
+  { path: "/settings", title: "Settings", Component: <Settings /> },
+  { path: "/billing/receiving-details", Component: <LegacySettings tab="billing" /> },
+  { path: "/admin/settings", Component: <LegacySettings tab="assistant" /> },
+  { path: "/admin/transactions", title: "Transactions", Component: <Transactions /> },
   { path: "/admin/outreach/contacts/:id", Component: <OutreachContact /> },
   { path: "/admin/outreach/sequences", Component: <OutreachSequences /> },
   { path: "/admin/outreach/review", Component: <OutreachReview /> },
   { path: "/admin/outreach/outbox", Component: <OutreachOutbox /> },
-  { path: "/admin/outreach/settings", Component: <OutreachSettings /> },
+  { path: "/admin/outreach/settings", Component: <LegacySettings tab="outreach" /> },
   { path: "/admin/outreach", Component: <Outreach /> },
   { path: "/admin/audit-log", title: "Audit log", Component: <AuditLog /> },
   { path: "/workspace/dashboard", title: "Dashboard", Component: <Dashboard /> },
@@ -45,8 +59,11 @@ export const routes = [
   { path: "/admin/users", title: "Users", Component: <Users /> },
   { path: "/admin/users/:id", title: "User detail", Component: <UserDetail /> },
   { path: "/setup", title: "Get started", Component: <Setup /> },
-  { path: "/billing/receipts", title: "Receipts", Component: <Receipts /> },
-  { path: "/billing/receipts/:id", title: "Receipt", Component: <Receipt /> },
+  { path: "/billing/payouts", title: "Payouts", Component: <ForTenant tenant={<PortalPayments />}><Payouts /></ForTenant> },
+  { path: "/billing/statement", title: "Statement", Component: <ForTenant tenant={<PortalStatement />}><Navigate to="/billing" replace /></ForTenant> },
+  { path: "/billing/payment-proofs", title: "Payment proofs", Component: <ForTenant tenant={<PortalPayments />}><PaymentProofs /></ForTenant> },
+  { path: "/billing/receipts", title: "Receipts", Component: <ForTenant tenant={<PortalPayments />}><Receipts /></ForTenant> },
+  { path: "/billing/receipts/:id", title: "Receipt", Component: <ForTenant tenant={<PortalReceipt />}><Receipt /></ForTenant> },
   {
     path: `/dashboard`,
     title: "Dashboard",
@@ -69,37 +86,37 @@ export const routes = [
     path: `/leases`,
     title: "Leases",
     description: "Lease terms, renewals, deposits, and documents.",
-    Component: <Leases />,
+    Component: <ForTenant tenant={<PortalLease />}><Leases /></ForTenant>,
   },
   {
     path: `/leases/:id`,
     title: "Lease",
     description: "Lease terms and history.",
-    Component: <LeaseDetail />,
+    Component: <ForTenant tenant={<PortalLease />}><LeaseDetail /></ForTenant>,
   },
   {
     path: `/billing`,
     title: "Billing",
     description: "Rent invoices, collections, balances, and payment tracking.",
-    Component: <Billing />,
+    Component: <ForTenant tenant={<PortalPayments />}><Billing /></ForTenant>,
   },
   {
     path: `/billing/invoices/:id`,
     title: "Invoice",
     description: "Invoice lines, payments, and balance.",
-    Component: <InvoiceDetail />,
+    Component: <ForTenant tenant={<PortalPayments />}><InvoiceDetail /></ForTenant>,
   },
   {
     path: `/maintenance`,
     title: "Maintenance",
     description: "Work orders, vendors, approvals, and service tracking.",
-    Component: <Maintenance />,
+    Component: <ForTenant tenant={<PortalMaintenance />}><Maintenance /></ForTenant>,
   },
   {
     path: `/maintenance/:id`,
     title: "Maintenance request",
     description: "Progress, conversation and scheduling for one repair.",
-    Component: <RequestDetail />,
+    Component: <ForTenant tenant={<PortalRepairDetail />}><RequestDetail /></ForTenant>,
   },
   {
     path: `/reports`,
@@ -117,12 +134,12 @@ export const routes = [
     path: `/profile`,
     title: "Profile",
     description: "Account details, identity verification, and profile photo.",
-    Component: <Profile />,
+    Component: <LegacySettings tab="account" />,
   },
   {
     path: `/security`,
     title: "Security",
     description: "Two-factor authentication and account protection.",
-    Component: <Security />,
+    Component: <LegacySettings tab="security" />,
   },
 ];

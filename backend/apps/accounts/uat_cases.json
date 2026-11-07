@@ -1,0 +1,1633 @@
+[
+  {
+    "id": "ACC-01",
+    "module": "Accounts",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Self-service registration",
+    "steps": "Open the TEST registration page; enter your own permanent email and a strong password; submit once.",
+    "expected": "A regular account is created; the email-verification screen appears; portfolio access waits for email verification."
+  },
+  {
+    "id": "ACC-02",
+    "module": "Accounts",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Verification reaches the right mailbox",
+    "steps": "Register with your own email address; check Inbox and Spam for your verification message.",
+    "expected": "Your mailbox receives its verification link, and the link opens the TEST app."
+  },
+  {
+    "id": "ACC-03",
+    "module": "Accounts",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Confirm mailbox and enter setup",
+    "steps": "Open the verification link; explicitly confirm; sign in if requested; open Get Started.",
+    "expected": "Email becomes verified; workspace setup is accessible; confirmation does not bypass password or MFA."
+  },
+  {
+    "id": "ACC-04",
+    "module": "Accounts",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Required fields and weak password",
+    "steps": "Try blank fields, invalid email, mismatched passwords and a weak password on registration.",
+    "expected": "Clear field errors prevent account creation; entered safe fields remain available for correction."
+  },
+  {
+    "id": "ACC-05",
+    "module": "Accounts",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Duplicate email and disposable mailbox",
+    "steps": "Try registering an existing email and an obvious disposable address; do not create repeated requests.",
+    "expected": "No duplicate account or extra privilege is created; safe explanatory errors are shown."
+  },
+  {
+    "id": "ACC-06",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Expired or reused verification link",
+    "steps": "Open your verification link again after using it. If you have an expired link from an earlier attempt, try that too.",
+    "expected": "The link cannot verify again; the interface offers a safe way to sign in and request a fresh link."
+  },
+  {
+    "id": "ACC-07",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Verification resend cooldown",
+    "steps": "Request verification again immediately, then after the displayed cooldown.",
+    "expected": "Immediate repeats are limited; a later request works; stale links cannot replace current mailbox ownership."
+  },
+  {
+    "id": "ACC-08",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Sign in and sign out",
+    "steps": "Sign in with correct credentials; sign out; use Back and refresh on a private page.",
+    "expected": "Correct login enters the right account; signed-out users cannot reopen private data."
+  },
+  {
+    "id": "ACC-09",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Wrong password and recovery",
+    "steps": "Try one incorrect password; request a password reset for your mailbox; complete it; retry the old password.",
+    "expected": "Bad credentials fail; reset mail reaches your inbox; the new password works and the old one fails."
+  },
+  {
+    "id": "ACC-10",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Unknown recovery address",
+    "steps": "Request a password reset for another email address you own that has not been registered with Dwella.",
+    "expected": "The response does not reveal whether an account exists and does not sign anyone in."
+  },
+  {
+    "id": "ACC-11",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Authenticator enrollment and login",
+    "steps": "In Security, scan the QR privately; confirm with your authenticator; sign out and back in.",
+    "expected": "Enrollment requires a valid code; login requires the password and authenticator; invalid codes do not open the account."
+  },
+  {
+    "id": "ACC-12",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Account and email change",
+    "steps": "Edit your profile; refresh; change email only on a disposable test account and verify the new mailbox.",
+    "expected": "Allowed profile edits persist; changed email loses its old verification proof; affected WhatsApp access requires reconnection."
+  },
+  {
+    "id": "SET-01",
+    "module": "Get Started",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Create first workspace",
+    "steps": "After mailbox verification, create a fictional workspace and select its currency/time zone.",
+    "expected": "One workspace is created; owner access is correct; refresh preserves the setup state."
+  },
+  {
+    "id": "SET-02",
+    "module": "Get Started",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "First property and unit",
+    "steps": "Follow setup to add a property and unit with required fields; continue to the checklist.",
+    "expected": "Property and unit appear once; required checklist steps update and links open the appropriate modules."
+  },
+  {
+    "id": "SET-03",
+    "module": "Get Started",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Validation and resuming setup",
+    "steps": "Leave a required setup field empty; correct it; go back, refresh and resume.",
+    "expected": "Errors identify the missing field; valid progress is retained without duplicate records."
+  },
+  {
+    "id": "SET-04",
+    "module": "Get Started",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Optional WhatsApp in setup",
+    "steps": "View the WhatsApp section without connecting; continue required setup steps.",
+    "expected": "WhatsApp is labelled optional, notice consent starts unchecked, and required setup can finish without it."
+  },
+  {
+    "id": "SET-05",
+    "module": "Get Started",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Checklist reaches completion",
+    "steps": "Add the tenant, lease and invoice requested by the checklist; return to Get Started.",
+    "expected": "Completed steps reflect saved records; completed setup does not repeatedly send the user through first-property setup."
+  },
+  {
+    "id": "SET-06",
+    "module": "Get Started",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Guided tour is absent",
+    "steps": "Sign in to a new account, navigate modules and refresh on mobile and desktop.",
+    "expected": "No automatic tour overlay or tour launcher obstructs this alpha; normal setup remains usable."
+  },
+  {
+    "id": "PROP-01",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Create and reopen property",
+    "steps": "Create a uniquely prefixed property; return to the list; search and reopen it.",
+    "expected": "Saved details and counts are correct and remain after refresh."
+  },
+  {
+    "id": "PROP-02",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Edit property and cancel changes",
+    "steps": "Edit permitted details and save; open again, make another change and cancel.",
+    "expected": "Saved changes persist; cancelled changes do not alter the record."
+  },
+  {
+    "id": "PROP-03",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Add two units",
+    "steps": "Create two uniquely named units with different rent values in the same property.",
+    "expected": "Each unit belongs to the intended property and displays the correct rent, currency and status."
+  },
+  {
+    "id": "PROP-04",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Invalid and duplicate unit details",
+    "steps": "Try missing required fields, invalid rent and a duplicate unit identifier where uniqueness is required.",
+    "expected": "Invalid values are rejected clearly and no partial or duplicate unit is created."
+  },
+  {
+    "id": "PROP-05",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Search, filters and empty state",
+    "steps": "Search by a known value; filter status; search for a nonexistent value; clear filters.",
+    "expected": "The intended rows appear; empty results are understandable; clearing filters restores records."
+  },
+  {
+    "id": "PROP-06",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Occupancy follows the lease",
+    "steps": "Activate a tenancy in one unit and compare property/unit occupancy and dashboard counts.",
+    "expected": "The linked unit's occupancy is consistent; the second unit remains vacant."
+  },
+  {
+    "id": "PROP-07",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Archive or deletion safeguards",
+    "steps": "Use a disposable vacant record; test archive/unarchive if offered; try removing a record with live dependencies.",
+    "expected": "Supported archive actions are reversible; linked tenancy/financial history is protected and errors explain restrictions."
+  },
+  {
+    "id": "PROP-08",
+    "module": "Properties and units",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Owner details and attachments",
+    "steps": "If the property screen exposes owner/contact or attachments, add fictional details and a harmless file; reopen.",
+    "expected": "Only supported fields are offered; saved data/files remain associated with the correct property."
+  },
+  {
+    "id": "TEN-01",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Create a complete tenant",
+    "steps": "Add a fictional tenant using a consenting participant's email and phone; fill required billing details.",
+    "expected": "A single tenant record saves with correct contact and billing details."
+  },
+  {
+    "id": "TEN-02",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Tenant field validation",
+    "steps": "Try malformed email/phone, missing names and invalid identifier formats; correct them.",
+    "expected": "Errors are specific; correction works; invalid data does not silently become usable."
+  },
+  {
+    "id": "TEN-03",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Send tenant invitation",
+    "steps": "Invite the paired tenant's own mailbox from the tenant record; record message arrival.",
+    "expected": "Invitation is sent to the intended mailbox and references the correct workspace; the manager sees its state."
+  },
+  {
+    "id": "TEN-04",
+    "module": "Tenants and invitations",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "New tenant creates own account",
+    "steps": "Open the invitation in a signed-out/private browser; choose a password and accept.",
+    "expected": "The tenant account is created through the invitation, mailbox ownership is established, and only the intended tenancy is linked."
+  },
+  {
+    "id": "TEN-05",
+    "module": "Tenants and invitations",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Existing-account invitation",
+    "steps": "Accept an invitation as an existing eligible tenant account; try once while signed in as a different email.",
+    "expected": "The matching account can accept; the wrong account cannot acquire the invitation or have its password replaced."
+  },
+  {
+    "id": "TEN-06",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Revoked and repeated invitation",
+    "steps": "Revoke an unused invitation; try its old link; test a previously accepted link.",
+    "expected": "Revoked/consumed links cannot create another membership; a fresh authorised invitation follows the normal process."
+  },
+  {
+    "id": "TEN-07",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Tenant search and history",
+    "steps": "Search/filter tenants; reopen a profile and inspect linked lease, invoice and repair records.",
+    "expected": "Only matching workspace records appear and history links refer to the correct tenant."
+  },
+  {
+    "id": "TEN-08",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Access removal",
+    "steps": "Use a separate test tenant with your paired tester. As manager, open that tenant in Tenants and choose Remove portal access; as tenant, refresh the portal and try the old WhatsApp menu.",
+    "expected": "The former tenant loses private tenancy actions; removal is explained; old links/chat actions do not preserve access."
+  },
+  {
+    "id": "TEN-09",
+    "module": "Tenants and invitations",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Supported CSV import",
+    "steps": "If Import is exposed, use a small current-format sample with one valid and one invalid row; preview before saving.",
+    "expected": "Mapping, errors and atomic/partial-save policy are clear; no unintended duplicates or financial history are created."
+  },
+  {
+    "id": "LEASE-01",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Create and activate lease",
+    "steps": "Select the intended property, unit and tenant; enter full-month terms and dates; activate using the normal process.",
+    "expected": "The saved lease links the correct records and active status, rent, dates and occupancy agree."
+  },
+  {
+    "id": "LEASE-02",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Dates, amounts and conflicting occupancy",
+    "steps": "Try an end date before the start, invalid rent and an overlapping active tenancy where prohibited.",
+    "expected": "Invalid or conflicting terms are rejected; no half-created active lease remains."
+  },
+  {
+    "id": "LEASE-03",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Edit draft and cancel",
+    "steps": "Edit a draft; cancel unsaved changes; save a permitted edit and reopen.",
+    "expected": "Draft/active edit rules are clear and only saved changes persist."
+  },
+  {
+    "id": "LEASE-04",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Prepare lease PDF",
+    "steps": "Complete required fictional issuer/tenant details; preview and download the lease.",
+    "expected": "The document opens and shows correct parties, unit, rent, dates and pages without clipped text."
+  },
+  {
+    "id": "LEASE-05",
+    "module": "Leases and documents",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Invitation to sign a test lease",
+    "steps": "Send the paired participant a signing invitation; open the link on phone; review and use a test signature.",
+    "expected": "Only the intended document can be signed; required confirmations are clear and completion is reflected on both sides."
+  },
+  {
+    "id": "LEASE-06",
+    "module": "Leases and documents",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Signing errors and old links",
+    "steps": "Try incomplete signature input, then complete signing and reopen the same link. As manager, revoke a separate unused signing invitation and try its old link.",
+    "expected": "Incomplete input is blocked and old links cannot modify completed signing evidence."
+  },
+  {
+    "id": "LEASE-07",
+    "module": "Leases and documents",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "My lease and final copy",
+    "steps": "Open My lease and the completed document in the portal; compare against the manager's lease.",
+    "expected": "Only the tenant's linked lease and authorised files appear with consistent terms and signature state."
+  },
+  {
+    "id": "LEASE-08",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Deposit and rent paid ahead",
+    "steps": "Use a separate test lease for deposit/paid-ahead fields where offered; compare the statement and billed-from date.",
+    "expected": "The UI explains each value; deposit/prepaid facts do not silently become rent income or duplicate opening debt."
+  },
+  {
+    "id": "INV-01",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Generate rent invoice",
+    "steps": "For an active full-month lease, generate the selected month's invoice once.",
+    "expected": "One invoice appears for the correct tenant, unit, period, rent and due date."
+  },
+  {
+    "id": "INV-02",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Repeat generation safely",
+    "steps": "Repeat invoice generation for the same lease and period; refresh the list.",
+    "expected": "No duplicate live rent invoice or double charge is created."
+  },
+  {
+    "id": "INV-03",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Manual invoice and validation",
+    "steps": "Create a manual invoice with test lines; try invalid quantities/amounts and missing required fields first.",
+    "expected": "Invalid input is blocked; valid lines total correctly using the displayed rounding and currency."
+  },
+  {
+    "id": "INV-04",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Invoice list and filters",
+    "steps": "Search reference/tenant, filter status/property/period and clear filters.",
+    "expected": "Results and displayed totals match the selected scope; clearing filters restores the list."
+  },
+  {
+    "id": "INV-05",
+    "module": "Invoices",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Open invoice in both accounts",
+    "steps": "Open a saved invoice as manager and as its tenant; compare reference, dates, amount and balance.",
+    "expected": "Both see the same authorised invoice facts; tenant controls match tenant permissions."
+  },
+  {
+    "id": "INV-06",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Missing document details",
+    "steps": "On a separate incomplete fictional tenant, request the invoice PDF before adding TPIN/billing address.",
+    "expected": "The application identifies missing details and directs correction; it does not create a misleading final PDF."
+  },
+  {
+    "id": "INV-07",
+    "module": "Invoices",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Correct and download invoice PDF",
+    "steps": "Complete required test issuer/tenant details, retry the PDF and compare both accounts' copies.",
+    "expected": "The PDF renders with the correct invoice data; no unrelated tenant facts or public private-file URL is exposed."
+  },
+  {
+    "id": "INV-08",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Opening balance separately",
+    "steps": "For a separate existing tenancy, record K500 opening debt; generate a K2,500 full-month invoice; open the statement.",
+    "expected": "Outstanding debt is K3,000 before payments; opening debt remains distinct from current-month billed rent."
+  },
+  {
+    "id": "INV-09",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Correct or void an unpaid test invoice",
+    "steps": "Use the supported correction/void action with any required reason; revisit totals and statement.",
+    "expected": "The audit/history remains, the invoice cannot be paid as live debt, and totals reflect the correction once."
+  },
+  {
+    "id": "INV-10",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Paid invoice correction restrictions",
+    "steps": "On a manually settled test invoice, try an action that would erase payment history or create an invalid balance.",
+    "expected": "The application requires the supported correction path and preserves financial evidence."
+  },
+  {
+    "id": "INV-11",
+    "module": "Invoices",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Real payment processing unavailable",
+    "steps": "Open tenant payment controls and WhatsApp Pay rent; inspect any exposed collection/withdrawal action without entering bank credentials.",
+    "expected": "Online payment initiation and payouts are unavailable; no external payment prompt, debit or transfer starts."
+  },
+  {
+    "id": "INV-12",
+    "module": "Invoices",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Print and long content",
+    "steps": "Print/Save PDF an invoice with a long fictional name/address and multiple lines on desktop and phone.",
+    "expected": "All pages are readable, totals are visible, and navigation controls are excluded from the printed document."
+  },
+  {
+    "id": "REC-01",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Record a partial simulated payment",
+    "steps": "Start with an isolated unpaid K2,500 invoice; record a K1,000 test payment with date/method/reference.",
+    "expected": "Balance becomes K1,500, status becomes partial, and one numbered receipt/history entry is created."
+  },
+  {
+    "id": "REC-02",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Settle the simulated remainder",
+    "steps": "Record the remaining K1,500 on that invoice; compare tenant view and report.",
+    "expected": "Balance becomes zero and settled status/receipts agree across the application."
+  },
+  {
+    "id": "REC-03",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Invalid and duplicate record attempts",
+    "steps": "Try zero, negative and excessive amounts; double-click one valid save on a disposable invoice.",
+    "expected": "Invalid financial input is rejected; the UI/server prevent an unintended duplicate or unexplained overpayment."
+  },
+  {
+    "id": "REC-04",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Reverse an erroneous test record",
+    "steps": "Use the supported reversal with a clear reason; reopen receipt, invoice and statement.",
+    "expected": "History remains with reversal evidence; the exact balance is restored once; no real refund occurs."
+  },
+  {
+    "id": "REC-05",
+    "module": "Manual records and proofs",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Report an already-paid test invoice",
+    "steps": "Choose I've already paid; use a dummy payment reference and clearly labelled fake proof file; submit once.",
+    "expected": "Report is pending review, visible to the correct manager, and does not mark the invoice paid before confirmation."
+  },
+  {
+    "id": "REC-06",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Confirm a simulated proof",
+    "steps": "Manager reviews the tenant's dummy evidence and confirms once; both accounts refresh.",
+    "expected": "A single manual payment and receipt are created for the confirmed amount; report and invoice states agree."
+  },
+  {
+    "id": "REC-07",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Ask for details and resubmit",
+    "steps": "Manager asks for details with a reason; tenant edits and resubmits the same report.",
+    "expected": "Tenant sees the question; correction remains associated with the original report and does not create duplicate money records."
+  },
+  {
+    "id": "REC-08",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Not received or reject report",
+    "steps": "Manager uses the supported not-received/rejection action with a reason on a fresh dummy report.",
+    "expected": "Tenant sees the outcome/reason; no payment or receipt is falsely created."
+  },
+  {
+    "id": "REC-09",
+    "module": "Manual records and proofs",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Cancel a pending report",
+    "steps": "Submit a disposable report and cancel it before manager confirmation; refresh both views.",
+    "expected": "Cancellation is reflected on both sides and a cancelled report cannot later be confirmed through an old action."
+  },
+  {
+    "id": "REC-10",
+    "module": "Manual records and proofs",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Receipt and proof privacy",
+    "steps": "Open your test receipt/proof and copy its link. Try the link while signed out, then have another tester with a separate workspace try it from their account.",
+    "expected": "Authorised viewing works; unrelated or signed-out users cannot retrieve the private evidence."
+  },
+  {
+    "id": "REP-01",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Rent roll agrees with units",
+    "steps": "Open Rent roll with one leased and one vacant test unit; compare rent/occupancy against Properties.",
+    "expected": "Rows, occupancy, rent values and property filters agree with the underlying records."
+  },
+  {
+    "id": "REP-02",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Arrears and ageing",
+    "steps": "Use a deliberately overdue unpaid test invoice; inspect ageing and open its source record.",
+    "expected": "Debt and ageing follow its due date; property/tenant links reach the correct record."
+  },
+  {
+    "id": "REP-03",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Collections from manual records",
+    "steps": "Filter Collections to the dates/property of a manual test receipt and its reversal.",
+    "expected": "Recorded amounts, reversals and totals agree; pending proof is not counted as paid."
+  },
+  {
+    "id": "REP-04",
+    "module": "Reports",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Matching tenant statements",
+    "steps": "Manager opens the tenant statement; tenant opens their Statement; compare the same date range.",
+    "expected": "Charges, payments, reversals and closing balance agree exactly for that tenant."
+  },
+  {
+    "id": "REP-05",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Opening balance boundaries",
+    "steps": "View a statement including separate opening debt, current rent, a deposit and a simulated payment.",
+    "expected": "Each category is labelled correctly; opening debt is not counted twice or presented as current billed rent."
+  },
+  {
+    "id": "REP-06",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Date, property and tenant filters",
+    "steps": "Change each supported filter and reset; select a range with no entries.",
+    "expected": "Every row/total follows the active filters; empty state is clear and stale previous results are not retained."
+  },
+  {
+    "id": "REP-07",
+    "module": "Reports",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Export and PDF scope",
+    "steps": "Export a filtered CSV and any offered statement PDF; compare row count, dates and totals to the screen.",
+    "expected": "The full authorised filtered dataset is exported with readable headings and no foreign tenant/workspace records."
+  },
+  {
+    "id": "REP-08",
+    "module": "Reports",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Pagination and direct links",
+    "steps": "Use several test records and next/previous pages; open a source invoice from the report and return.",
+    "expected": "No skipped/repeated records are apparent; selected report and filters remain understandable."
+  },
+  {
+    "id": "MNT-01",
+    "module": "Maintenance",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Report a repair",
+    "steps": "Create a clear fictional repair with category/priority/location and description.",
+    "expected": "One request is created for the correct tenancy; the manager sees it and the tenant can reopen it."
+  },
+  {
+    "id": "MNT-02",
+    "module": "Maintenance",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Repair photo",
+    "steps": "Attach a small permitted image at the supported stage; reopen from both accounts.",
+    "expected": "The correct request retains its image and authorised users can view it."
+  },
+  {
+    "id": "MNT-03",
+    "module": "Maintenance",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Invalid repair and attachment",
+    "steps": "Try blank required repair details, an unsupported file and an over-limit file using harmless samples.",
+    "expected": "The interface explains constraints; no empty request or unintended upload is accepted."
+  },
+  {
+    "id": "MNT-04",
+    "module": "Maintenance",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Assign and progress repair",
+    "steps": "Assign responsibility/vendor where offered; move the request through supported progress states.",
+    "expected": "Changes persist and the correct tenant sees the public progress; dashboard counts update consistently."
+  },
+  {
+    "id": "MNT-05",
+    "module": "Maintenance",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Repair conversation privacy",
+    "steps": "Exchange tenant-visible comments; add an internal manager comment where supported.",
+    "expected": "Public comments reach the intended participants; internal comments remain hidden from tenants."
+  },
+  {
+    "id": "MNT-06",
+    "module": "Maintenance",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Close and reopen",
+    "steps": "Complete a disposable request; reopen using the supported action; compare both sides.",
+    "expected": "Status, timestamps, history and Needs attention reflect each transition without duplicate requests."
+  },
+  {
+    "id": "MNT-07",
+    "module": "Maintenance",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Vendor details and filtering",
+    "steps": "Create a fictional vendor if offered; assign it; filter open/closed/priority requests and clear filters.",
+    "expected": "Vendor and filters apply to the intended workspace/request and no unrelated rows appear."
+  },
+  {
+    "id": "MNT-08",
+    "module": "Maintenance",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Repair access boundary",
+    "steps": "As manager, create a repair for one fictional tenant and copy its link. Have a second invited tenant tester try the link from their own account.",
+    "expected": "The other tenant's description, comments and images are denied without exposing private details."
+  },
+  {
+    "id": "MSG-01",
+    "module": "Messages and email",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Bell and personal read state",
+    "steps": "Trigger a relevant test invoice/repair update; inspect the bell; mark it read; compare another account.",
+    "expected": "The intended account sees its own update; reading it does not mark another person's notification read."
+  },
+  {
+    "id": "MSG-02",
+    "module": "Messages and email",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Transactional invoice email",
+    "steps": "Create one new invoice for a consenting tenant; inspect its intended mailbox and delivery history.",
+    "expected": "The correct participant receives the right invoice facts; sent/failed/held status reflects the actual attempt."
+  },
+  {
+    "id": "MSG-03",
+    "module": "Messages and email",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Repair and lease emails",
+    "steps": "Create a new repair/progress event and send a test lease for signing; check the intended recipients.",
+    "expected": "Relevant operational mail reaches the correct consenting participants with the correct TEST links."
+  },
+  {
+    "id": "MSG-04",
+    "module": "Messages and email",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Notification preferences",
+    "steps": "Change personal optional preferences; trigger a harmless new event; inspect in-app and email behaviour.",
+    "expected": "Optional choices persist; required account/operational email is not falsely represented as optional marketing."
+  },
+  {
+    "id": "MSG-05",
+    "module": "Messages and email",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Notices and request state",
+    "steps": "Use a small notice to one consenting test tenant; inspect pending/review/sent history for the workflow exposed to the role.",
+    "expected": "The selected audience and delivery state are clear; repeated clicks do not create unintended duplicate sends."
+  },
+  {
+    "id": "MSG-06",
+    "module": "Messages and email",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Mail links stay on TEST",
+    "steps": "Open verification, invitation, reset and document links received during the exercise.",
+    "expected": "Each link stays in the intended TEST flow; it does not send the participant into production or another account."
+  },
+  {
+    "id": "WA-01",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Connect a new tester number",
+    "steps": "Verify your email, enter your own WhatsApp number in Get Started or Settings, and send the exact prefilled CONNECT message from that number.",
+    "expected": "The intended number connects after signed inbound proof and website confirmation, with the correct personal role."
+  },
+  {
+    "id": "WA-02",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "No proof and wrong-number proof",
+    "steps": "Select I've sent the message before sending; then send from a different consenting test number.",
+    "expected": "The website remains pending; the unproven/wrong number cannot acquire the account binding."
+  },
+  {
+    "id": "WA-03",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Expiry and safe reconnection",
+    "steps": "Let a disposable challenge expire; start again; try the old message, then the new one; disconnect afterwards.",
+    "expected": "Old challenges cannot connect; the current number can connect; disconnect removes action access and optional notices."
+  },
+  {
+    "id": "WA-04",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Role-specific MENU",
+    "steps": "Send MENU after connecting; compare manager and tenant options; choose supported actions using buttons/lists.",
+    "expected": "The menu reflects the current role/workspace and private information is scoped to the connected identity."
+  },
+  {
+    "id": "WA-05",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Invoice PDF on handset",
+    "steps": "Request an existing complete test invoice through the correct menu; open the received document.",
+    "expected": "The intended invoice PDF arrives and is readable; record handset arrival separately from server acceptance."
+  },
+  {
+    "id": "WA-06",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Statement and receipt PDFs",
+    "steps": "Request the current-month statement and an available test receipt; compare with website copies.",
+    "expected": "Documents reach the intended handset with matching authorised records and balances."
+  },
+  {
+    "id": "WA-07",
+    "module": "WhatsApp",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Guided repair with photo",
+    "steps": "Start a repair through the menu; supply fields in order; attach a permitted photo when requested; confirm.",
+    "expected": "One request with the intended details/photo appears on the website; no request is submitted before confirmation."
+  },
+  {
+    "id": "WA-08",
+    "module": "WhatsApp",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Preview and confirm a reminder",
+    "steps": "Choose one consenting overdue test tenant; preview the reminder; cancel once, then start again and confirm.",
+    "expected": "Preview/cancel sends nothing; confirmation queues one scoped reminder and delivery respects consent and quiet hours."
+  },
+  {
+    "id": "WA-09",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Simulated payment proof through chat",
+    "steps": "Tenant follows the payment-proof menu with dummy evidence; manager reviews the message and confirms once.",
+    "expected": "A pending report precedes approval; one manual payment/receipt follows confirmation; correct participants see the result."
+  },
+  {
+    "id": "WA-10",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Question, reject and corrected proof",
+    "steps": "Use fresh dummy reports to ask for details, resubmit and reject using the supported reviewer actions.",
+    "expected": "Reasons/states match the website; stale buttons cannot duplicate or override a completed decision."
+  },
+  {
+    "id": "WA-11",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "STOP and optional notices",
+    "steps": "Connect with notices off; inspect consent; opt in through the supported flow; send STOP and try an old private action.",
+    "expected": "Connection alone does not grant proactive-notice consent; STOP revokes access/consent and stale actions are denied."
+  },
+  {
+    "id": "WA-12",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "MENU, BACK, CANCEL and random input",
+    "steps": "Enter a guided draft; use BACK/CANCEL/MENU; send unrelated text and a harmless unsolicited attachment.",
+    "expected": "Navigation is understandable, drafts do not submit accidentally, and unsolicited content does not create a payment or repair."
+  },
+  {
+    "id": "WA-13",
+    "module": "WhatsApp",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Changed access and old buttons",
+    "steps": "With your paired tester, connect WhatsApp on a separate test tenant account. As manager, choose Remove portal access in Tenants; as tenant, press an old WhatsApp menu button.",
+    "expected": "Permissions are rechecked and old private actions do not survive revoked access or identity changes."
+  },
+  {
+    "id": "WA-14",
+    "module": "WhatsApp",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Invoice creation and payment boundaries",
+    "steps": "Choose Create invoice in Dwella and Pay rent if shown.",
+    "expected": "Invoice creation opens the website; online money movement is unavailable during this exercise."
+  },
+  {
+    "id": "CFG-01",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Dashboard agrees with source records",
+    "steps": "Compare counts, outstanding debt and Needs attention before/after a test invoice, manual payment and repair update.",
+    "expected": "Summary values agree with source records; a resolved item does not remain counted as unresolved."
+  },
+  {
+    "id": "CFG-02",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Account settings and theme",
+    "steps": "Update permitted profile fields and theme; refresh and reopen on phone.",
+    "expected": "Saved account/theme choices persist and long text remains readable."
+  },
+  {
+    "id": "CFG-03",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Workspace settings and authority",
+    "steps": "As manager, change a permitted fictional workspace field. Have your paired tenant check that they cannot edit the manager's workspace settings.",
+    "expected": "Only authorised roles can change workspace settings; other users do not gain controls through a direct URL."
+  },
+  {
+    "id": "CFG-04",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "WhatsApp notification preferences",
+    "steps": "Open Notifications; inspect your WhatsApp connection and optional notice preferences.",
+    "expected": "Your connection and consent state are accurate; saving a preference does not claim that a message was sent."
+  },
+  {
+    "id": "CFG-05",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Menu and deep-link navigation",
+    "steps": "Open module submenu links and a saved authorised detail link; use Back and refresh.",
+    "expected": "The correct section is selected and the appropriate record/page is restored without losing role context."
+  },
+  {
+    "id": "SEC-01",
+    "module": "Access and resilience",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Separate workspace isolation",
+    "steps": "Pair with another manager tester, each using a separate fictional workspace. Share links to test properties, tenants, invoices and reports; try each other's links while signed in to your own account.",
+    "expected": "Foreign data/actions are denied; search, counts, exports and errors do not reveal private records."
+  },
+  {
+    "id": "SEC-02",
+    "module": "Access and resilience",
+    "roles": [
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Tenant role boundaries",
+    "steps": "As tenant, try a manager-only page shared by your paired manager, then links to a second test tenant's invoice, lease, statement and documents.",
+    "expected": "You can see only your own permitted records; manager-only pages and the other tenant's private records remain unavailable."
+  },
+  {
+    "id": "SEC-03",
+    "module": "Access and resilience",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Two tabs and repeat submission",
+    "steps": "Open the same disposable form/report in two tabs; save once; refresh the other tab and repeat only the intended action.",
+    "expected": "Current state is clear; duplicate submissions do not silently duplicate critical records."
+  },
+  {
+    "id": "SEC-04",
+    "module": "Access and resilience",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Temporary connection failure",
+    "steps": "Create a disposable test draft, briefly disconnect your network and try saving. Reconnect and retry once.",
+    "expected": "Failure feedback is actionable; the application does not claim a save that failed or create duplicates on recovery."
+  },
+  {
+    "id": "SEC-05",
+    "module": "Access and resilience",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Mobile and keyboard operation",
+    "steps": "Run a main journey at phone width and on desktop using Tab/Enter/Escape; inspect drawers, errors and PDF actions.",
+    "expected": "Primary controls are reachable, labels/errors are readable, focus is usable and there is no horizontal page overflow."
+  },
+  {
+    "id": "SEC-06",
+    "module": "Access and resilience",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Loading, empty and long-content states",
+    "steps": "Use an empty account, a slow connection and long fictional record names; inspect list/detail screens.",
+    "expected": "Loading/empty/error states are distinct and long content does not hide controls or misrepresent old data as fresh."
+  },
+  {
+    "id": "ACC-13",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Expired or reused password-reset links",
+    "steps": "Reset your password using the link sent to your own mailbox, then try the same link again. If you have an expired reset link from an earlier attempt, try that too.",
+    "expected": "Used or expired links cannot change the password or bypass normal sign-in and MFA."
+  },
+  {
+    "id": "ACC-14",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Remove and re-enable MFA",
+    "steps": "On your own test account, remove MFA with your password and authenticator code, then set it up again.",
+    "expected": "Both proofs are required; MFA login works again after re-enrollment."
+  },
+  {
+    "id": "ACC-15",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Update your profile photo",
+    "steps": "Upload a small permitted photo; refresh and replace it. Try a harmless unsupported file.",
+    "expected": "Your photo persists; invalid files are rejected clearly."
+  },
+  {
+    "id": "ACC-16",
+    "module": "Accounts",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Submit a test identity check",
+    "steps": "If identity submission is offered, enter made-up details and use a clearly labelled harmless sample image. Never upload a real ID for this exercise.",
+    "expected": "Required fields and files are checked; the submission is saved privately as pending review. This check ends at submission; you do not need to wait for approval."
+  },
+  {
+    "id": "LEASE-09",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Prepare a lease renewal",
+    "steps": "On an active fictional tenancy, choose the renewal action; review dates and terms, then save the draft and reopen it.",
+    "expected": "The renewal links to the correct existing lease and tenant; terms and draft/signing state remain consistent without duplicating the current tenancy."
+  },
+  {
+    "id": "LEASE-10",
+    "module": "Leases and documents",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Future renewal date checks",
+    "steps": "Use a signed test renewal that starts later; try to start it early. Automatic renewal jobs are paused for this exercise.",
+    "expected": "Early activation is blocked and the current tenancy stays consistent. The future agreement and its signing state remain available."
+  },
+  {
+    "id": "LEASE-11",
+    "module": "Leases and documents",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "End a disposable test lease",
+    "steps": "Create a separate fictional tenancy for this check. As manager, use End lease and compare the unit, lease history and existing invoices.",
+    "expected": "The ending is recorded clearly; occupancy and lease state agree and invoice/receipt history is retained. No money is moved."
+  },
+  {
+    "id": "DEP-01",
+    "module": "Deposits",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Request a deposit invoice",
+    "steps": "Open Security deposit on a fictional lease; request the outstanding deposit once. Use direct/manual test records only.",
+    "expected": "A separate deposit invoice is created for the correct tenancy; rent is not charged twice and no online payment starts."
+  },
+  {
+    "id": "DEP-02",
+    "module": "Deposits",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Record a deposit already held",
+    "steps": "Use Already held with a fictional pre-existing deposit; save its date and note, then reopen.",
+    "expected": "The held amount and history update once; this opening record does not invent a new payment receipt."
+  },
+  {
+    "id": "DEP-03",
+    "module": "Deposits",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Record a simulated deposit payment",
+    "steps": "Use a fresh deposit invoice and record a manual test payment; compare the deposit drawer, receipt/history and tenant view.",
+    "expected": "The deposit balance and records agree, while the separate rent invoice stays unchanged. No money is transferred."
+  },
+  {
+    "id": "DEP-04",
+    "module": "Deposits",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Propose a deduction with evidence",
+    "steps": "On fictional held funds, propose a supported deduction with a reason and harmless sample evidence.",
+    "expected": "The proposal and evidence are retained privately; the amount is reserved rather than silently applied before the supported review."
+  },
+  {
+    "id": "DEP-05",
+    "module": "Deposits",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Review and apply an accepted deduction",
+    "steps": "Tenant reviews a fictional proposal and accepts using the supported action; manager follows the available apply step.",
+    "expected": "The state and remaining deposit agree on both sides; repeat actions cannot apply the same deduction twice."
+  },
+  {
+    "id": "DEP-06",
+    "module": "Deposits",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P1",
+    "title": "Dispute or withdraw a deduction",
+    "steps": "Use fresh fictional proposals to try the supported dispute and withdrawal/resolution actions, with reasons.",
+    "expected": "Reasons and review state remain visible; held funds are not silently deducted and historical evidence is retained."
+  },
+  {
+    "id": "DEP-07",
+    "module": "Deposits",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Record a simulated deposit refund",
+    "steps": "Use Record refund on a fictional available balance with a dummy reference. Try an amount larger than available first.",
+    "expected": "Invalid amounts are refused; a valid manual record updates the balance once without an actual bank or mobile-money transfer."
+  },
+  {
+    "id": "DEP-08",
+    "module": "Deposits",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": true,
+    "priority": "P0",
+    "title": "Deposit evidence permissions and file checks",
+    "steps": "Upload a harmless permitted sample, then try an unsupported file. Copy the sample's private link and have another tester from a separate workspace try it from their own account.",
+    "expected": "File constraints are clear and another tenant/workspace cannot retrieve private evidence."
+  },
+  {
+    "id": "ASST-01",
+    "module": "Assistant",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Open and close the assistant",
+    "steps": "If the assistant is enabled for your account, open it, send a harmless greeting and close it. Otherwise choose Not applicable.",
+    "expected": "The enabled assistant loads and responds; you can close it without losing app progress."
+  },
+  {
+    "id": "ASST-02",
+    "module": "Assistant",
+    "roles": [
+      "manager"
+    ],
+    "paired": false,
+    "priority": "P1",
+    "title": "Check an assistant answer",
+    "steps": "Ask for a summary of your own test portfolio; compare the response with the source records.",
+    "expected": "The response uses current authorised workspace data and does not invent records."
+  },
+  {
+    "id": "ASST-03",
+    "module": "Assistant",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P0",
+    "title": "Assistant access boundaries",
+    "steps": "Pair with another tester using a separate fictional workspace. Ask the assistant about a made-up property or invoice from that workspace and check that it does not reveal the other tester's records.",
+    "expected": "It cannot reveal another workspace or tenant’s private records."
+  },
+  {
+    "id": "HELP-01",
+    "module": "Settings and dashboard",
+    "roles": [
+      "manager",
+      "tenant"
+    ],
+    "paired": false,
+    "priority": "P2",
+    "title": "Help and contact links",
+    "steps": "Open the help/contact options available in Settings and check their destination.",
+    "expected": "Links work and the available support route is understandable."
+  }
+]

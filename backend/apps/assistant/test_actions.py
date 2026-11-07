@@ -364,7 +364,7 @@ def test_openapi_marks_only_post_operations_in_assistant_namespace():
         if path.startswith("/api/v1/assistant/")
     }
 
-    assert len(assistant_paths) == 9
+    assert len(assistant_paths) == 11
     for operations in assistant_paths.values():
         assert set(operations) == {"post"}
         assert operations["post"]["x-agent"] == {"enabled": True}

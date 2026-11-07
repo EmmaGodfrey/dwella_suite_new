@@ -44,11 +44,29 @@ def lease_source(lease):
     }
 
 
+def payment_options(organization):
+    from django.conf import settings
+
+    from apps.billing.models import PaymentInstruction
+
+    return {
+        # Tenants with a Dwella account can pay online when collections are on.
+        "online_payment": settings.LENCO_PAYMENTS_ENABLED,
+        "payment_instructions": [
+            item.as_snapshot()
+            for item in PaymentInstruction.objects.filter(organization=organization)
+        ],
+    }
+
+
 def invoice_source(invoice):
     return {
+        **payment_options(invoice.organization),
         "reference": invoice.reference,
         "issuer": issuer(invoice.organization),
         "tenant_name": invoice.tenant.full_name,
+        "tenant_tpin": invoice.tenant.tpin,
+        "tenant_billing_address": invoice.tenant.billing_address,
         "tenant_email": invoice.tenant.email,
         "tenant_phone": invoice.tenant.phone_number,
         "premises": f"{invoice.unit.property.name} · {invoice.unit.name}" if invoice.unit else "—",
@@ -56,7 +74,13 @@ def invoice_source(invoice):
         "lease_reference": invoice.lease.reference if invoice.lease else "",
         "issue_date": str(invoice.issue_date),
         "due_date": str(invoice.due_date),
-        "period": str(invoice.period_start) if invoice.period_start else "One-off charge",
+        "period": (
+            str(invoice.period_start)
+            if invoice.period_start
+            else "Balance brought forward"
+            if invoice.is_opening_balance
+            else "One-off charge"
+        ),
         "status": invoice.get_status_display(),
         "total": str(invoice.total),
         "amount_paid": str(invoice.amount_paid),

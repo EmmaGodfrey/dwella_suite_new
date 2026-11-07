@@ -3,7 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Breadcrumb, BreadcrumbButton, BreadcrumbDivider, BreadcrumbItem } from "@fluentui/react-components";
 
 import { useCurrentUserQuery, useInvoiceQuery, useLeaseQuery, useMaintenanceRequestQuery, useReceiptQuery } from "../../Services/queries";
-import { getPageMeta } from "../navigation";
+import { getNavigationItems, getPageMeta } from "../navigation";
+import { selectedDestination } from "../navigationState.mjs";
 import { appHref } from "../storage";
 
 // Detail pages name the record once its page has loaded it. The queries are
@@ -26,15 +27,17 @@ function useDetailLabel(pathname) {
 }
 
 export const AppBreadcrumbs = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const detail = useDetailLabel(pathname);
   const section = `/${pathname.split("/").filter(Boolean)[0] || "dashboard"}`;
 
+  const selected = selectedDestination(getNavigationItems(user), pathname, search);
   const crumbs = [{ to: "/dashboard", label: getPageMeta("/dashboard", user)[0] }];
   if (section !== "/dashboard") crumbs.push({ to: section, label: getPageMeta(section, user)[0] });
   if (pathname.startsWith("/billing/receipts")) crumbs.push({ to: "/billing/receipts", label: "Receipts" });
+  if (pathname === "/billing/statement") crumbs.push({ to: pathname, label: "Statement" });
   if (detail) crumbs.push({ to: pathname, label: detail });
   if (pathname.startsWith("/admin/")) {
     const sectionPath = pathname.split("/").slice(0, 3).join("/");
@@ -48,13 +51,20 @@ export const AppBreadcrumbs = () => {
     const page = pathname.split("/")[3];
     crumbs[crumbs.length - 1].label = ({sequences: "Sequences", review: "Review queue", outbox: "Outbox", settings: "Settings", contacts: "Contact"})[page] || "Outreach";
   }
+  if (selected?.parent.children?.length) {
+    crumbs.splice(1, crumbs.length, { to: selected.parent.to, label: selected.parent.label });
+    const child = selected.destination;
+    crumbs.push({ to: child.to, label: child.label });
+    if (detail) crumbs.push({ to: pathname, label: detail });
+    else if (pathname.startsWith("/admin/outreach/contacts/")) crumbs.push({ to: pathname, label: "Contact" });
+  }
 
   return (
     <Breadcrumb className="dwella-breadcrumbs" aria-label="Breadcrumb" size="medium">
       {crumbs.map((crumb, index) => {
         const current = index === crumbs.length - 1;
         return (
-          <React.Fragment key={crumb.to}>
+          <React.Fragment key={`${crumb.to}-${index}`}>
             <BreadcrumbItem>
               <BreadcrumbButton
                 href={appHref(crumb.to)}

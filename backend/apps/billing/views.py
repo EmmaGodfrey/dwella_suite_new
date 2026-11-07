@@ -10,14 +10,16 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
+from apps.audit.services import record_event
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.integrations import smart_invoice
 
-from .models import Invoice, Payment
+from .models import Invoice, Payment, PaymentInstruction
 from .serializers import (
     GenerateInvoicesSerializer,
     InvoiceDetailSerializer,
     InvoiceSerializer,
+    PaymentInstructionSerializer,
     PaymentSerializer,
     ReceiptSerializer,
     RecordPaymentSerializer,
@@ -80,7 +82,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         queryset = super().get_queryset()
         if self.action == "retrieve":
             queryset = queryset.select_related("organization__smart_invoice").prefetch_related(
-                "payments__recorded_by"
+                "payments__recorded_by",
+                "payments__collection__destination",
+                "payments__collection__payout",
             )
         return queryset
 
@@ -173,7 +177,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         unpaid = invoices.filter(status__in=Invoice.UNPAID_STATUSES)
         overdue = unpaid.filter(due_date__lt=today)
         outstanding = F("total") - F("amount_paid")
-        billed = invoices.filter(issue_date__range=(first, last)).aggregate(
+        # Old debt brought into Dwella counts as owed, but was not billed this month.
+        charges = invoices.filter(is_opening_balance=False)
+        billed = charges.filter(issue_date__range=(first, last)).aggregate(
             total=Coalesce(Sum("total"), ZERO), count=Count("id")
         )
         payments = Payment.objects.filter(invoice__in=self.get_queryset(), reversed_at__isnull=True)
@@ -182,7 +188,7 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         )
         # Rent counts toward the month it is for, so a late invoice run still
         # lands in the right month; one-off charges fall back to issue date.
-        by_period = invoices.annotate(month=TruncMonth(Coalesce("period_start", "issue_date")))
+        by_period = charges.annotate(month=TruncMonth(Coalesce("period_start", "issue_date")))
         # This month's invoices split three ways so the parts add up to what
         # was billed: already paid, still within terms, and past due.
         this_month = by_period.filter(month=first).aggregate(
@@ -243,7 +249,15 @@ class PaymentFilter(filters.FilterSet):
 class PaymentViewSet(OrganizationScopedModelViewSet):
     serializer_class = PaymentSerializer
     queryset = Payment.objects.select_related(
-        "invoice__unit__property", "tenant", "recorded_by", "organization", "reversed_by"
+        "invoice__unit__property",
+        "tenant",
+        "recorded_by",
+        "organization",
+        "reversed_by",
+        "collection__invoice",
+        "collection__payment",
+        "collection__destination",
+        "collection__payout",
     )
     filterset_class = PaymentFilter
     search_fields = ["receipt_number", "reference", "tenant__full_name"]
@@ -268,3 +282,41 @@ class PaymentViewSet(OrganizationScopedModelViewSet):
         )
         payment = self.get_queryset().get(pk=payment.pk)
         return Response(self.get_serializer(payment).data)
+
+
+class PaymentInstructionViewSet(OrganizationScopedModelViewSet):
+    """Up to three ways tenants can pay the workspace directly, printed on invoices."""
+
+    queryset = PaymentInstruction.objects.all()
+    serializer_class = PaymentInstructionSerializer
+    pagination_class = None
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        organization = self.get_organization()
+        # Lock the workspace row so two quick saves cannot pass the limit together.
+        type(organization).objects.select_for_update().get(pk=organization.pk)
+        if (
+            PaymentInstruction.objects.filter(organization=organization).count()
+            >= PaymentInstruction.MAX_PER_WORKSPACE
+        ):
+            raise ValidationError(
+                {"detail": "You can add up to three ways to pay. Remove one first."}
+            )
+        instruction = serializer.save(organization=organization)
+        self.audit("billing.payment_instruction_added", instruction)
+
+    def perform_update(self, serializer):
+        self.audit("billing.payment_instruction_changed", serializer.save())
+
+    def perform_destroy(self, instance):
+        self.audit("billing.payment_instruction_removed", instance)
+        instance.delete()
+
+    def audit(self, action, instruction):
+        # Changed payment details are a classic fraud route: always keep a record.
+        record_event(
+            self.request, action, instruction, instruction.organization,
+            kind=instruction.kind,
+        )

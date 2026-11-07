@@ -1,13 +1,22 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Button,
   Hamburger,
   Nav,
   NavItem,
+  NavCategory,
+  NavSubItem,
+  NavSubItemGroup,
+  SplitNavItem,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
   NavSectionHeader,
   Tooltip,
 } from "@fluentui/react-components";
-import { ChevronLeft24Regular, ChevronRight24Regular, Dismiss24Regular } from "@fluentui/react-icons";
+import { ChevronDown20Regular, ChevronRight20Regular, ChevronLeft24Regular, ChevronRight24Regular, Dismiss24Regular } from "@fluentui/react-icons";
 import { useNavigate } from "react-router-dom";
 
 import { accessLabel, getUserAccess } from "../access";
@@ -38,13 +47,18 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
   const navigate = useNavigate();
   const showLabels = !collapsed || mobileOpen;
   const navigationItems = getNavigationItems(user);
+  const activeModule = navigationItems.find(item => item.children?.some(child => child.value === selectedValue))?.value;
+  const [openCategories, setOpenCategories] = useState(activeModule ? [activeModule] : []);
+  useEffect(() => {
+    setOpenCategories(activeModule ? [activeModule] : []);
+  }, [activeModule, selectedValue]);
   const workspace = workspaceFor(user);
   const openWorkspace = useSupportAccess();
   const isAdmin = getUserAccess(user).persona === "platform_admin";
   const WorkspaceControl = isAdmin ? "button" : "div";
 
   const handleNavItemSelect = (event, data) => {
-    const destination = navigationItems.find((item) => item.value === data.value);
+    const destination = navigationItems.flatMap(item => [item, ...item.children]).find((item) => item.value === data.value);
 
     if (!destination || opensOutsideTheApp(event)) {
       return;
@@ -82,6 +96,9 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
           className="dwella-sidebar-nav"
           density="small"
           selectedValue={selectedValue}
+          selectedCategoryValue={activeModule}
+          openCategories={openCategories}
+          multiple
           onNavItemSelect={handleNavItemSelect}
         >
           {navigationGroups.map((group) => {
@@ -91,7 +108,37 @@ export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseTog
             return (
               <React.Fragment key={group.value}>
                 {showLabels ? <NavSectionHeader className="dwella-nav-section">{group.label}</NavSectionHeader> : <span className="dwella-nav-divider" aria-hidden="true" />}
-                {items.map((item) => (
+                {items.map((item) => item.children.length ? showLabels ? (
+                  <React.Fragment key={item.value}>
+                    <SplitNavItem className={`dwella-nav-module ${activeModule === item.value ? "is-active" : ""}`}
+                      navItem={{ value: item.value, href: appHref(item.to), icon: { children: item.icon, className: "dwella-nav-item-icon" }, "data-tour": `nav-${item.value}` }}
+                      actionButton={{
+                        "aria-label": `${openCategories.includes(item.value) ? "Collapse" : "Expand"} ${item.label}`,
+                        "aria-expanded": openCategories.includes(item.value),
+                        "aria-controls": `nav-children-${item.value}`,
+                        icon: openCategories.includes(item.value) ? <ChevronDown20Regular /> : <ChevronRight20Regular />,
+                        onClick: () => setOpenCategories(current => current.includes(item.value) ? current.filter(value => value !== item.value) : [...current, item.value]),
+                      }}>
+                      {item.label}
+                    </SplitNavItem>
+                    <NavCategory value={item.value}>
+                    <NavSubItemGroup id={`nav-children-${item.value}`} className="dwella-nav-children">
+                      {item.children.map(child => <NavSubItem key={child.value} value={child.value} href={appHref(child.to)}>{child.label}</NavSubItem>)}
+                    </NavSubItemGroup>
+                    </NavCategory>
+                  </React.Fragment>
+                ) : (
+                  <Menu key={item.value} positioning="after-top">
+                    <MenuTrigger disableButtonEnhancement>
+                      <Button className={`dwella-nav-flyout-trigger ${activeModule === item.value ? "is-active" : ""}`} appearance="transparent" icon={item.icon}
+                        aria-label={`${item.label} sections`} data-tour={`nav-${item.value}`} />
+                    </MenuTrigger>
+                    <MenuPopover><MenuList aria-label={`${item.label} sections`}>
+                      {item.children.map(child => <MenuItem as="a" key={child.value} href={appHref(child.to)} aria-current={selectedValue === child.value ? "page" : undefined}
+                        onClick={event => handleNavItemSelect(event, { value: child.value })}>{child.label}</MenuItem>)}
+                    </MenuList></MenuPopover>
+                  </Menu>
+                ) : (
                   <NavItem
                     aria-label={item.label}
                     key={item.value}

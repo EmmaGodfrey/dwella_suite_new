@@ -30,8 +30,13 @@ ACTOR_ROLES = {OrganizationMembership.Role.LANDLORD}
 
 def handy_agent_enabled():
     from apps.audit.models import PlatformSettings
+    from apps.audit.runtime_settings import assistant_configured, runtime_settings
 
-    return PlatformSettings.objects.filter(pk=1, handy_agent_enabled=True).exists()
+    instance = PlatformSettings.objects.filter(pk=1, handy_agent_enabled=True).first()
+    return bool(instance and (
+        "assistant_url" not in instance.runtime_config
+        or assistant_configured(runtime_settings(instance=instance))
+    ))
 
 
 def token_access(user, request):

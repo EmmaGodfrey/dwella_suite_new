@@ -13,6 +13,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.audit.runtime_settings import beta_open_date, runtime_settings
+
 from .emails import BetaEmailError, application_from_token, deliver, send_due_emails
 from .models import BetaApplication, BetaEmail
 from .serializers import (
@@ -23,6 +25,9 @@ from .serializers import (
 
 logger = logging.getLogger(__name__)
 RECEIVED = "Your beta application has been received."
+# Each access email provisions an account and talks to SMTP, so a bulk send
+# goes out in short batches rather than one long request.
+ACCESS_BATCH = 25
 
 
 def send_welcome_after_commit(application):
@@ -76,7 +81,6 @@ class BetaApplicationAdminViewSet(
     ordering = ["-created_at"]
 
     def get_queryset(self):
-        from datetime import date
 
         from django.db.models import Exists, OuterRef
 
@@ -88,7 +92,7 @@ class BetaApplicationAdminViewSet(
             access = BetaEmail.objects.filter(
                 application_id=OuterRef("pk"),
                 kind="access",
-                sent_at__date__lt=date.fromisoformat(settings.BETA_OPEN_DATE),
+                sent_at__date__lt=beta_open_date(),
             )
             query = query.annotate(has_early_access=Exists(access)).filter(
                 has_early_access=early == "true",
@@ -136,12 +140,55 @@ class BetaApplicationAdminViewSet(
         application = self.get_queryset().get(pk=application.pk)
         return Response(self.get_serializer(application).data)
 
+    def pending_access(self):
+        """Signups that can be sent sign-in details and have never had them."""
+        from django.db.models import Exists, OuterRef
+
+        from apps.outreach.models import Suppression
+
+        return (
+            BetaApplication.objects.exclude(email="")
+            .exclude(status=BetaApplication.Status.DECLINED)
+            .exclude(Exists(BetaEmail.objects.filter(application_id=OuterRef("pk"), kind="access")))
+            .exclude(Exists(Suppression.objects.filter(email__iexact=OuterRef("email"))))
+            .order_by("created_at", "pk")
+        )
+
+    @action(detail=False, methods=["get", "post"], url_path="send-access-all")
+    def send_access_all(self, request):
+        """GET counts who is waiting; POST sends the next batch. One batch keeps the
+        request short; the screen repeats it until nobody is left."""
+        if request.method == "GET":
+            return Response({"pending": self.pending_access().count()})
+        if not runtime_settings()["beta_emails_enabled"]:
+            raise ValidationError({"detail": "Beta emails are paused in platform settings."})
+        from apps.audit.services import record_event
+
+        sent = failed = 0
+        for application in self.pending_access().select_related("account")[:ACCESS_BATCH]:
+            try:
+                if not deliver(application, BetaEmail.Kind.ACCESS):
+                    continue  # Sent by someone else a moment ago.
+            except Exception:
+                failed += 1
+                logger.exception("Access email for application %s failed", application.pk)
+                continue
+            sent += 1
+            if application.status != BetaApplication.Status.ACCEPTED:
+                application.status = BetaApplication.Status.ACCEPTED
+                application.save(update_fields=["status", "updated_at"])
+        record_event(request, "marketing.beta_access_bulk", sent=sent, failed=failed)
+        return Response({"sent": sent, "failed": failed, "pending": self.pending_access().count()})
+
     @action(detail=False, methods=["get"], url_path="email-settings")
     def email_settings(self, request):
+        config = runtime_settings()
         return Response(
             {
-                "enabled": settings.BETA_EMAILS_ENABLED,
-                "beta_open_date": settings.BETA_OPEN_DATE,
+                "enabled": config["beta_emails_enabled"],
+                "beta_open_date": config["beta_open_date"],
+                "countdown_days": config["beta_countdown_days"],
+                "send_hour": config["beta_send_hour"],
             }
         )
 

@@ -2,6 +2,8 @@ from pathlib import Path
 
 import dj_database_url
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.validators import validate_email
 
 from .env import env_bool, env_list, load_root_env
 from .storage import storage_settings
@@ -13,6 +15,12 @@ ROOT_DIR = BASE_DIR.parent
 
 SECRET_KEY = __import__("os").getenv("APP_SECRET_KEY", "dev-only-change-me")
 DEBUG = env_bool("APP_DEBUG", False)
+APP_ENVIRONMENT = __import__("os").getenv("APP_ENVIRONMENT", "production")
+ALPHA_TEST_ENABLED = env_bool("APP_ALPHA_TEST_ENABLED", False)
+if ALPHA_TEST_ENABLED and APP_ENVIRONMENT != "test":
+    raise ImproperlyConfigured("APP_ALPHA_TEST_ENABLED is restricted to test.")
+NATIVE_ADMIN_ENABLED = env_bool("APP_NATIVE_ADMIN_ENABLED", DEBUG)
+REQUIRE_ADMIN_MFA = env_bool("APP_REQUIRE_ADMIN_MFA", APP_ENVIRONMENT == "production")
 ALLOWED_HOSTS = env_list("APP_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("APP_CSRF_TRUSTED_ORIGINS", "")
 
@@ -46,18 +54,23 @@ INSTALLED_APPS = [
     "apps.outreach",
     "apps.subscriptions",
     "apps.integrations",
+    "apps.payments",
     "apps.marketing",
     "apps.scheduler",
+    "apps.portal",
+    "apps.imports",
 ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "apps.common.middleware.NativeAdminBoundaryMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.notifications.actor_context.NoticeActorMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.common.middleware.SecurityHeadersMiddleware",
@@ -89,8 +102,14 @@ DATABASES = {
     "default": dj_database_url.config(
         default="sqlite:///" + str(BASE_DIR / "db.sqlite3"),
         conn_max_age=60,
+        # Threads keep their own persistent connection; check it before reuse so a
+        # database restart surfaces as a reconnect, not a failed request.
+        conn_health_checks=True,
     )
 }
+# A separate connection to the same PostgreSQL database commits mail reservations
+# even when a legacy synchronous account-mail caller rolls its own transaction back.
+DATABASES["email_quota"] = {**DATABASES["default"], "TEST": {"MIRROR": "default"}}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -126,14 +145,39 @@ EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
 EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
 EMAIL_TIMEOUT = int(__import__("os").getenv("EMAIL_TIMEOUT", "20"))
 DEFAULT_FROM_EMAIL = __import__("os").getenv("EMAIL_FROM_ADDRESS", "no-reply@dwella.local")
+from .messaging import messaging_settings  # noqa: E402
+
+globals().update(messaging_settings(EMAIL_BACKEND))
+if EMAIL_BACKEND in (
+    "django.core.mail.backends.smtp.EmailBackend", "apps.common.email_router.EmailBackend"
+):
+    RUNTIME_MAIL_INNER_BACKEND = EMAIL_BACKEND
+    EMAIL_BACKEND = "apps.common.runtime_mail.RuntimeEmailBackend"
 # Staging/demo guard: when set, email only reaches these addresses or @domains.
 OUTBOUND_EMAIL_ALLOWLIST = env_list("APP_OUTBOUND_EMAIL_ALLOWLIST", "")
-if OUTBOUND_EMAIL_ALLOWLIST:
+TEST_EMAIL_REDIRECT_TO = __import__("os").getenv("TEST_EMAIL_REDIRECT_TO", "").strip()
+if TEST_EMAIL_REDIRECT_TO:
+    if APP_ENVIRONMENT != "test":
+        raise ImproperlyConfigured("TEST_EMAIL_REDIRECT_TO may only be enabled in test.")
+    try:
+        validate_email(TEST_EMAIL_REDIRECT_TO)
+    except ValidationError as error:
+        raise ImproperlyConfigured(
+            "TEST_EMAIL_REDIRECT_TO must be one valid email address."
+        ) from error
+if OUTBOUND_EMAIL_ALLOWLIST or TEST_EMAIL_REDIRECT_TO:
     OUTBOUND_INNER_EMAIL_BACKEND = EMAIL_BACKEND
     EMAIL_BACKEND = "apps.common.mail.AllowlistEmailBackend"
 FRONTEND_URL = __import__("os").getenv("FRONTEND_URL", "http://localhost:5173")
 HANDY_AGENT_SIGNING_SECRET = __import__("os").getenv("HANDY_AGENT_SIGNING_SECRET", "")
 HANDY_AGENT_URL = __import__("os").getenv("VITE_HANDY_AGENT_URL", "")
+HANDY_AGENT_ALLOWED_ORIGINS = env_list(
+    "HANDY_AGENT_ALLOWED_ORIGINS",
+    "https://dwella.handyagents.wazabanda.dev,https://dwella.agents.handyagent.chat",
+)
+APPROVED_EMAIL_SENDERS = env_list("APP_APPROVED_EMAIL_SENDERS", "")
+APPROVED_SMS_SENDERS = env_list("APP_APPROVED_SMS_SENDERS", "")
+APPROVED_WHATSAPP_TEMPLATES = env_list("APP_APPROVED_WHATSAPP_TEMPLATES", "")
 HANDY_AGENT_ISSUER = __import__("os").getenv(
     "HANDY_AGENT_ISSUER", "https://api.dwella.properties"
 )
@@ -192,7 +236,7 @@ REST_FRAMEWORK = {
     # Without a proxy count DRF keys throttles on the whole X-Forwarded-For
     # header, which a client can prefix with any value to get a fresh limit.
     # With it set, only the address our own proxy appended is trusted.
-    "NUM_PROXIES": int(__import__("os").getenv("APP_TRUSTED_PROXY_COUNT") or 0) or None,
+    "NUM_PROXIES": int(__import__("os").getenv("APP_TRUSTED_PROXY_COUNT") or 0),
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -200,13 +244,29 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": __import__("os").getenv("THROTTLE_ANON_RATE", "100/hour"),
-        "user": __import__("os").getenv("THROTTLE_USER_RATE", "1000/hour"),
+        # Six dashboard reads plus navigation and polling can exceed 1000/hour.
+        # Sensitive writes/rendering retain their independent, lower scopes.
+        "user": __import__("os").getenv("THROTTLE_USER_RATE", "6000/hour"),
         "support_session": "10/hour",
         "platform_write": "20/minute",
         "login": __import__("os").getenv("THROTTLE_LOGIN_RATE", "8/minute"),
+        "login_ip": __import__("os").getenv("THROTTLE_LOGIN_IP_RATE", "60/minute"),
         "registration": __import__("os").getenv("THROTTLE_REGISTRATION_RATE", "5/hour"),
         "password_reset": __import__("os").getenv("THROTTLE_PASSWORD_RESET_RATE", "3/hour"),
+        "password_reset_ip": __import__("os").getenv(
+            "THROTTLE_PASSWORD_RESET_IP_RATE", "60/minute"
+        ),
+        "password_reset_confirm": __import__("os").getenv(
+            "THROTTLE_PASSWORD_RESET_CONFIRM_RATE", "10/hour"
+        ),
         "two_factor": __import__("os").getenv("THROTTLE_2FA_RATE", "10/minute"),
+        "two_factor_ip": __import__("os").getenv("THROTTLE_2FA_IP_RATE", "60/minute"),
+        "tenant_invitation_ip": __import__("os").getenv(
+            "THROTTLE_INVITATION_IP_RATE", "120/minute"
+        ),
+        "tenant_invitation_token": __import__("os").getenv(
+            "THROTTLE_INVITATION_TOKEN_RATE", "20/hour"
+        ),
         "handy_agent_token": __import__("os").getenv(
             "THROTTLE_HANDY_AGENT_TOKEN_RATE", "20/hour"
         ),
@@ -214,8 +274,12 @@ REST_FRAMEWORK = {
             "THROTTLE_HANDY_AGENT_ACTION_RATE", "120/hour"
         ),
         "beta_application": __import__("os").getenv("THROTTLE_BETA_APPLICATION_RATE", "5/hour"),
+        "public_configuration": "120/hour",
     },
 }
+
+if REST_FRAMEWORK["NUM_PROXIES"] < 0:
+    raise ImproperlyConfigured("APP_TRUSTED_PROXY_COUNT must be zero or a positive integer.")
 
 BETA_REGISTRATION_OPEN = (
     __import__("os").getenv("APP_BETA_REGISTRATION_OPEN", "false").lower() == "true"
@@ -224,9 +288,19 @@ BETA_REGISTRATION_OPEN = (
 # marked as sent while EMAIL_BACKEND is still the console. Turning it on later
 # catches up any welcome emails that were missed.
 BETA_EMAILS_ENABLED = env_bool("APP_BETA_EMAILS_ENABLED", False)
+MESSAGING_EMAIL_ENABLED = env_bool("APP_MESSAGING_EMAIL_ENABLED", False)
+WHATSAPP_OPERATIONAL_TEMPLATE = __import__("os").getenv("APP_WHATSAPP_OPERATIONAL_TEMPLATE", "")
+WHATSAPP_PUBLIC_NUMBER = __import__("os").getenv("APP_WHATSAPP_PUBLIC_NUMBER", "")
+SMS_INCOMING_NUMBER = __import__("os").getenv("APP_SMS_INCOMING_NUMBER", "")
+# Rolling 24-hour ceiling for notices and reminders. Gmail allows about 500 a day,
+# shared with sign-in and signing mail, so stay under it until a mail service is chosen.
+MESSAGING_EMAIL_DAILY_LIMIT = int(__import__("os").getenv("APP_MESSAGING_EMAIL_DAILY_LIMIT", "400"))
 BETA_OPEN_DATE = __import__("os").getenv("APP_BETA_OPEN_DATE", "2026-11-18")
 BETA_EMAIL_REPLY_TO = __import__("os").getenv("APP_BETA_EMAIL_REPLY_TO", "")
 MARKETING_SITE_URL = __import__("os").getenv("MARKETING_SITE_URL", "https://dwella.properties")
+SUPPORT_EMAIL = __import__("os").getenv("APP_SUPPORT_EMAIL", "eglabs.dev@gmail.com")
+SUPPORT_PHONE = __import__("os").getenv("APP_SUPPORT_PHONE", "+260769512818")
+LAUNCH_DATE = __import__("os").getenv("APP_LAUNCH_DATE", "2026-12-18")
 PUBLIC_API_URL = __import__("os").getenv("PUBLIC_API_URL", "http://localhost:8000")
 OPENAPI_SERVER_URL = __import__("os").getenv(
     "OPENAPI_SERVER_URL", PUBLIC_API_URL.removesuffix("/api")
@@ -258,6 +332,12 @@ BACKUP_DIR = __import__("os").getenv("APP_BACKUP_DIR", str(BASE_DIR / "backups")
 CELERY_BROKER_URL = __import__("os").getenv("REDIS_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
+# Requested verification codes are separate from optional operational notices.
+# Enable only after the authentication template is approved and configured.
+WHATSAPP_OTP_ENABLED = env_bool("APP_WHATSAPP_OTP_ENABLED", False)
+WHATSAPP_OTP_TEMPLATE = __import__("os").getenv("WHATSAPP_OTP_TEMPLATE", "dwella_verify_number")
+WHATSAPP_OTP_LANGUAGE = __import__("os").getenv("WHATSAPP_OTP_LANGUAGE", "en")
+
 # Throttles and rendered document pages must be shared by every gunicorn worker.
 # Without an explicit cache URL each process keeps its own in-memory copy.
 if __import__("os").getenv("APP_CACHE_URL"):
@@ -273,3 +353,28 @@ if __import__("os").getenv("APP_CACHE_URL"):
 ZRA_VSDC_CLIENT = __import__("os").getenv(
     "ZRA_VSDC_CLIENT", "apps.integrations.zra.client.FakeVsdcClient"
 )
+
+# Live credentials never enable collection or debits by themselves.
+LENCO_ENVIRONMENT = __import__("os").getenv("LENCO_ENVIRONMENT", "sandbox")
+LENCO_PAYMENTS_ENABLED = env_bool("LENCO_PAYMENTS_ENABLED", False)
+LENCO_PAYOUTS_ENABLED = env_bool("LENCO_PAYOUTS_ENABLED", False)
+LENCO_ALLOW_UNVERIFIED_DESTINATIONS = env_bool("LENCO_ALLOW_UNVERIFIED_DESTINATIONS", False)
+# Legacy: pay each settled collection out on its own. Landlords now withdraw.
+LENCO_AUTOMATIC_PAYOUTS = env_bool("LENCO_AUTOMATIC_PAYOUTS", False)
+if ALPHA_TEST_ENABLED:
+    # External alpha users may create invoices/manual records, but never move money.
+    LENCO_PAYMENTS_ENABLED = False
+    LENCO_PAYOUTS_ENABLED = False
+    LENCO_AUTOMATIC_PAYOUTS = False
+# Highest public Lenco transfer fee per amount band (upper bound, fee), reserved
+# on top of each withdrawal; Lenco's reported fee is charged up to this.
+LENCO_WITHDRAWAL_FEES = {
+    "mobile-money": [("1000.00", "12.00"), ("50000.00", "25.00")],
+    "bank-account": [("1000.00", "10.00"), ("50000.00", "25.00")],
+}
+LENCO_WITHDRAWAL_MINIMUM = __import__("os").getenv("LENCO_WITHDRAWAL_MINIMUM", "10.00")
+LENCO_DEBIT_ACCOUNT_ID = __import__("os").getenv("LENCO_DEBIT_ACCOUNT_ID", "")
+LENCO_PUBLIC_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_PUBLIC_KEY", "")
+LENCO_SECRET_KEY = __import__("os").getenv(f"LENCO_{LENCO_ENVIRONMENT.upper()}_SECRET_KEY", "")
+LENCO_EVIDENCE_KEY = __import__("os").getenv("LENCO_EVIDENCE_KEY", "")
+LENCO_EVIDENCE_KEY_FALLBACKS = env_list("LENCO_EVIDENCE_KEY_FALLBACKS", "")

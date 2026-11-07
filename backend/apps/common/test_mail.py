@@ -62,9 +62,11 @@ def test_delivery_checks_look_through_the_guard():
 def test_setting_wraps_the_configured_backend(monkeypatch):
     monkeypatch.setenv("APP_OUTBOUND_EMAIL_ALLOWLIST", "eglabs.dev@gmail.com, @tester.example")
     monkeypatch.setenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+    monkeypatch.setenv("APP_EMAIL_ROUTING_ENABLED", "false")
     spec = importlib.util.find_spec("config.settings")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert module.EMAIL_BACKEND == ALLOWLIST_BACKEND
-    assert module.OUTBOUND_INNER_EMAIL_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
+    assert module.OUTBOUND_INNER_EMAIL_BACKEND == "apps.common.runtime_mail.RuntimeEmailBackend"
+    assert module.RUNTIME_MAIL_INNER_BACKEND == "django.core.mail.backends.smtp.EmailBackend"
     assert module.OUTBOUND_EMAIL_ALLOWLIST == ["eglabs.dev@gmail.com", "@tester.example"]

@@ -33,6 +33,315 @@
   color: var(--dwella-muted);
 }
 
+// ---- Soft explanation inside drawers ------------------------------------------
+
+.dwella-soft-note {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--dwella-info-soft);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+
+  strong { color: var(--dwella-primary); }
+  span { color: var(--dwella-ink); }
+
+  &.is-warning {
+    background: var(--dwella-warning-soft);
+
+    strong { color: var(--dwella-warning); }
+    span { color: var(--dwella-ink); }
+  }
+}
+
+// ---- Opening balances ---------------------------------------------------------
+
+.dwella-opening {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dwella-opening-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 12px;
+}
+
+.dwella-opening-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dwella-opening-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid var(--dwella-line-soft);
+}
+
+.dwella-opening-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  strong { margin-right: 6px; color: var(--dwella-ink); }
+  small { color: var(--dwella-muted); font-size: var(--fs-small); }
+}
+
+.dwella-opening-recorded {
+  margin: 0;
+  color: var(--dwella-ink);
+  overflow-wrap: anywhere;
+}
+
+.dwella-opening-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.dwella-opening-note {
+  margin: 0;
+  color: var(--dwella-muted);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.dwella-opening-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 8px;
+
+  p {
+    flex: 1 1 14rem;
+    margin: 0;
+    color: var(--dwella-muted);
+    font-size: var(--fs-small);
+    line-height: var(--lh-small);
+  }
+}
+
+@media (max-width: 640px) {
+  .dwella-opening-controls { grid-template-columns: minmax(0, 1fr); }
+  .dwella-opening-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+// ---- Payment proofs -----------------------------------------------------------
+
+.dwella-proof {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 8px;
+    color: var(--dwella-ink);
+    font-size: var(--fs-h4);
+    line-height: var(--lh-h4);
+  }
+}
+
+.dwella-proof-summary {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--dwella-wash);
+}
+
+.dwella-proof-amount {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+
+  span:first-child { display: block; color: var(--dwella-muted); font-size: var(--fs-small); }
+
+  strong {
+    display: block;
+    color: var(--dwella-ink);
+    font-size: 1.75rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.dwella-proof-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+
+  > div {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--dwella-paper);
+  }
+
+  dt { color: var(--dwella-muted); font-size: var(--fs-small); }
+
+  dd {
+    margin: 2px 0 0;
+    color: var(--dwella-ink);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+}
+
+.dwella-proof-files {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: grid;
+    justify-items: start;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--dwella-line-soft);
+    border-radius: var(--radius-lg);
+  }
+
+  strong { color: var(--dwella-ink); overflow-wrap: anywhere; }
+  small { color: var(--dwella-muted); font-size: var(--fs-small); }
+  .fui-Button { min-width: 0; margin-top: 4px; padding-inline: 0; color: var(--dwella-primary); }
+}
+
+.dwella-proof-file-thumb {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 5rem;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  background: var(--dwella-wash);
+  color: var(--dwella-muted);
+}
+
+.dwella-proof-history {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  strong { display: block; color: var(--dwella-ink); font-weight: 400; }
+  span { color: var(--dwella-muted); font-size: var(--fs-small); overflow-wrap: anywhere; }
+}
+
+.dwella-drawer-footer.dwella-proof-footer { flex-wrap: wrap; justify-content: flex-end; }
+
+.dwella-proof-add.fui-Button {
+  width: 4.5rem;
+  min-width: 4.5rem;
+  max-width: none;
+  height: 4.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.dwella-proof-report {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--dwella-line-soft);
+
+  > div { display: grid; gap: 2px; }
+  strong { color: var(--dwella-ink); }
+  small { color: var(--dwella-muted); font-size: var(--fs-small); }
+}
+
+.dwella-proof-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--dwella-accent-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dwella-proof-invoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--dwella-line-soft);
+  border-radius: var(--radius-lg);
+
+  span { display: grid; gap: 2px; min-width: 0; }
+  strong { color: var(--dwella-ink); overflow-wrap: anywhere; }
+  small { color: var(--dwella-muted); font-size: var(--fs-small); }
+}
+
+.dwella-proof-table {
+  td small { display: block; color: var(--dwella-muted); font-size: var(--fs-small); }
+  td small.dwella-proof-duplicate { color: var(--dwella-warning); }
+}
+
+@media (max-width: 640px) {
+  .dwella-proof-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  // One card per proof on phones.
+  .dwella-table.dwella-proof-table {
+    display: block;
+    min-width: 0;
+
+    thead { display: none; }
+    tbody, tr, td { display: block; }
+
+    tr {
+      padding: 12px 16px;
+      border-top: 1px solid var(--dwella-line-soft);
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 3px 0;
+      border: 0;
+      text-align: right;
+    }
+
+    td::before {
+      content: attr(data-label);
+      color: var(--dwella-muted);
+      font-size: var(--fs-small);
+      text-align: left;
+    }
+
+    td:first-child {
+      display: block;
+      text-align: left;
+
+      &::before { content: none; }
+    }
+  }
+}
+
 // ---- Invoice detail -----------------------------------------------------------
 
 .dwella-invoice-grid {

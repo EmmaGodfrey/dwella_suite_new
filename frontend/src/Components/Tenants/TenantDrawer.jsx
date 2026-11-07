@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   Field,
   Input,
+  Select,
   Switch,
   Textarea,
 } from "@fluentui/react-components";
@@ -14,8 +15,8 @@ import LeaseFields from "../Leases/LeaseFields";
 import { FormDrawer, FormReview } from "../../shared/components/FormFlow";
 import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
 import { formatDate, formatMoney } from "../../shared/format";
+import { tenantFields as TENANT_FIELDS, missingTenantDetails, detailLabel } from "../../shared/tenantDetails.mjs";
 
-const TENANT_FIELDS = ["full_name", "phone_number", "email", "national_id", "notes"];
 const SERVER_FIELDS = [...TENANT_FIELDS, ...LEASE_FIELDS.map((name) => `lease.${name}`)];
 
 // Same shape the API accepts: local Zambian numbers or +<country><number>.
@@ -27,7 +28,9 @@ const looksLikePhone = (value) => {
 
 export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
   const editing = Boolean(tenant);
-  const [form, setForm] = useState(() => Object.fromEntries(TENANT_FIELDS.map((key) => [key, tenant?.[key] || ""])));
+  const [form, setForm] = useState(() => ({ ...Object.fromEntries(TENANT_FIELDS.map((key) => [key, tenant?.[key] || ""])), tenant_type: tenant?.tenant_type || "individual", identity_type: tenant?.identity_type || "nrc", identity_country: tenant?.identity_country || "ZM" }));
+  const [allowIncomplete, setAllowIncomplete] = useState(false);
+  const missing = missingTenantDetails(form);
   const [step, setStep] = useState(0);
   const [withLease, setWithLease] = useState(!editing);
   const [lease, setLease] = useState(emptyLease);
@@ -71,6 +74,10 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
     event.preventDefault();
     if (mutation.isPending) return;
     const allRules = {
+      tpin: () => form.tpin && !/^[0-9]{10}$/.test(form.tpin.trim()) ? "A TPIN is 10 digits. Format checked only." : "",
+      identity_country: () => /^[A-Za-z]{2}$/.test(form.identity_country) ? "" : "Use a two-letter country code.",
+      representative_phone: () => form.representative_phone && !looksLikePhone(form.representative_phone) ? "Enter a valid representative phone." : "",
+      ...(missing.length && !allowIncomplete ? { [missing[0]]: () => "Complete the missing details or choose Save as incomplete below." } : {}),
       full_name: () =>
         form.full_name.trim().length >= 2
           ? ""
@@ -108,14 +115,21 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
       return;
     }
     const payload = Object.fromEntries(TENANT_FIELDS.map((key) => [key, form[key].trim()]));
-    if (withLease) payload.lease = leasePayload(lease);
+    if (withLease) payload.lease = { ...leasePayload(lease), ...(missing.length ? { activate: false } : {}) };
     mutation.mutate({ id: tenant?.id, payload });
   };
 
   const tenantFields = (
     <section className="dwella-form-section">
       <h3>Tenant</h3>
+      {missing.length ? <div className="dwella-callout is-warning">
+        <strong>{missing.length} details needed before new documents</strong>
+        <p>{missing.map(detailLabel).join(", ")}. Payments and repairs remain available.</p>
+        <Switch label="Save as incomplete" checked={allowIncomplete} onChange={(_, d) => setAllowIncomplete(d.checked)} />
+        {withLease ? <p>The lease will stay a draft until these details are complete.</p> : null}
+      </div> : <p className="dwella-muted-copy">Tenant details are complete. Identity and TPIN formats are not issuer verification.</p>}
       <div className="dwella-form-grid">
+        <Field label="Tenant type"><Select value={form.tenant_type} onChange={(_, d) => update("tenant_type", d.value)}><option value="individual">Individual</option><option value="company">Company</option></Select></Field>
         <Field label="Full name" required {...fieldProps("full_name")} className={`dwella-field-wide ${fieldProps("full_name").className || ""}`}>
           <Input maxLength={180} value={form.full_name} placeholder="e.g. Bwalya Kasonde" onChange={(_, d) => update("full_name", d.value)} />
         </Field>
@@ -125,9 +139,17 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
         <Field label="Email" {...fieldProps("email")}>
           <Input type="email" value={form.email} placeholder="Optional" onChange={(_, d) => update("email", d.value)} />
         </Field>
-        <Field label="NRC or passport" {...fieldProps("national_id")}>
-          <Input maxLength={40} value={form.national_id} placeholder="Optional" onChange={(_, d) => update("national_id", d.value)} />
-        </Field>
+        <Field label="TPIN" hint="10 digits; format checked only." {...fieldProps("tpin")}><Input maxLength={10} inputMode="numeric" value={form.tpin} onChange={(_, d) => update("tpin", d.value)} /></Field>
+        {form.tenant_type === "individual" ? <>
+          <Field label="Identity document"><Select value={form.identity_type} onChange={(_, d) => update("identity_type", d.value)}><option value="nrc">NRC</option><option value="passport">Passport</option><option value="other">Other identity document</option></Select></Field>
+          <Field label="Identity document number" hint="Kept off invoices and notices." {...fieldProps("national_id")}><Input maxLength={40} value={form.national_id} onChange={(_, d) => update("national_id", d.value)} /></Field>
+          <Field label="Issuing country" hint="Two-letter code, for example ZM." {...fieldProps("identity_country")}><Input maxLength={2} value={form.identity_country} onChange={(_, d) => update("identity_country", d.value.toUpperCase())} /></Field>
+        </> : <>
+          <Field label="Company registration" {...fieldProps("company_registration")}><Input maxLength={80} value={form.company_registration} onChange={(_, d) => update("company_registration", d.value)} /></Field>
+          <Field label="Authorised representative" {...fieldProps("representative_name")}><Input maxLength={180} value={form.representative_name} onChange={(_, d) => update("representative_name", d.value)} /></Field>
+          <Field label="Representative phone" {...fieldProps("representative_phone")}><Input type="tel" maxLength={20} value={form.representative_phone} onChange={(_, d) => update("representative_phone", d.value)} /></Field>
+        </>}
+        <Field label="Billing address" className="dwella-field-wide" {...fieldProps("billing_address")}><Textarea maxLength={1000} value={form.billing_address} onChange={(_, d) => update("billing_address", d.value)} /></Field>
         <Field label="Notes" className="dwella-field-wide">
           <Textarea rows={2} value={form.notes} onChange={(_, d) => update("notes", d.value)} />
         </Field>
@@ -161,7 +183,7 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
         onClose={onClose}
         busy={mutation.isPending}
         errors={errors}
-        submitLabel={withLease ? "Add tenant and lease" : "Add tenant"}
+        submitLabel={missing.length ? "Save incomplete" : withLease ? "Add tenant and lease" : "Add tenant"}
       >
         {step === 0 ? (
           <>
@@ -189,6 +211,9 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
               { label: "Phone", value: form.phone_number, step: 0 },
               { label: "Email", value: form.email, step: 0 },
               { label: "NRC or passport", value: form.national_id, step: 0 },
+              { label: "TPIN", value: form.tpin, step: 0 },
+              { label: "Billing address", value: form.billing_address, step: 0 },
+              ...(missing.length ? [{ label: "Details still needed", value: missing.map(detailLabel).join(", "), step: 0 }] : []),
               ...(form.notes
                 ? [{ label: "Notes", value: form.notes, step: 0 }]
                 : []),
@@ -207,7 +232,7 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
                     },
                     {
                       label: "Due and status",
-                      value: `Day ${lease.rent_due_day} · ${lease.activate ? "Start now" : "Save as draft"}`,
+                      value: `Day ${lease.rent_due_day} · ${lease.activate && !missing.length ? "Start now" : "Save as draft"}`,
                       step: 1,
                     },
                   ]
@@ -221,5 +246,5 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
   return <FormDrawer open={open} title="Edit tenant"
     description="Update contact details. Lease terms live on the lease."
     onSubmit={submit} onClose={onClose} errors={errors} busy={mutation.isPending}
-    submitLabel="Save changes">{tenantFields}</FormDrawer>;
+    submitLabel={missing.length ? "Save incomplete" : "Save changes"}>{tenantFields}</FormDrawer>;
 }

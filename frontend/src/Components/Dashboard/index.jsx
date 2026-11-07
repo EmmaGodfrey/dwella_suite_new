@@ -6,12 +6,9 @@ import {
   ArrowRight20Regular,
   Calendar20Regular,
   ChevronRight20Regular,
-  DocumentText24Regular,
   DoorArrowLeft20Regular,
-  Home24Regular,
-  Payment24Regular,
   Warning20Regular,
-  Wrench24Regular,
+  Wrench20Regular,
 } from "@fluentui/react-icons";
 
 import {
@@ -26,6 +23,7 @@ import { getUserAccess } from "../../shared/access";
 import { paymentMethodLabel } from "../../shared/billing";
 import { daysUntil, formatDate, toIsoDate } from "../../shared/format";
 import Administration from "../Platform/Administration";
+import PortalHome from "../Portal/Home";
 
 const money = new Intl.NumberFormat("en-ZM", {
   style: "currency",
@@ -60,44 +58,8 @@ const emptySummary = {
   portfolio: { towns_count: 0, towns: [], average_units_per_property: 0 },
   recent_properties: [],
   top_units: [],
+  repairs: { open: 0, urgent: 0, unassigned: 0 },
 };
-
-function TenantDashboard({ navigate }) {
-  return (
-    <div className="dwella-screen dwella-dashboard-v2 dwella-tenant-dashboard">
-      <header className="dwella-dashboard-intro">
-        <div>
-          <span className="dwella-dashboard-kicker">Tenant workspace</span>
-          <h1>Your home at a glance</h1>
-        </div>
-      </header>
-      <section className="dwella-tenant-status">
-        <Home24Regular />
-        <div>
-          <strong>No active tenancy linked</strong>
-          <p>Your lease and balance will appear after a property manager links your account to a unit.</p>
-        </div>
-      </section>
-      <div className="dwella-tenant-actions">
-        <button type="button" onClick={() => navigate("/leases")}>
-          <DocumentText24Regular />
-          <strong>My lease</strong>
-          <span>Terms, documents, and renewal details</span>
-        </button>
-        <button type="button" onClick={() => navigate("/billing")}>
-          <Payment24Regular />
-          <strong>Payments</strong>
-          <span>Charges, receipts, and payment history</span>
-        </button>
-        <button type="button" onClick={() => navigate("/maintenance")}>
-          <Wrench24Regular />
-          <strong>Maintenance</strong>
-          <span>Report and follow up on an issue</span>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // A figure reserves its own height while loading, so the band does not change
 // size when the request lands.
@@ -311,7 +273,7 @@ function AttentionItem({ tone, icon, title, detail, onClick }) {
 }
 
 // Only decisions the product can back with real records: overdue invoices,
-// leases running out within a month, and empty units.
+// leases running out within a month, open repairs and empty units.
 function NeedsAttention({ data, navigate, enabled }) {
   const in30 = new Date();
   in30.setDate(in30.getDate() + 30);
@@ -327,8 +289,10 @@ function NeedsAttention({ data, navigate, enabled }) {
   const ending = endingQuery.data?.results || [];
   const overdueCount = overdueQuery.data?.pagination?.count || 0;
   const vacant = Number(data.units.vacant || 0);
+  const repairs = data.repairs || { open: 0, urgent: 0, unassigned: 0 };
   const loading = !enabled || overdueQuery.isLoading || endingQuery.isLoading;
-  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0);
+  // Open repairs show as one item, like vacant units, so they count once.
+  const count = overdueCount + (endingQuery.data?.pagination?.count || 0) + (vacant ? 1 : 0) + (repairs.open ? 1 : 0);
 
   return (
     <section className="dwella-dashboard-card dwella-attention-card">
@@ -375,6 +339,18 @@ function NeedsAttention({ data, navigate, enabled }) {
               />
             );
           })}
+          {repairs.open > 0 && (
+            <AttentionItem
+              tone={repairs.urgent > 0 ? "danger" : "warning"}
+              icon={<Wrench20Regular />}
+              title={`${formatNumber(repairs.open)} open ${repairs.open === 1 ? "repair" : "repairs"}`}
+              detail={[
+                repairs.urgent ? `${formatNumber(repairs.urgent)} urgent` : null,
+                repairs.unassigned ? `${formatNumber(repairs.unassigned)} awaiting assignment` : null,
+              ].filter(Boolean).join(" · ") || "Review progress and scheduled work"}
+              onClick={() => navigate("/maintenance?open=true")}
+            />
+          )}
           {vacant ? (
             <AttentionItem
               tone="info"
@@ -509,7 +485,7 @@ const Dashboard = () => {
   const { data = emptySummary, error, isLoading } = useDashboardSummaryQuery({ enabled });
   const billingQuery = useBillingSummaryQuery({ enabled });
 
-  if (isTenant) return <TenantDashboard navigate={navigate} />;
+  if (isTenant) return <PortalHome />;
   if (isPlatformAdmin) return <Administration />;
   const organizationName =
     data.organization?.display_name ||

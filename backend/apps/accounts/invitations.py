@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
+from rest_framework.throttling import UserRateThrottle
 
 from apps.audit.services import record_event
 from apps.organizations.models import OrganizationMembership
@@ -22,6 +22,7 @@ from .account_mail import send_account_mail
 from .email_verification import NoStoreAccountView, VerificationTokenSerializer, secret_hash
 from .models import TenantInvitation
 from .security import is_disposable_email, normalize_email
+from .throttles import InvitationIPThrottle, InvitationTokenThrottle
 
 INVALID = "This invitation has expired or is unavailable. Ask your property manager for a new one."
 
@@ -109,6 +110,38 @@ def revoke_tenant_invitation(request, tenant):
 
 
 @transaction.atomic
+def remove_portal_access(request, tenant):
+    """Unlink the tenant's account and withdraw pending invitations.
+
+    Records stay with the tenant. The tenant membership is deleted only when no
+    other tenant record in the workspace is linked to the same account, so a
+    later invitation can link them again; an administrator's deactivation of a
+    membership is left untouched.
+    """
+    tenant = Tenant.objects.select_for_update().get(pk=tenant.pk)
+    tenant.portal_invitations.filter(accepted_at__isnull=True, revoked_at__isnull=True).update(
+        revoked_at=timezone.now()
+    )
+    user_id = tenant.user_id
+    if user_id:
+        from .models import AccountAccessState
+
+        AccountAccessState.objects.update_or_create(
+            user_id=user_id, defaults={"tenant_access_removed": True}
+        )
+        tenant.user = None
+        tenant.save(update_fields=["user", "updated_at"])
+        if not Tenant.objects.filter(organization=tenant.organization, user_id=user_id).exists():
+            OrganizationMembership.objects.filter(
+                user_id=user_id, organization=tenant.organization, role="tenant", is_active=True
+            ).delete()
+    record_event(
+        request, "tenant.portal_access_removed", tenant, tenant.organization, account_id=user_id
+    )
+    return {"removed": bool(user_id)}
+
+
+@transaction.atomic
 def accept_invitation(request, token, password=""):
     candidate = find_invitation(token)
     tenant = Tenant.objects.select_for_update().get(pk=candidate.tenant_id)
@@ -170,6 +203,9 @@ def accept_invitation(request, token, password=""):
     invitation.accepted_at, invitation.accepted_by = timezone.now(), user
     invitation.save(update_fields=["accepted_at", "accepted_by", "updated_at"])
     mark_email_verified(user)
+    from .models import AccountAccessState
+
+    AccountAccessState.objects.filter(user=user).update(tenant_access_removed=False)
     record_event(
         request,
         "tenant.invitation_accepted",
@@ -186,11 +222,6 @@ class InvitationAcceptSerializer(VerificationTokenSerializer):
     )
 
 
-class InvitationIPThrottle(AnonRateThrottle):
-    scope = "tenant_invitation_ip"
-    rate = "20/hour"
-
-
 class InvitationWriteThrottle(UserRateThrottle):
     scope = "tenant_invitation_write"
     rate = "20/hour"
@@ -198,9 +229,7 @@ class InvitationWriteThrottle(UserRateThrottle):
 
 class InvitationPreviewView(NoStoreAccountView):
     permission_classes = [AllowAny]
-
-    def get_throttles(self):
-        return [*super().get_throttles(), InvitationIPThrottle()]
+    throttle_classes = [InvitationIPThrottle, InvitationTokenThrottle]
 
     def post(self, request):
         data = VerificationTokenSerializer(data=request.data)

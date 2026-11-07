@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
@@ -19,8 +19,18 @@ CENT = Decimal("0.01")
 @transaction.atomic
 def reverse_payment(payment, *, reason, user):
     """Correct the ledger, keeping the original receipt and who corrected it."""
+    from . import deposits
+
+    from_deposit = payment.method == Payment.Method.DEPOSIT
+    if from_deposit:
+        # Deposit changes lock the lease before the invoice; keep that order.
+        deposits.lock(payment.invoice.lease)
     invoice = Invoice.objects.select_for_update().get(pk=payment.invoice_id)
     payment = Payment.objects.select_for_update().get(pk=payment.pk)
+    if hasattr(payment, "collection"):
+        raise ValidationError({"reason": [
+            "Online payments require provider reconciliation; they cannot be reversed as cash."
+        ]})
     if payment.reversed_at:
         raise ValidationError({"reason": ["This payment has already been reversed."]})
     if not reason.strip():
@@ -30,6 +40,8 @@ def reverse_payment(payment, *, reason, user):
     payment.reversed_by = user
     payment.save(update_fields=["reversed_at", "reversal_reason", "reversed_by", "updated_at"])
     refresh_totals(invoice)
+    if from_deposit:
+        deposits.return_reversed_payment(payment, user=user)
     return payment
 
 
@@ -40,7 +52,10 @@ def month_bounds(period_start):
 
 def refresh_totals(invoice):
     """Recompute stored total/paid/status from lines and payments."""
-    invoice.total = invoice.lines.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    lines = invoice.lines.aggregate(
+        total=Sum("amount"), deposit=Sum("amount", filter=Q(kind=InvoiceLine.Kind.DEPOSIT))
+    )
+    invoice.total = lines["total"] or Decimal("0")
     invoice.amount_paid = invoice.payments.filter(reversed_at__isnull=True).aggregate(
         total=Sum("amount")
     )["total"] or Decimal("0")
@@ -52,6 +67,11 @@ def refresh_totals(invoice):
         else:
             invoice.status = Invoice.Status.PAID
     invoice.save(update_fields=["total", "amount_paid", "status", "updated_at"])
+    if lines["deposit"]:
+        # Deposit money is held for the tenant: mirror it in the deposit ledger.
+        from . import deposits
+
+        deposits.sync_invoice(invoice, lines["deposit"])
     return invoice
 
 
@@ -68,6 +88,7 @@ def create_invoice(
     period_start=None,
     charged_for=None,
     notes="",
+    is_opening_balance=False,
 ):
     invoice = Invoice.objects.create(
         organization=organization,
@@ -80,24 +101,30 @@ def create_invoice(
         due_date=due_date,
         charged_for=charged_for,
         notes=notes,
+        is_opening_balance=is_opening_balance,
     )
     InvoiceLine.objects.bulk_create(InvoiceLine(invoice=invoice, **line) for line in lines)
     refresh_totals(invoice)
-    smart_invoice.queue_sale_receipt(invoice)
+    # Old debt is not a new sale.
+    if not is_opening_balance:
+        smart_invoice.queue_sale_receipt(invoice)
     return invoice
 
 
-def generate_rent_invoices(organization, period_start, today=None):
+def generate_rent_invoices(organization, period_start, today=None, lead_days=None):
     """Issue one rent invoice per active lease covering the month.
 
     Safe to run again for the same month: leases that already have a live
-    invoice for it are skipped. Returns (created, skipped) counts.
+    invoice for it are skipped. With `lead_days`, a lease is only billed once
+    its due day is that close (automatic billing). Returns (created, skipped).
     """
     today = today or timezone.localdate()
     first, last = month_bounds(period_start.replace(day=1))
     leases = (
         Lease.objects.for_organization(organization)
         .filter(status=Lease.Status.ACTIVE, start_date__lte=last, end_date__gte=first)
+        # Months the tenant paid for before moving to Dwella are never billed.
+        .filter(Q(billed_from__isnull=True) | Q(billed_from__lte=first))
         .select_related("tenant", "unit")
     )
     billed = set(
@@ -105,9 +132,24 @@ def generate_rent_invoices(organization, period_start, today=None):
         .exclude(status=Invoice.Status.VOID)
         .values_list("lease_id", flat=True)
     )
+    # A renewal continues the same tenancy: when the lease it follows ended
+    # mid-month and was billed for it, that month is not billed twice. (Only one
+    # of the two is ever active, so only the earlier lease can be billed first.)
+    billed_before = set(
+        Invoice.objects.filter(
+            lease_id__in=[lease.renewal_of_id for lease in leases if lease.renewal_of_id],
+            period_start=first,
+        )
+        .exclude(status=Invoice.Status.VOID)
+        .values_list("lease_id", flat=True)
+    )
     created = 0
     for lease in leases:
-        if lease.id in billed:
+        if lease.id in billed or lease.renewal_of_id in billed_before:
+            continue
+        if lead_days is not None and today < first.replace(day=lease.rent_due_day) - timedelta(
+            days=lead_days
+        ):
             continue
         # Never due before it is issued: a month billed late (e.g. a landlord
         # who joins mid-month) gets its grace period from today, so tenants
@@ -194,9 +236,14 @@ def apply_late_fees(organization, today=None):
             status__in=Invoice.UNPAID_STATUSES,
             lease__late_fee_percent__gt=0,
             period_start__isnull=False,
+            # Grace days are never negative, so nothing due today or later qualifies.
+            due_date__lt=today,
         )
         .exclude(lines__kind=InvoiceLine.Kind.LATE_FEE)
         .exclude(pk__in=late_fee_follow_ups().values("charged_for"))
+        # An online payment still being confirmed may have been made on time;
+        # the next run decides once Lenco answers (receipts use its date).
+        .exclude(collection__status="pending")
         .select_related("lease", "tenant", "unit")
     )
     added = 0
@@ -247,3 +294,18 @@ def apply_late_fees(organization, today=None):
 
 def first_of_month(value):
     return date(value.year, value.month, 1)
+
+
+def issue_upcoming_rent(organization, today=None):
+    """Automatic billing: each month's rent goes out the workspace's lead days
+    before the lease's due day. This month is included so a missed run, a new
+    lease or a late joiner still gets billed; nothing is billed twice."""
+    today = today or timezone.localdate()
+    this_month = first_of_month(today)
+    next_month = first_of_month(this_month + timedelta(days=32))
+    return sum(
+        generate_rent_invoices(
+            organization, period, today=today, lead_days=organization.invoice_lead_days
+        )[0]
+        for period in (this_month, next_month)
+    )

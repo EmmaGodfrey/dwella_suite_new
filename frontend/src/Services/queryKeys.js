@@ -26,4 +26,6 @@ export const queryKeys = {
   vendors: (filters = {}) => ["maintenance", "vendors", filters],
   betaApplications: (filters = {}) => ["marketing", "betaApplications", filters],
   betaEmailSettings: ["marketing", "betaEmailSettings"],
+  // Under betaApplications so every signup change refreshes the count too.
+  betaAccessPending: ["marketing", "betaApplications", "accessPending"],
 };

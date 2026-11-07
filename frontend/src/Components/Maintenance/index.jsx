@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Dropdown, Input, Option } from "@fluentui/react-components";
 import {
   Add20Regular,
   Board20Regular,
   Location16Regular,
-  PeopleTeam20Regular,
   Search20Regular,
   TextBulletListLtr20Regular,
   Wrench24Regular,
@@ -176,13 +175,27 @@ function List({ requests, loading, onOpen }) {
 
 export default function Maintenance() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openFilter = searchParams.get("open") === "true" ? "true" : "";
+  const setOpenFilter = (value) => setSearchParams((current) => {
+    const next = new URLSearchParams(current);
+    if (value) next.set("open", value);
+    else next.delete("open");
+    return next;
+  });
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const canManage = getUserAccess(user).can_manage_properties;
   const [view, setView] = useState(readView);
   const [filters, setFilters] = useState({ property: "", priority: "", vendor: "" });
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [drawer, setDrawer] = useState(null); // null | "request" | "vendors"
+  const [drawer, setDrawer] = useState(null); // null | "request"
+  const vendorsOpen = canManage && searchParams.get("panel") === "vendors";
+  const closeVendors = () => setSearchParams(current => {
+    const next = new URLSearchParams(current);
+    next.delete("panel");
+    return next;
+  });
 
   useEffect(() => {
     const timeout = setTimeout(() => setDebounced(search), 300);
@@ -204,12 +217,13 @@ export default function Maintenance() {
   // shows every request, newest first.
   const listQuery = useMaintenanceRequestsQuery({
     ...filters,
+    ...(openFilter ? { open: openFilter } : {}),
     search: debounced,
     ...(view === "board" ? { board: "true", page_size: 200 } : { page_size: 100 }),
     ordering: "-created_at",
   });
   const requests = listQuery.data?.results || [];
-  const filtered = Boolean(filters.property || filters.priority || filters.vendor || debounced);
+  const filtered = Boolean(filters.property || filters.priority || filters.vendor || debounced || openFilter);
   const open = (id) => navigate(`/maintenance/${id}`);
   const setFilter = (key) => (value) => setFilters((current) => ({ ...current, [key]: value }));
 
@@ -217,7 +231,6 @@ export default function Maintenance() {
     <div className="dwella-maintenance-page">
       {canManage ? (
         <PageActions>
-          <Button icon={<PeopleTeam20Regular />} onClick={() => setDrawer("vendors")}>Vendors</Button>
           <Button appearance="primary" icon={<Add20Regular />} onClick={() => setDrawer("request")}>New request</Button>
         </PageActions>
       ) : null}
@@ -239,6 +252,13 @@ export default function Maintenance() {
           value={filters.property}
           options={(propertiesQuery.data?.results || []).map((item) => ({ value: item.id, label: item.name }))}
           onChange={setFilter("property")}
+        />
+        <FilterDropdown
+          label="Work status"
+          allLabel="All requests"
+          value={openFilter}
+          options={[{ value: "true", label: "Open requests" }]}
+          onChange={setOpenFilter}
         />
         <FilterDropdown label="Priority" allLabel="Any priority" value={filters.priority} options={priorities} onChange={setFilter("priority")} />
         <FilterDropdown
@@ -269,7 +289,7 @@ export default function Maintenance() {
           title={filtered ? "No matching requests" : "No requests yet"}
           description={filtered ? "Try another search or filter." : "Log a repair to track it from report to done."}
           actionLabel={filtered ? "Clear filters" : canManage ? "New request" : undefined}
-          onAction={filtered ? () => { setFilters({ property: "", priority: "", vendor: "" }); setSearch(""); } : () => setDrawer("request")}
+          onAction={filtered ? () => { setFilters({ property: "", priority: "", vendor: "" }); setSearch(""); setOpenFilter(""); } : () => setDrawer("request")}
         />
       ) : view === "board" ? (
         <Board requests={requests} loading={listQuery.isLoading} onOpen={open} />
@@ -278,7 +298,7 @@ export default function Maintenance() {
       )}
 
       {drawer === "request" ? <RequestDrawer onClose={() => setDrawer(null)} onSaved={(request) => open(request.id)} /> : null}
-      {drawer === "vendors" ? <VendorsDrawer onClose={() => setDrawer(null)} /> : null}
+      {vendorsOpen ? <VendorsDrawer onClose={closeVendors} /> : null}
     </div>
   );
 }

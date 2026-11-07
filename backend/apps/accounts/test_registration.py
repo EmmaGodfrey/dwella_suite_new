@@ -64,7 +64,9 @@ def test_signup_cannot_grant_platform_or_workspace_privileges():
 def test_registration_switch_keeps_signups_closed(settings):
     settings.BETA_REGISTRATION_OPEN = False
     client = APIClient()
-    assert client.get(URL).json()["response_data"] == {"open": False}
+    assert client.get(URL).json()["response_data"] == {
+        "open": False, "beta_open_date": settings.BETA_OPEN_DATE,
+    }
     assert client.post(URL, PAYLOAD, format="json").status_code == 403
     assert not get_user_model().objects.exists()
 

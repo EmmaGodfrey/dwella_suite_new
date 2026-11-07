@@ -34,7 +34,11 @@ export const paymentMethods = [
   { value: "cheque", label: "Cheque" },
 ];
 
-export const paymentMethodLabel = (value) => paymentMethods.find((method) => method.value === value)?.label || value;
+// Not offered when recording a payment: set only when a deduction pays an invoice.
+const systemMethods = { deposit: "From security deposit" };
+
+export const paymentMethodLabel = (value) =>
+  paymentMethods.find((method) => method.value === value)?.label || systemMethods[value] || value;
 
 export const lineKinds = [
   { value: "rent", label: "Rent" },
@@ -49,3 +53,7 @@ export const periodLabel = (isoDate) => {
   const [year, month] = isoDate.split("-").map(Number);
   return new Date(year, month - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 };
+
+// What an invoice bills for: a month, old debt brought in, or a one-off charge.
+export const invoicePeriodLabel = (invoice) =>
+  invoice.is_opening_balance ? "Balance brought forward" : periodLabel(invoice.period_start);

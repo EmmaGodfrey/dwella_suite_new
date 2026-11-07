@@ -50,7 +50,12 @@ def make_lease(
         organization=org, property=property_obj, name=unit_name, rent_amount=rent
     )
     tenant = Tenant.objects.create(
-        organization=org, full_name=f"Tenant {unit_name}", phone_number=phone
+        organization=org,
+        full_name=f"Tenant {unit_name}",
+        phone_number=phone,
+        national_id="123456/10/1",
+        tpin="0123456789",
+        billing_address="Plot 1, Lusaka",
     )
     return create_lease(
         organization=org,
@@ -376,8 +381,35 @@ def test_payments_endpoint_is_read_only(manager, org):
 def test_run_billing_command_is_idempotent(org):
     make_lease(org)
     call_command("run_billing")
+    count = Invoice.objects.count()
     call_command("run_billing")
-    assert Invoice.objects.count() == 1
+    # This month, plus next month once it is within the lead time.
+    assert count in (1, 2) and Invoice.objects.count() == count
+
+
+@pytest.mark.django_db
+def test_one_failing_workspace_does_not_stop_the_billing_run(org):
+    from unittest import mock
+
+    from django.core.management.base import CommandError
+
+    from apps.billing import services
+
+    make_lease(org)
+    broken = Organization.objects.create(name="Broken books")
+    real = services.issue_upcoming_rent
+
+    def generate(organization, today):
+        if organization == broken:
+            raise RuntimeError("bad data")
+        return real(organization, today)
+
+    with mock.patch(
+        "apps.billing.management.commands.run_billing.issue_upcoming_rent", side_effect=generate
+    ):
+        with pytest.raises(CommandError, match="Broken books"):
+            call_command("run_billing")
+    assert Invoice.objects.filter(organization=org, period_start=THIS_MONTH).count() == 1
 
 
 @pytest.mark.django_db

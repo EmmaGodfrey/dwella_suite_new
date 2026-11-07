@@ -14,6 +14,7 @@ import {
 } from "@fluentui/react-icons";
 
 import { getUserAccess } from "./access";
+import { matchesPath, moduleChildren, selectedDestination } from "./navigationState.mjs";
 
 // Sidebar sections, in display order. An item's `group` places it under one of
 // these; a group with no visible items for the persona is not rendered.
@@ -22,10 +23,14 @@ export const navigationGroups = [
   { value: "overview", label: "Overview" },
   { value: "portfolio", label: "Portfolio" },
   { value: "operations", label: "Operations" },
+  { value: "tenancy", label: "Your tenancy" },
 ];
 
 const operationalItems = [
-  { to: "/admin/settings", value: "platform-settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin"] },
+  { to: "/uat", value: "uat", group: "utility", label: "Test checklist", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "tenant", "unassigned", "platform_admin"] },
+  { to: "/messages", value: "messages", group: "operations", label: "Messages", icon: <Mail24Regular />, personas: ["landlord"] },
+  { to: "/admin/messages", value: "admin-messages", group: "platform", label: "Messages", icon: <Mail24Regular />, personas: ["platform_admin"] },
+  { to: "/admin/transactions", value: "transactions", group: "platform", label: "Transactions", icon: <Payment24Regular />, personas: ["platform_admin"] },
   { to: "/dashboard", value: "administration", group: "platform", label: "Administration", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/workspace/dashboard", value: "workspace-dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "workspace-setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
@@ -33,7 +38,7 @@ const operationalItems = [
   { to: "/admin/identity-checks", value: "identity-checks", group: "platform", label: "Identity checks", icon: <CheckmarkCircle24Regular />, personas: ["platform_admin"] },
   { to: "/admin/users", value: "admin-users", group: "platform", label: "Users", icon: <People24Regular />, personas: ["platform_admin"] },
   { to: "/setup", value: "setup", group: "overview", label: "Get started", icon: <CheckmarkCircle24Regular />, personas: ["landlord", "unassigned"] },
-  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", icon: <Home24Regular />, personas: ["landlord", "tenant"] },
+  { to: "/dashboard", value: "dashboard", group: "overview", label: "Dashboard", tenantLabel: "Home", icon: <Home24Regular />, personas: ["landlord", "tenant"] },
   { to: "/reports", value: "reports", group: "overview", label: "Reports", icon: <DataTrending24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/properties", value: "properties", group: "portfolio", label: "Properties", icon: <Building24Regular />, personas: ["platform_admin", "landlord"] },
   { to: "/tenants", value: "tenants", group: "portfolio", label: "Tenants", icon: <People24Regular />, personas: ["platform_admin", "landlord"] },
@@ -43,20 +48,29 @@ const operationalItems = [
   { to: "/beta-signups", value: "beta-signups", group: "platform", label: "Beta signups", icon: <FormMultiple24Regular />, personas: ["platform_admin"] },
   { to: "/admin/audit-log", value: "audit-log", group: "platform", label: "Audit log", icon: <DocumentText24Regular />, personas: ["platform_admin"] },
   { to: "/admin/outreach", value: "outreach", group: "platform", label: "Outreach", icon: <Mail24Regular />, personas: ["platform_admin"] },
+  { to: "/settings", value: "settings", group: "utility", label: "Settings", icon: <Settings24Regular />, personas: ["platform_admin", "landlord", "tenant", "unassigned"] },
 ];
 
 export function getNavigationItems(user) {
   const access = getUserAccess(user);
   return operationalItems
+    .filter((item) => item.value !== "uat" || import.meta.env.VITE_BASE_PATH === "/test/")
     .filter((item) => item.personas.includes(access.persona))
     .filter((item) => access.persona !== "platform_admin" || ["platform", "utility"].includes(item.group) || Boolean(access.acting_workspace))
     .map((item) => ({
       ...item,
       label: access.persona === "tenant" && item.tenantLabel ? item.tenantLabel : item.label,
+      // A tenant sees one short list about their own home.
+      group: access.persona === "tenant" ? "tenancy" : item.group,
+      children: moduleChildren(item.value, access),
     }));
 }
 
 export const pageMeta = {
+  "/messages": ["Messages", "Send tenant notices and track requests."],
+  "/admin/messages": ["Messages", "Platform message requests and delivery status."],
+  "/settings": ["Settings", "Account, workspace and preferences."],
+  "/admin/transactions": ["Transactions", "Tenant collections, landlord payouts and gateway responses."],
   "/admin/settings": ["Platform settings", "Manage platform-wide features."],
   "/admin/outreach": ["Outreach", "Personal partnerships and early tester invitations."],
   "/admin/audit-log": ["Audit log", "Account and workspace actions with support context."],
@@ -71,21 +85,28 @@ export const pageMeta = {
   "/leases": ["Leases", "Lease terms, renewals, deposits, and documents."],
   "/billing": ["Billing", "Rent invoices, collections, balances, and payment tracking."],
   "/maintenance": ["Maintenance", "Work orders, vendors, approvals, and service tracking."],
-  "/reports": ["Reports", "Rent roll, outstanding balances and overdue invoices."],
+  "/reports": ["Reports", "Rent roll, arrears, recorded collections and tenant statements."],
   "/beta-signups": ["Beta signups", "Review applicants and coordinate beta onboarding."],
   "/profile": ["Profile", "Account details, identity verification, and profile photo."],
   "/security": ["Security", "Two-factor authentication and account protection."],
 };
 
-export function getPageMeta(pathname, user) {
+export function getPageMeta(pathname, user, search = "") {
   const access = getUserAccess(user);
   if (access.persona === "tenant") {
+    if (pathname === "/billing/statement") return ["Statement", "Your recorded charges and payments."];
     if (pathname === "/dashboard") return ["Home", "Your tenancy, payments, and maintenance requests."];
-    if (pathname === "/leases") return ["My lease", "Lease details, documents, and renewal information."];
-    if (pathname === "/billing") return ["Payments", "Rent charges, receipts, and payment history."];
+    if (pathname.startsWith("/leases")) return ["My lease", "Lease terms and your signed agreement."];
+    if (pathname.startsWith("/billing")) return ["Payments", "Invoices, receipts, and what you owe."];
+    if (pathname === "/maintenance") return ["Maintenance", "Report a repair and follow it to completion."];
+    if (pathname.startsWith("/maintenance/")) return ["Repair", "Progress and messages with your property manager."];
   }
   if (access.persona === "platform_admin" && pathname === "/dashboard") {
     return ["Administration", "Property manager activity and platform portfolio oversight."];
+  }
+  const selected = selectedDestination(getNavigationItems(user), pathname, search);
+  if (selected && selected.destination !== selected.parent) {
+    return [selected.destination.label, pageMeta[selected.parent.to]?.[1] || ""];
   }
   // Detail pages (`/leases/<id>`) take their section's title.
   const section = Object.keys(pageMeta).find((path) => pathname.startsWith(`${path}/`));
@@ -93,10 +114,11 @@ export function getPageMeta(pathname, user) {
 }
 
 export function canAccessPath(pathname, user) {
+  if (pathname === "/admin/settings") return getUserAccess(user).persona === "platform_admin";
   if (["/profile", "/security", "/dashboard", "/"].includes(pathname)) return true;
-  return getNavigationItems(user).some((item) => pathname.startsWith(item.to));
+  return getNavigationItems(user).some((item) => matchesPath(pathname, item.to));
 }
 
-export function getSelectedNavValue(pathname, user) {
-  return getNavigationItems(user).find((item) => pathname.startsWith(item.to))?.value || "";
+export function getSelectedNavValue(pathname, user, search = "") {
+  return selectedDestination(getNavigationItems(user), pathname, search)?.destination.value || "";
 }

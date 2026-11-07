@@ -8,6 +8,7 @@ import { useLoginMutation, usePasswordResetConfirmMutation, usePasswordResetRequ
 import { useFormErrors } from "../shared/useFormErrors";
 import AuthTour from "./AuthTour";
 import { useRegistrationQuery } from "../Services/queries";
+import { formatBetaDate } from "../Services/runtimeSettings";
 
 const disposableDomains = new Set(["10minutemail.com", "guerrillamail.com", "mailinator.com", "tempmail.com", "temp-mail.org", "throwawaymail.com", "yopmail.com"]);
 const validateEmail = (value) => {
@@ -256,7 +257,7 @@ const Signin = () => {
             </button>
           ) : (
             <p className="dwella-auth-signup">
-              {registration.data?.open ? <>New to Dwella? <button type="button" className="dwella-text-link" onClick={() => navigate("/register")}>Create your account</button></> : <>New to Dwella? The beta opens 18 November. <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a></>}
+              {registration.data?.open ? <>New to Dwella? <button type="button" className="dwella-text-link" onClick={() => navigate("/register")}>Create your account</button></> : <>New to Dwella? The beta opens {formatBetaDate(registration.data?.beta_open_date)}. <a className="dwella-text-link" href="https://dwella.properties/#beta">Apply at dwella.properties</a></>}
             </p>
           )}
         </form>

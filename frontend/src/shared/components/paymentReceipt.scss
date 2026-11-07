@@ -1,3 +1,4 @@
+// Shared paper and print layout for manager and tenant receipts.
 .dwella-receipt-page {
   max-width: 100%;
 }
@@ -127,6 +128,30 @@
     margin-top: 4px;
     color: var(--dwella-muted);
     font-size: 0.8125rem;
+  }
+  th + th,
+  td + td {
+    padding-left: 16px;
+  }
+  td:last-child {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  tfoot th,
+  tfoot td {
+    border-bottom: 0;
+    color: var(--dwella-ink);
+    font-weight: 600;
+  }
+  // On a phone the invoice reference and period crowd the amount; the
+  // reference is still linked below the receipt.
+  @media (max-width: 560px) {
+    thead th:nth-child(2),
+    tbody td:nth-child(2),
+    thead th:nth-child(3),
+    tbody td:nth-child(3) {
+      display: none;
+    }
   }
 }
 .dwella-receipt-details {

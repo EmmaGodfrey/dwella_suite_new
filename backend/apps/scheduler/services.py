@@ -21,7 +21,7 @@ STALE_AFTER = timedelta(hours=2)
 
 
 def enabled_jobs():
-    return [name for name in settings.SCHEDULER_JOBS if name in JOBS]
+    return list(dict.fromkeys(name for name in settings.SCHEDULER_JOBS if name in JOBS))
 
 
 def is_due(name, now):
@@ -76,13 +76,15 @@ def run_due_jobs(now=None):
 
 
 def scheduler_status():
+    from apps.notifications.whatsapp.wakeup import heartbeats
+
     jobs = []
     for name, job in JOBS.items():
         last = JobRun.objects.filter(job=name).first()
         jobs.append(
             {
                 "job": name,
-                "enabled": name in settings.SCHEDULER_JOBS,
+                "enabled": name in enabled_jobs(),
                 "schedule": f"every {int(job.every.total_seconds() // 60)} minutes"
                 if job.every
                 else f"daily from {job.daily_at:%H:%M}",
@@ -105,4 +107,9 @@ def scheduler_status():
                   .values_list("status", "total"))
     return {"heartbeat": cache.get(HEARTBEAT_KEY), "jobs": jobs,
             "signing_mailer": {"heartbeat": cache.get("signing-mailer:heartbeat"),
-                               "counts": counts}}
+                               "counts": counts},
+            "payments_worker": {"heartbeat": cache.get("payments-worker:heartbeat")},
+            "whatsapp_worker": {
+                "enabled": settings.WHATSAPP_WORKER_ENABLED,
+                "heartbeats": heartbeats(),
+            }}

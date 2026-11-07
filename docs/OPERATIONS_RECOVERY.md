@@ -3,7 +3,12 @@
 The scheduler runs explicit `APP_SCHEDULER_JOBS` only. Production enables beta
 emails, daily media snapshots and hourly offsite backup copies; test enables
 snapshots and backup copies. Automatic billing remains off. Test outbound email
-is restricted by `APP_OUTBOUND_EMAIL_ALLOWLIST`, including the signing worker.
+is redirected to `TEST_EMAIL_REDIRECT_TO` when configured, including the signing
+worker. This catch-all is permitted only with `APP_ENVIRONMENT=test`: all To/Cc/Bcc
+envelope recipients are replaced with the one test inbox, `[TEST]` is added to the
+subject and the original recipients are retained in a diagnostic header. Actual
+tenant/account addresses never receive these redirected messages. Without a
+catch-all, `APP_OUTBOUND_EMAIL_ALLOWLIST` remains the recipient restriction.
 
 ## Backups and retention
 

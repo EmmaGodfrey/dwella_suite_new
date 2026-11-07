@@ -46,7 +46,6 @@ export function OutreachTabs() {
         ["/sequences", "Sequences"],
         ["/review", "Review queue"],
         ["/outbox", "Outbox"],
-        ["/settings", "Settings"],
       ].map(([path, name]) => (
         <NavLink end key={name} to={`/admin/outreach${path}`}>
           {name}

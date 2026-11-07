@@ -18,7 +18,6 @@ export default function UnitForm({ propertyId, unit, onClose, onSaved }) {
     occupancy_status: unit?.occupancy_status || "vacant",
     bedrooms: String(unit?.bedrooms ?? 0),
     bathrooms: String(unit?.bathrooms ?? 0),
-    floor_area: unit?.floor_area || "",
     notes: unit?.notes || "",
   });
   const { validate, clearError, fieldProps } = useFormErrors();
@@ -44,8 +43,6 @@ export default function UnitForm({ propertyId, unit, onClose, onSaved }) {
         ? "" : "Enter a whole number of bedrooms.",
       bathrooms: () => form.bathrooms !== "" && Number.isFinite(Number(form.bathrooms)) && Number(form.bathrooms) >= 0
         ? "" : "Enter a valid number of bathrooms.",
-      floor_area: () => !form.floor_area || Number.isFinite(Number(form.floor_area)) && Number(form.floor_area) >= 0
-        ? "" : "Enter a valid floor area.",
     }, event.currentTarget)) return;
     mutation.mutate({
       id: unit?.id,
@@ -53,7 +50,6 @@ export default function UnitForm({ propertyId, unit, onClose, onSaved }) {
         ...form,
         name: form.name.trim(),
         rent_amount: form.rent_amount,
-        floor_area: form.floor_area || null,
         notes: form.notes.trim(),
         ...(unit ? {} : { property: propertyId }),
       },
@@ -80,9 +76,6 @@ export default function UnitForm({ propertyId, unit, onClose, onSaved }) {
             <Dropdown selectedOptions={[form.occupancy_status]} value={statuses.find((s) => s.value === form.occupancy_status)?.label} onOptionSelect={(_, d) => update("occupancy_status", d.optionValue)}>
               {statuses.map((status) => <Option key={status.value} value={status.value}>{status.label}</Option>)}
             </Dropdown>
-          </Field>
-          <Field label="Floor area (sq m)" {...fieldProps("floor_area")}>
-            <Input type="number" min="0" step="0.01" value={form.floor_area} onChange={(_, d) => update("floor_area", d.value)} />
           </Field>
           <Field label="Bedrooms" {...fieldProps("bedrooms")}>
             <Input type="number" min="0" step="1" value={form.bedrooms} onChange={(_, d) => update("bedrooms", d.value)} />

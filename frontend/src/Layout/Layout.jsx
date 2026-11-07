@@ -10,7 +10,7 @@ import { canAccessPath, getPageMeta, getSelectedNavValue } from "../shared/navig
 import { SupportAccessProvider, SupportBanner } from "../Components/Platform/SupportAccess";
 import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
-import GuidedTour from "../Components/GuidedTour";
+import AccessRemoved from "../Components/Portal/AccessRemoved";
 
 const getCachedUser = () => {
   try {
@@ -29,11 +29,12 @@ const AppLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [actionsSlot, setActionsSlot] = useState(null);
   const persona = getUserAccess(user).persona;
-  const setup = useSetupQuery({ enabled: Boolean(user) && ["landlord", "unassigned"].includes(persona) });
+  const removed = Boolean(getUserAccess(user).tenant_access_removed);
+  const setup = useSetupQuery({ enabled: Boolean(user) && !removed && ["landlord", "unassigned"].includes(persona) });
 
   useEffect(() => {
-    if (setup.data?.needs_setup && location.pathname !== "/setup") navigate("/setup", { replace: true });
-  }, [setup.data?.needs_setup, location.pathname, navigate]);
+    if (!removed && setup.data?.needs_setup && location.pathname !== "/setup") navigate("/setup", { replace: true });
+  }, [removed, setup.data?.needs_setup, location.pathname, navigate]);
 
   useEffect(() => {
     localStorage.setItem("dwella_sidebar_collapsed", String(collapsed));
@@ -49,11 +50,11 @@ const AppLayout = () => {
     }
   }, [location.pathname, navigate, user, userLoading]);
 
-  const meta = getPageMeta(location.pathname, user);
+  const meta = getPageMeta(location.pathname, user, location.search);
   // The dashboard leads with the organization's name instead, and detail pages
   // (`/leases/<id>`) carry their own title with a back link.
-  const showHeader = location.pathname !== "/dashboard" && location.pathname.split("/").filter(Boolean).length < 2;
-  const selectedNavValue = getSelectedNavValue(location.pathname, user);
+  const showHeader = !["/dashboard", "/settings", "/messages"].includes(location.pathname) && location.pathname.split("/").filter(Boolean).length < 2;
+  const selectedNavValue = getSelectedNavValue(location.pathname, user, location.search);
   const shellClass = useMemo(
     () => ["dwella-app-shell", collapsed ? "is-collapsed" : "", mobileOpen ? "nav-open" : ""].filter(Boolean).join(" "),
     [collapsed, mobileOpen]
@@ -68,6 +69,8 @@ const AppLayout = () => {
       navigate("/login", { replace: true });
     } catch (error) { toast.error(`Couldn’t sign out: ${error.message}. Try again.`); }
   };
+
+  if (removed) return <AccessRemoved onLogout={handleLogout} />;
 
   return (
     <SupportAccessProvider user={user}><div className={shellClass}>
@@ -84,7 +87,7 @@ const AppLayout = () => {
       {mobileOpen ? <button className="dwella-nav-scrim" type="button" onClick={() => setMobileOpen(false)} aria-label="Close navigation" /> : null}
 
       <div className="dwella-main-frame">
-        <AppTopbar onMobileOpen={() => setMobileOpen(true)} tour={<GuidedTour key={`${user?.id}:${getUserAccess(user).organization_id}`} user={user} enabled={Boolean(user) && !user.email_verification?.required && !getUserAccess(user).workspace_suspended && persona !== "platform_admin" && (persona === "tenant" || setup.data?.needs_setup === false)} />} />
+        <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
         <SupportBanner />
 
         <main className="dwella-content" data-tour="dashboard-overview">

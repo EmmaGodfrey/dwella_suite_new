@@ -21,6 +21,11 @@ def email_status(user, request=None):
 
 def _email_status(user):
     state = AccountAccessState.objects.filter(user=user).first()
+    return email_status_from_state(user, state)
+
+
+def email_status_from_state(user, state):
+    """Project a loaded state for display; authorization still reads current state."""
     verified = bool(
         state
         and state.verified_at

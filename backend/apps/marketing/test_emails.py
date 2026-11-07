@@ -65,6 +65,17 @@ def admin_client():
     return client
 
 
+@pytest.mark.django_db
+def test_transport_not_accepting_welcome_does_not_record_it_as_sent():
+    from .emails import BetaEmailError, deliver
+
+    application = applicant()
+    with mock.patch("django.core.mail.EmailMultiAlternatives.send", return_value=0):
+        with pytest.raises(BetaEmailError, match="did not accept"):
+            deliver(application, Kind.WELCOME)
+    assert not BetaEmail.objects.filter(application=application, kind=Kind.WELCOME).exists()
+
+
 @pytest.mark.django_db(transaction=True)
 def test_website_signup_sends_a_welcome_email_once():
     data = {
@@ -314,6 +325,72 @@ def test_send_access_refuses_declined_emailless_and_disabled(settings):
     ok = applicant(email="ok@example.com")
     assert client.post(f"{ADMIN_URL}{ok.pk}/send-access/").status_code == 400
     assert not mail.outbox and not User.objects.filter(email="ok@example.com").exists()
+
+
+@pytest.mark.django_db
+def test_send_access_to_all_skips_sent_declined_emailless_and_suppressed():
+    from apps.audit.models import AuditEvent
+    from apps.outreach.models import Suppression
+
+    client = admin_client()
+    waiting = applicant(email="waiting@example.com")
+    already = applicant(email="already@example.com")
+    client.post(f"{ADMIN_URL}{already.pk}/send-access/")
+    applicant(email="declined@example.com", status="declined")
+    applicant(email="")
+    applicant(email="Blocked@example.com")
+    Suppression.objects.create(email="blocked@example.com", reason="manual")
+    mail.outbox.clear()
+    url = f"{ADMIN_URL}send-access-all/"
+
+    assert client.get(url).json()["response_data"] == {"pending": 1}
+    response = client.post(url)
+
+    assert response.status_code == 200
+    assert response.json()["response_data"] == {"sent": 1, "failed": 0, "pending": 0}
+    assert [message.to for message in mail.outbox] == [["waiting@example.com"]]
+    waiting.refresh_from_db()
+    assert waiting.status == "accepted"
+    assert AuditEvent.objects.filter(action="marketing.beta_access_bulk").count() == 1
+    # Nothing left: a second run sends nothing more.
+    assert client.post(url).json()["response_data"]["sent"] == 0
+    assert len(mail.outbox) == 1
+
+
+@pytest.mark.django_db
+def test_send_access_to_all_sends_in_batches_and_reports_failures():
+    from apps.marketing import views
+
+    client = admin_client()
+    for number in range(3):
+        applicant(email=f"person{number}@example.com", phone=f"097 000 000{number}")
+    url = f"{ADMIN_URL}send-access-all/"
+    with mock.patch.object(views, "ACCESS_BATCH", 2):
+        first = client.post(url).json()["response_data"]
+        with mock.patch("apps.marketing.emails.send_message", side_effect=OSError("smtp down")):
+            second = client.post(url).json()["response_data"]
+        third = client.post(url).json()["response_data"]
+
+    assert first == {"sent": 2, "failed": 0, "pending": 1}
+    # A failed send is rolled back, so that signup stays waiting for the next run.
+    assert second == {"sent": 0, "failed": 1, "pending": 1}
+    assert third == {"sent": 1, "failed": 0, "pending": 0}
+    assert BetaEmail.objects.filter(kind=Kind.ACCESS).count() == 3
+
+
+@pytest.mark.django_db
+def test_send_access_to_all_requires_admin_and_enabled_emails(settings):
+    applicant()
+    url = f"{ADMIN_URL}send-access-all/"
+    assert APIClient().post(url).status_code in (401, 403)
+    staffless = User.objects.create_user(username="pm", email="pm@example.com", password="x")
+    client = APIClient()
+    client.force_authenticate(staffless)
+    assert client.post(url).status_code == 403
+    assert client.get(url).status_code == 403
+    settings.BETA_EMAILS_ENABLED = False
+    assert admin_client().post(url).status_code == 400
+    assert not mail.outbox
 
 
 @pytest.mark.django_db

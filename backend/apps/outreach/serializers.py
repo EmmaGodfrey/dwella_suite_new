@@ -61,9 +61,13 @@ class ContactSerializer(PublicIdModelSerializer):
         ]
 
     def get_suppressed(self, obj):
-        return obj.status in ("do_not_contact", "bounced") or (
-            bool(obj.email) and Suppression.objects.filter(email__iexact=obj.email).exists()
-        )
+        if obj.status in ("do_not_contact", "bounced"):
+            return True
+        if not obj.email:
+            return False
+        if hasattr(obj, "has_suppression"):
+            return obj.has_suppression
+        return Suppression.objects.filter(email__iexact=obj.email).exists()
 
     def validate_email(self, value):
         value = normalize_email(value) if value else ""

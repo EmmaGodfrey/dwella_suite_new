@@ -29,16 +29,17 @@ def record(job, started, status=JobRun.Status.SUCCEEDED):
     return JobRun.objects.create(job=job, started_at=started, status=status)
 
 
-def test_only_listed_jobs_run(settings):
+def test_only_explicitly_listed_jobs_run(settings):
     settings.SCHEDULER_JOBS = []
     with patch("apps.scheduler.services.call_command") as command:
-        assert run_due_jobs(at(7)) == []
+        runs = run_due_jobs(at(7))
+    assert runs == []
     command.assert_not_called()
-    settings.SCHEDULER_JOBS = ["beta_emails", "not_a_job"]
+    settings.SCHEDULER_JOBS = ["operational_messages", "beta_emails", "not_a_job"]
     with patch("apps.scheduler.services.call_command") as command:
         runs = run_due_jobs(at(7))
-    assert [run.job for run in runs] == ["beta_emails"]
-    command.assert_called_once()
+    assert [run.job for run in runs] == ["operational_messages", "beta_emails"]
+    assert command.call_count == 2
 
 
 def test_interval_job_waits_for_its_interval():

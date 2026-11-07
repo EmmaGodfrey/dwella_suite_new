@@ -85,7 +85,10 @@ def test_login_rejects_bad_password(user):
 
 
 @pytest.mark.django_db
-def test_login_rate_limit_blocks_repeated_attempts(user):
+def test_login_rate_limit_blocks_repeated_attempts(user, monkeypatch):
+    from .throttles import AtomicWindowThrottle
+
+    monkeypatch.setattr(AtomicWindowThrottle, "timer", staticmethod(lambda: 1800000001.0))
     client = APIClient()
     payload = {"email": user.email, "password": "wrong"}
 

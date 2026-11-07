@@ -17,10 +17,11 @@ import { toast } from "react-toastify";
 import { useSaveInvoiceMutation, useVoidInvoiceMutation } from "../../Services/mutations";
 import { useCurrentUserQuery, useInvoiceQuery } from "../../Services/queries";
 import { getUserAccess } from "../../shared/access";
-import { invoiceBadgeProps, lineKinds, paymentMethodLabel, periodLabel } from "../../shared/billing";
+import { invoiceBadgeProps, invoicePeriodLabel, lineKinds, paymentMethodLabel } from "../../shared/billing";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { formatDate, formatMoney } from "../../shared/format";
 import RecordPaymentDrawer from "./RecordPaymentDrawer";
+import OnlineCollections from "./OnlineCollections";
 import "../../shared/records.scss";
 import "./billing.scss";
 import { useInvoiceDocument } from "../../Services/documents";
@@ -103,7 +104,7 @@ export default function InvoiceDetail() {
           </div>
           <p>
             {invoice.tenant_name}
-            {invoice.unit_name ? ` · ${invoice.unit_name}, ${invoice.property_name}` : ""} · {periodLabel(invoice.period_start)}
+            {invoice.unit_name ? ` · ${invoice.unit_name}, ${invoice.property_name}` : ""} · {invoicePeriodLabel(invoice)}
           </p>
         </div>
         {canManage ? (
@@ -150,6 +151,23 @@ export default function InvoiceDetail() {
           </section>
 
           <aside className="dwella-invoice-rail">
+            <OnlineCollections invoiceId={invoice.id} />
+            {invoice.pending_proofs?.length ? (
+              <section className="dwella-surface">
+                <h3>Reported by the tenant</h3>
+                <ul className="dwella-payment-list">
+                  {invoice.pending_proofs.map((proof) => (
+                    <li key={proof.id}>
+                      <div>
+                        <strong>{formatMoney(proof.amount)}</strong>
+                        <small>{paymentMethodLabel(proof.method)} · {formatDate(proof.paid_on)}{proof.reference ? ` · ${proof.reference}` : ""}</small>
+                        <small><Link to={`/billing/payment-proofs?proof=${proof.id}`}>{proof.number}</Link> · Awaiting confirmation</small>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
             <section className="dwella-surface">
               <h3>Payments</h3>
               {invoice.payments.length ? (

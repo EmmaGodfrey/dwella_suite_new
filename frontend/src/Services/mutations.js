@@ -259,6 +259,31 @@ export function useLeaseActionMutation(options = {}) {
   });
 }
 
+export function useRenewLeaseMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["renewLease"],
+    mutationFn: ({ id, payload }) => api.post(`/leases/${id}/renew/`, payload),
+    onSuccess: (data, variables, context) => {
+      invalidateTenancy();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
+// Archive, restore, or close a tenant's portal access.
+export function useTenantActionMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["tenantAction"],
+    mutationFn: ({ id, action }) => api.post(`/tenants/${id}/${action}/`),
+    onSuccess: (data, variables, context) => {
+      invalidateTenancy();
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: options.onError,
+  });
+}
+
 // Money moving changes invoices, the billing summary and tenant balances.
 const invalidateBilling = () => {
   queryClient.invalidateQueries({ queryKey: queryKeys.onboarding });
@@ -333,6 +358,16 @@ export function useSendBetaAccessMutation(options = {}) {
       options.onSuccess?.(data, variables, context);
     },
     onError: options.onError,
+  });
+}
+
+// Sends one batch; the caller repeats while signups are still waiting.
+export function useSendBetaAccessToAllMutation(options = {}) {
+  return useMutation({
+    mutationKey: ["sendBetaAccessToAll"],
+    mutationFn: () => api.post("/marketing/admin/beta-applications/send-access-all/"),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["marketing", "betaApplications"] }),
+    ...options,
   });
 }
 

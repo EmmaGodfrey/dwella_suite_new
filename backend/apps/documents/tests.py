@@ -129,7 +129,7 @@ def test_pdf_versions_preview_and_no_page_restructure(setup):
     second = prepare(setup)
     record.refresh_from_db()
     assert record.status == "superseded" and second["version"] == 2
-    assert bytes(record.pdf) == bytes(record.unsigned_pdf)
+    assert bytes(record.unsigned_pdf) == b""  # unsigned: the PDF is stored once
     lease.refresh_from_db()
     assert lease.status == "draft"
 

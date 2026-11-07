@@ -7,6 +7,7 @@ from apps.common.models import TimeStampedModel, UUIDModel
 class PlatformSettings(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     handy_agent_enabled = models.BooleanField(default=False)
+    runtime_config = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
         return "Platform settings"

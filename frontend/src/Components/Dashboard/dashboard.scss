@@ -43,80 +43,6 @@
   text-transform: uppercase;
 }
 
-.dwella-tenant-status {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  align-items: center;
-  gap: 16px;
-  max-width: 860px;
-  padding: 24px;
-  background: var(--dwella-primary-soft);
-  border-radius: var(--radius-md);
-}
-
-.dwella-tenant-status > svg {
-  width: 28px;
-  height: 28px;
-  padding: 8px;
-  color: var(--dwella-primary);
-  background: var(--dwella-paper);
-  border-radius: var(--radius-sm);
-}
-
-.dwella-tenant-status strong,
-.dwella-tenant-actions strong {
-  display: block;
-  font-size: var(--fs-body);
-}
-
-.dwella-tenant-status p {
-  margin: 4px 0 0;
-  color: var(--dwella-muted);
-}
-
-.dwella-tenant-actions {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  max-width: 860px;
-}
-
-.dwella-tenant-actions button {
-  min-height: 128px;
-  display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: 8px;
-  padding: 18px;
-  color: var(--dwella-ink);
-  background: var(--dwella-paper);
-  border: 0;
-  border-radius: var(--radius-md);
-  box-shadow: var(--dwella-shadow-card);
-  text-align: left;
-  cursor: pointer;
-}
-
-.dwella-tenant-actions button:hover,
-.dwella-tenant-actions button:focus-visible {
-  background: var(--dwella-primary-soft);
-}
-
-.dwella-tenant-actions button:focus-visible {
-  outline: 2px solid var(--dwella-primary);
-  outline-offset: 2px;
-}
-
-.dwella-tenant-actions button > svg {
-  color: var(--dwella-primary);
-}
-
-.dwella-tenant-actions span {
-  color: var(--dwella-muted);
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-}
-
 // ---- Pulse band -------------------------------------------------------------
 // One focal figure, then a strip of supporting counts. Paper rather than navy:
 // the band leads through size and position, not a dark slab that out-shouts
@@ -797,10 +723,6 @@
 
   .dwella-dashboard-intro {
     align-items: flex-start;
-  }
-
-  .dwella-tenant-actions {
-    grid-template-columns: 1fr;
   }
 
   .dwella-portfolio-pulse,

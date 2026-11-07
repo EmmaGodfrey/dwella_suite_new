@@ -2,8 +2,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { apiRequest, getApiBaseUrl } from "./apiClient";
 import { queryKeys } from "./queryKeys";
+import { portfolioReportData } from "./portfolioReport.mjs";
 
-const toSearchParams = (filters = {}) => {
+export const toSearchParams = (filters = {}) => {
   const params = new URLSearchParams();
 
   Object.entries(filters).forEach(([key, value]) => {
@@ -69,7 +70,7 @@ export function useRegistrationQuery(options = {}) {
 export function useReportQuery(report, filters = {}, options = {}) {
   return useQuery({
     queryKey: queryKeys.report(report, filters),
-    queryFn: () => apiRequest(`/reports/${report}/${toSearchParams(filters)}`),
+    queryFn: async () => portfolioReportData(await apiRequest(`/reports/${report}/${toSearchParams(filters)}`)),
     ...options,
   });
 }
@@ -234,6 +235,14 @@ export function useBetaEmailSettingsQuery(options = {}) {
     queryKey: queryKeys.betaEmailSettings,
     queryFn: () => apiRequest("/marketing/admin/beta-applications/email-settings/"),
     staleTime: 5 * 60_000,
+    ...options,
+  });
+}
+
+export function useBetaAccessPendingQuery(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.betaAccessPending,
+    queryFn: () => apiRequest("/marketing/admin/beta-applications/send-access-all/"),
     ...options,
   });
 }

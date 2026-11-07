@@ -4,7 +4,7 @@ from hashlib import sha256
 from django.conf import settings
 from django.core import signing
 from django.db import IntegrityError, transaction
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
@@ -108,6 +108,14 @@ class ContactViewSet(AuditedViewSet):
     serializer_class = ContactSerializer
     search_fields = ["name", "email", "organization", "phone", "handle", "town"]
     filterset_fields = ["segment", "status", "platform"]
+
+    def get_queryset(self):
+        query = super().get_queryset()
+        if self.action in ("list", "retrieve"):
+            query = query.annotate(
+                has_suppression=Exists(Suppression.objects.filter(email__iexact=OuterRef("email")))
+            )
+        return query
 
     @action(detail=True, methods=["post"], url_path="early-access")
     def early_access(self, request, public_id=None):

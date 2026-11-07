@@ -29,6 +29,38 @@ def get_user_access(user, request=None):
     if user.is_superuser or user.is_staff:
         organization = resolve_workspace(request, required=False) if request else None
         session = getattr(request, "support_session", None) if request else None
+        return access_representation(
+            user, verified_access=verified_access, organization=organization, session=session
+        )
+
+    # Reuse the membership resolve_workspace already read for this request.
+    resolved = getattr(request, "_workspace_membership", None) if request is not None else None
+    membership = resolved[1] if resolved and resolved[0] == user.pk else get_active_membership(user)
+    from apps.accounts.models import AccountAccessState
+
+    removed = (
+        not membership
+        and AccountAccessState.objects.filter(user=user, tenant_access_removed=True).exists()
+    )
+    return access_representation(
+        user,
+        membership=membership,
+        verified_access=verified_access,
+        tenant_access_removed=bool(removed),
+    )
+
+
+def access_representation(
+    user,
+    *,
+    membership=None,
+    verified_access=True,
+    organization=None,
+    session=None,
+    tenant_access_removed=False,
+):
+    """Display access from supplied records, without performing authorization reads."""
+    if user.is_superuser or user.is_staff:
         return {
             "persona": "platform_admin",
             "role": "platform_admin",
@@ -48,13 +80,8 @@ def get_user_access(user, request=None):
             "can_manage_organization": bool(organization and verified_access),
         }
 
-    # Reuse the membership resolve_workspace already read for this request.
-    resolved = getattr(request, "_workspace_membership", None) if request is not None else None
-    membership = resolved[1] if resolved and resolved[0] == user.pk else get_active_membership(user)
     role = membership.role if membership else None
-    available = bool(
-        membership and membership.organization.is_active and verified_access
-    )
+    available = bool(membership and membership.organization.is_active and verified_access)
     persona = (
         "tenant"
         if role == OrganizationMembership.Role.TENANT
@@ -64,6 +91,7 @@ def get_user_access(user, request=None):
     )
     return {
         "persona": persona,
+        "tenant_access_removed": bool(tenant_access_removed),
         "acting_workspace": None,
         "workspace_suspended": bool(membership and not membership.organization.is_active),
         "role": role or "unassigned",

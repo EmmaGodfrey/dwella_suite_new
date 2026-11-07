@@ -42,6 +42,7 @@ const Security = () => {
 
   return (
     <div className="dwella-screen dwella-security-screen" data-tour="security-settings">
+      {user?.admin_mfa_required && <p role="status" className="dwella-verification-note">Set up two-factor authentication to continue using your administrator account. After verification, sign in again with your password and authenticator code.</p>}
       {user && !user.email_verification?.verified ? <div className="dwella-verification-note"><p>Verify {user.email} to confirm access to your mailbox.</p><Button as={Link} to="/verify-email">Verify email</Button></div> : null}
       <PageSection
         className="dwella-security-overview"

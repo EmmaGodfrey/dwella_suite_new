@@ -6,6 +6,7 @@ from apps.subscriptions.views import PlatformEntitlementsView
 from .dashboard_views import PlatformDashboardView
 from .event_views import AuditEventViewSet
 from .identity_views import IdentityReviewViewSet
+from .runtime_views import AssistantConnectionCheckView, RuntimeSettingsView
 from .settings_views import PlatformSettingsView
 from .user_views import PlatformUserViewSet
 from .views import SupportSessionViewSet
@@ -20,6 +21,11 @@ router.register("users", PlatformUserViewSet, basename="platform-user")
 router.register("identity-verifications", IdentityReviewViewSet, basename="platform-identity")
 router.register("workspaces", PlatformWorkspaceViewSet, basename="platform-workspace")
 urlpatterns = [
+    path("runtime-settings/", RuntimeSettingsView.as_view(), name="runtime-settings"),
+    path(
+        "runtime-settings/assistant-check/", AssistantConnectionCheckView.as_view(),
+        name="assistant-connection-check",
+    ),
     path(
         "workspaces/<uuid:public_id>/entitlements/",
         PlatformEntitlementsView.as_view(),

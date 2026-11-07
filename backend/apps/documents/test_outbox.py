@@ -22,6 +22,18 @@ from .tests import invitation, member, prepare
 pytestmark = pytest.mark.django_db(transaction=True)
 
 
+def test_uncertain_routed_mail_stops_automatic_signing_retries(setup):
+    from apps.common.email_router import EmailDeliveryUnknown
+
+    _, _, row = queued_code(setup)
+    with patch.object(EmailMessage, "send", side_effect=EmailDeliveryUnknown("uncertain")) as send:
+        assert deliver_pending() == 0
+        assert deliver_pending() == 0
+    row.refresh_from_db()
+    assert row.status == "failed" and row.failure_code == "send_outcome_unknown"
+    assert send.call_count == 1
+
+
 @pytest.fixture(autouse=True)
 def mail_settings(settings):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"

@@ -1,0 +1,14 @@
+.dwella-whatsapp-connection {
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--dwella-line-soft);
+  h2 { font-size: var(--fs-h3); margin: 0 0 0.5rem; }
+  header > p { color: var(--dwella-muted); margin: 0 0 1.25rem; }
+  form { display: grid; gap: 1rem; justify-items: start; }
+  form > p { margin: 0; }
+  form > :first-child, form > [class*="Field"] { width: min(100%, 28rem); }
+  input { min-width: 0; }
+  p { overflow-wrap: anywhere; }
+}
+.dwella-whatsapp-actions, .dwella-whatsapp-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.dwella-whatsapp-connected { justify-content: space-between; }
+.dwella-whatsapp-connected p { color: var(--dwella-muted); margin: 0.25rem 0 0; }

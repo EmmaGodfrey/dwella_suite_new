@@ -97,7 +97,7 @@ export function FormModal({ title, description, onSubmit, onClose, children,
   </Dialog>;
 }
 
-function useRestoreFocus() {
+export function useRestoreFocus() {
   const openerRef = useRef(typeof document === "undefined" ? null : document.activeElement);
   useEffect(() => () => {
     // Conditional overlays have no Fluent trigger to restore focus to.

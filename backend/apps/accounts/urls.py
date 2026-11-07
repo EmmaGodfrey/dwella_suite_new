@@ -4,6 +4,7 @@ from .email_verification import EmailVerificationConfirmView, EmailVerificationV
 from .invitations import InvitationAcceptView, InvitationPreviewView
 from .registration import RegistrationView
 from .tours import GuidedTourView
+from .uat import UatChecklistView, UatExportView, UatResultView
 from .views import (
     CurrentUserAvatarView,
     CurrentUserView,
@@ -23,6 +24,9 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
+    path("uat/", UatChecklistView.as_view()),
+    path("uat/export/", UatExportView.as_view()),
+    path("uat/results/<str:case_id>/", UatResultView.as_view()),
     path("guided-tour/", GuidedTourView.as_view(), name="guided-tour"),
     path("invitations/preview/", InvitationPreviewView.as_view(), name="invitation-preview"),
     path("invitations/accept/", InvitationAcceptView.as_view(), name="invitation-accept"),

@@ -1,0 +1,10 @@
+.messages-page { min-width: 0; }
+.messages-filters { display: flex; align-items: end; flex-wrap: wrap; gap: 1rem; margin-block: 1.5rem; }
+.messages-filters > :first-child { flex: 1; min-width: 12rem; }
+.message-recipient-list { display: flex; flex-direction: column; max-height: 14rem; overflow-y: auto; }
+.message-selected { display: flex; flex-wrap: wrap; gap: .5rem; }
+.message-recipient-review { padding-left: 1.25rem; }
+.message-recipient-review li { margin-block: .75rem; overflow-wrap: anywhere; }
+.message-recipient-review span { display: block; color: var(--dwella-muted); }
+.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 640px) { .messages-filters > * { flex: 1 1 100%; } }

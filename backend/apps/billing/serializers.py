@@ -8,9 +8,11 @@ from apps.common.serializers import OrganizationScopedSerializer
 from apps.integrations.models import FiscalReceipt
 from apps.integrations.serializers import FiscalReceiptSerializer
 from apps.leases.models import Lease
+from apps.payments.serializers import CollectionSerializer
 from apps.tenants.models import Tenant
 
-from .models import Invoice, InvoiceLine, Payment
+from .models import Invoice, InvoiceLine, Payment, PaymentInstruction
+from .receipt_fields import AllocationFields
 from .services import create_invoice
 
 
@@ -33,6 +35,7 @@ class InvoiceLineSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(OrganizationScopedSerializer):
+    online_payment = CollectionSerializer(source="collection", read_only=True, default=None)
     invoice_id = serializers.UUIDField(source="invoice.public_id", read_only=True)
     invoice_reference = serializers.CharField(source="invoice.reference", read_only=True)
     tenant_name = serializers.CharField(source="tenant.full_name", read_only=True)
@@ -41,6 +44,7 @@ class PaymentSerializer(OrganizationScopedSerializer):
     class Meta:
         model = Payment
         fields = [
+            "online_payment",
             "id",
             "organization_id",
             "receipt_number",
@@ -64,7 +68,14 @@ class PaymentSerializer(OrganizationScopedSerializer):
         return (user.get_full_name() or user.username) if user else None
 
 
-class ReceiptSerializer(PaymentSerializer):
+class ReceiptSerializer(AllocationFields, PaymentSerializer):
+    missing_details = serializers.SerializerMethodField()
+
+    def get_missing_details(self, obj):
+        from apps.tenants.details import receipt_missing_details
+
+        return receipt_missing_details(obj)
+
     issuer = serializers.SerializerMethodField()
     property_name = serializers.CharField(source="invoice.unit.property.name", default=None)
     unit_name = serializers.CharField(source="invoice.unit.name", default=None)
@@ -81,12 +92,15 @@ class ReceiptSerializer(PaymentSerializer):
         fields = [
             *PaymentSerializer.Meta.fields,
             "issuer",
+            "missing_details",
             "property_name",
             "unit_name",
             "tenant_phone",
             "invoice_total",
             "current_balance",
             "reversed_by_name",
+            "allocation",
+            "deposit_held",
         ]
         read_only_fields = fields
 
@@ -113,7 +127,9 @@ class ReversePaymentSerializer(serializers.Serializer):
 class InvoiceSerializer(OrganizationScopedSerializer):
     tenant = serializers.SlugRelatedField(slug_field="public_id", queryset=Tenant.objects.none())
     lease = serializers.SlugRelatedField(
-        slug_field="public_id", queryset=Lease.objects.none(), required=False, allow_null=True
+        slug_field="public_id", queryset=Lease.objects.none(), required=False, allow_null=True,
+        # DRF's conditional uniqueness validation must retain optional one-off invoices.
+        default=None,
     )
     tenant_name = serializers.CharField(source="tenant.full_name", read_only=True)
     tenant_phone = serializers.CharField(source="tenant.phone_number", read_only=True)
@@ -156,6 +172,7 @@ class InvoiceSerializer(OrganizationScopedSerializer):
             "fiscal_status",
             "charged_for_id",
             "charged_for_reference",
+            "is_opening_balance",
             "lines",
             "notes",
             "voided_at",
@@ -165,6 +182,7 @@ class InvoiceSerializer(OrganizationScopedSerializer):
         read_only_fields = [
             "reference",
             "period_start",
+            "is_opening_balance",
             "total",
             "amount_paid",
             "status",
@@ -227,6 +245,8 @@ class InvoiceDetailSerializer(InvoiceSerializer):
     issuer = serializers.SerializerMethodField()
     tenant_tpin = serializers.CharField(source="tenant.tpin", read_only=True)
     tenant_email = serializers.CharField(source="tenant.email", read_only=True)
+    # Tenant-reported payments still to confirm: warn before recording by hand.
+    pending_proofs = serializers.SerializerMethodField()
 
     class Meta(InvoiceSerializer.Meta):
         fields = [
@@ -236,6 +256,22 @@ class InvoiceDetailSerializer(InvoiceSerializer):
             "payments",
             "fiscal_receipts",
             "issuer",
+            "pending_proofs",
+        ]
+
+    def get_pending_proofs(self, obj):
+        from .proofs import matching_proofs
+
+        return [
+            {
+                "id": str(row.public_id),
+                "number": row.number,
+                "amount": f"{row.amount:.2f}",
+                "paid_on": row.paid_on.isoformat(),
+                "method": row.method,
+                "reference": row.reference,
+            }
+            for row in matching_proofs(obj)
         ]
 
     def get_issuer(self, obj):
@@ -255,7 +291,7 @@ class InvoiceDetailSerializer(InvoiceSerializer):
 
 class RecordPaymentSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=12, decimal_places=2)
-    method = serializers.ChoiceField(choices=Payment.Method.choices)
+    method = serializers.ChoiceField(choices=Payment.RECEIVED_METHODS)
     paid_on = serializers.DateField(required=False)
     reference = serializers.CharField(max_length=80, required=False, allow_blank=True, default="")
     notes = serializers.CharField(required=False, allow_blank=True, default="")
@@ -279,3 +315,47 @@ class GenerateInvoicesSerializer(serializers.Serializer):
         if months_ahead > 1:
             raise serializers.ValidationError("You can bill this month or next month at most.")
         return period
+
+
+class PaymentInstructionSerializer(OrganizationScopedSerializer):
+    class Meta:
+        model = PaymentInstruction
+        fields = [
+            "id",
+            "kind",
+            "account_name",
+            "bank_name",
+            "branch",
+            "account_number",
+            "network",
+            "phone",
+            "note",
+            "position",
+        ]
+
+    def validate(self, attrs):
+        merged = {
+            field: attrs.get(field, getattr(self.instance, field, ""))
+            for field in self.Meta.fields
+            if field != "id"
+        }
+        errors = {}
+        if not (merged["account_name"] or "").strip():
+            errors["account_name"] = "Enter the name on the account."
+        if merged["kind"] == PaymentInstruction.Kind.BANK:
+            if not (merged["bank_name"] or "").strip():
+                errors["bank_name"] = "Enter the bank."
+            number = re.sub(r"\s", "", merged["account_number"] or "")
+            if not re.fullmatch(r"\d{6,20}", number):
+                errors["account_number"] = "Enter the account number using digits only."
+            attrs.update(network="", phone="", account_number=number)
+        else:
+            if not merged["network"]:
+                errors["network"] = "Choose the mobile network."
+            phone = re.sub(r"[\s()-]", "", merged["phone"] or "")
+            if not re.fullmatch(r"(?:0[79]\d{8}|\+?260[79]\d{8})", phone):
+                errors["phone"] = "Enter a valid Zambian mobile number."
+            attrs.update(bank_name="", branch="", account_number="", phone=phone)
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs

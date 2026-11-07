@@ -131,7 +131,13 @@ export default function Leases() {
                       {endingSoon ? <small className="dwella-cell-note is-warning">Ends in {endsIn} days</small> : null}
                     </td>
                     <td className="is-numeric">{formatMoney(lease.monthly_rent, { whole: true })}</td>
-                    <td><StatusBadge {...leaseBadgeProps(lease.status)} /></td>
+                    <td>
+                      <span className="dwella-badge-row">
+                        <StatusBadge {...leaseBadgeProps(lease.status)} />
+                        {lease.renewal ? <StatusBadge color="informative">{lease.renewal.status === "draft" ? "Renewal drafted" : "Renewal awaiting signature"}</StatusBadge> : null}
+                        {lease.renewal_of_reference && lease.status !== "active" ? <small className="dwella-muted-copy">Renews {lease.renewal_of_reference}</small> : null}
+                      </span>
+                    </td>
                   </tr>
                 );
               })}
