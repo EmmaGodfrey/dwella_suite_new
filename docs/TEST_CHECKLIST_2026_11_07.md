@@ -85,3 +85,14 @@ its optional OTP readiness check is consequently false.
 Before widening invitations, complete one real new-mailbox signup/verification and
 new-number CONNECT/invoice handset journey. Automated validation does not pre-pass
 these participant flows.
+
+## Participant instruction correction
+
+On 7 November, revised 20 cases to remove unnecessary organiser prerequisites.
+Participants use their own email, fictional records and normal manager actions.
+Privacy checks use another consenting tester's separate workspace or an invited
+tenant partner. Access removal names the manager's actual Remove portal access
+action; lease signing names Revoke signing. Reused/expired-link checks use the
+participant's own mailbox, and identity submission ends at pending review without
+waiting for an administrator. All 131 case IDs and role assignments are retained,
+so saved participant results remain attached to the same flows.

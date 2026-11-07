@@ -9,7 +9,7 @@
     "priority": "P0",
     "title": "Self-service registration",
     "steps": "Open the TEST registration page; enter your own permanent email and a strong password; submit once.",
-    "expected": "Account is created without staff privileges; email-verification screen appears; no portfolio access is granted before proof."
+    "expected": "A regular account is created; the email-verification screen appears; portfolio access waits for email verification."
   },
   {
     "id": "ACC-02",
@@ -20,8 +20,8 @@
     "paired": false,
     "priority": "P0",
     "title": "Verification reaches the right mailbox",
-    "steps": "Register with a consenting tester mailbox different from the organiser's; check Inbox and Spam; record arrival time.",
-    "expected": "The intended mailbox receives its own verification link; mail is not redirected to the organiser and contains the TEST destination."
+    "steps": "Register with your own email address; check Inbox and Spam for your verification message.",
+    "expected": "Your mailbox receives its verification link, and the link opens the TEST app."
   },
   {
     "id": "ACC-03",
@@ -69,7 +69,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Expired or reused verification link",
-    "steps": "Use a previously consumed link; ask the organiser for a deliberately expired test link.",
+    "steps": "Open your verification link again after using it. If you have an expired link from an earlier attempt, try that too.",
     "expected": "The link cannot verify again; the interface offers a safe way to sign in and request a fresh link."
   },
   {
@@ -121,7 +121,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Unknown recovery address",
-    "steps": "Request recovery for an organiser-approved unused address.",
+    "steps": "Request a password reset for another email address you own that has not been registered with Dwella.",
     "expected": "The response does not reveal whether an account exists and does not sign anyone in."
   },
   {
@@ -414,7 +414,7 @@
     "paired": true,
     "priority": "P0",
     "title": "Access removal",
-    "steps": "On an organiser-approved disposable tenant, remove the last active tenancy/access link; refresh the portal and use its WhatsApp menu.",
+    "steps": "Use a separate test tenant with your paired tester. As manager, open that tenant in Tenants and choose Remove portal access; as tenant, refresh the portal and try the old WhatsApp menu.",
     "expected": "The former tenant loses private tenancy actions; removal is explained; old links/chat actions do not preserve access."
   },
   {
@@ -499,7 +499,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Signing errors and old links",
-    "steps": "Try incomplete signature input; use a completed or organiser-revoked link again.",
+    "steps": "Try incomplete signature input, then complete signing and reopen the same link. As manager, revoke a separate unused signing invitation and try its old link.",
     "expected": "Incomplete input is blocked and old links cannot modify completed signing evidence."
   },
   {
@@ -794,7 +794,7 @@
     "paired": true,
     "priority": "P1",
     "title": "Receipt and proof privacy",
-    "steps": "Open the authorised receipt/proof; try its link while signed out and from the organiser's second dummy workspace.",
+    "steps": "Open your test receipt/proof and copy its link. Try the link while signed out, then have another tester with a separate workspace try it from their account.",
     "expected": "Authorised viewing works; unrelated or signed-out users cannot retrieve the private evidence."
   },
   {
@@ -991,7 +991,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Repair access boundary",
-    "steps": "As the paired second tenant, use an organiser-provided link to another dummy tenant's repair.",
+    "steps": "As manager, create a repair for one fictional tenant and copy its link. Have a second invited tenant tester try the link from their own account.",
     "expected": "The other tenant's description, comments and images are denied without exposing private details."
   },
   {
@@ -1081,7 +1081,7 @@
     "paired": true,
     "priority": "P0",
     "title": "Connect a new tester number",
-    "steps": "Use an email-verified account and a real consenting number outside the original operator list; connect via the exact prefilled CONNECT message.",
+    "steps": "Verify your email, enter your own WhatsApp number in Get Started or Settings, and send the exact prefilled CONNECT message from that number.",
     "expected": "The intended number connects after signed inbound proof and website confirmation, with the correct personal role."
   },
   {
@@ -1235,7 +1235,7 @@
     "paired": false,
     "priority": "P0",
     "title": "Changed access and old buttons",
-    "steps": "On an organiser-controlled account, remove its access or change its verified identity; press an old menu/reviewer button.",
+    "steps": "With your paired tester, connect WhatsApp on a separate test tenant account. As manager, choose Remove portal access in Tenants; as tenant, press an old WhatsApp menu button.",
     "expected": "Permissions are rechecked and old private actions do not survive revoked access or identity changes."
   },
   {
@@ -1284,7 +1284,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Workspace settings and authority",
-    "steps": "Change a permitted fictional workspace field; compare as tenant or a restricted collaborator if provided.",
+    "steps": "As manager, change a permitted fictional workspace field. Have your paired tenant check that they cannot edit the manager's workspace settings.",
     "expected": "Only authorised roles can change workspace settings; other users do not gain controls through a direct URL."
   },
   {
@@ -1323,7 +1323,7 @@
     "paired": true,
     "priority": "P0",
     "title": "Separate workspace isolation",
-    "steps": "Use two organiser-approved dummy workspaces; try the other workspace's known property, tenant, invoice and report links.",
+    "steps": "Pair with another manager tester, each using a separate fictional workspace. Share links to test properties, tenants, invoices and reports; try each other's links while signed in to your own account.",
     "expected": "Foreign data/actions are denied; search, counts, exports and errors do not reveal private records."
   },
   {
@@ -1335,8 +1335,8 @@
     "paired": false,
     "priority": "P0",
     "title": "Tenant role boundaries",
-    "steps": "Try direct manager/admin URLs and another dummy tenant's invoice, lease, statement and document links.",
-    "expected": "The tenant sees only their own permitted records and cannot create manager/admin access."
+    "steps": "As tenant, try a manager-only page shared by your paired manager, then links to a second test tenant's invoice, lease, statement and documents.",
+    "expected": "You can see only your own permitted records; manager-only pages and the other tenant's private records remain unavailable."
   },
   {
     "id": "SEC-03",
@@ -1361,7 +1361,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Temporary connection failure",
-    "steps": "With an organiser-approved disposable draft, disconnect your network briefly, submit, reconnect and retry carefully.",
+    "steps": "Create a disposable test draft, briefly disconnect your network and try saving. Reconnect and retry once.",
     "expected": "Failure feedback is actionable; the application does not claim a save that failed or create duplicates on recovery."
   },
   {
@@ -1400,7 +1400,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Expired or reused password-reset links",
-    "steps": "Use a test reset link once, then try it again. Ask the organiser for a deliberately expired link.",
+    "steps": "Reset your password using the link sent to your own mailbox, then try the same link again. If you have an expired reset link from an earlier attempt, try that too.",
     "expected": "Used or expired links cannot change the password or bypass normal sign-in and MFA."
   },
   {
@@ -1413,7 +1413,7 @@
     "paired": false,
     "priority": "P1",
     "title": "Remove and re-enable MFA",
-    "steps": "On your own non-admin test account, remove MFA with your password and authenticator code, then set it up again.",
+    "steps": "On your own test account, remove MFA with your password and authenticator code, then set it up again.",
     "expected": "Both proofs are required; MFA login works again after re-enrollment."
   },
   {
@@ -1439,8 +1439,8 @@
     "paired": false,
     "priority": "P1",
     "title": "Submit a test identity check",
-    "steps": "If identity submission is offered, use only an organiser-approved fictional identity and a clearly labelled harmless sample image. Never upload a real ID for this exercise.",
-    "expected": "Required fields and files are checked; submission reaches pending review and is private. Admin review is outside your checklist."
+    "steps": "If identity submission is offered, enter made-up details and use a clearly labelled harmless sample image. Never upload a real ID for this exercise.",
+    "expected": "Required fields and files are checked; the submission is saved privately as pending review. This check ends at submission; you do not need to wait for approval."
   },
   {
     "id": "LEASE-09",
@@ -1476,7 +1476,7 @@
     "paired": false,
     "priority": "P1",
     "title": "End a disposable test lease",
-    "steps": "On an organiser-approved fictional tenancy, use the supported End action and compare the unit, lease history and existing invoices.",
+    "steps": "Create a separate fictional tenancy for this check. As manager, use End lease and compare the unit, lease history and existing invoices.",
     "expected": "The ending is recorded clearly; occupancy and lease state agree and invoice/receipt history is retained. No money is moved."
   },
   {
@@ -1576,7 +1576,7 @@
     "paired": true,
     "priority": "P0",
     "title": "Deposit evidence permissions and file checks",
-    "steps": "Upload a harmless permitted sample; try an unsupported file. Test its private link only with an organiser-provided unrelated dummy account.",
+    "steps": "Upload a harmless permitted sample, then try an unsupported file. Copy the sample's private link and have another tester from a separate workspace try it from their own account.",
     "expected": "File constraints are clear and another tenant/workspace cannot retrieve private evidence."
   },
   {
@@ -1614,7 +1614,7 @@
     "paired": false,
     "priority": "P0",
     "title": "Assistant access boundaries",
-    "steps": "Using only an organiser-provided dummy account/workspace, ask the assistant for data your role cannot access.",
+    "steps": "Pair with another tester using a separate fictional workspace. Ask the assistant about a made-up property or invoice from that workspace and check that it does not reveal the other tester's records.",
     "expected": "It cannot reveal another workspace or tenant’s private records."
   },
   {
