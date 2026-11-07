@@ -43,6 +43,7 @@ def test_global_routing_counts_account_signing_and_reminder_recipients():
     assert len(mail.outbox) == 2
     assert message.dwella_provider == "resend" and message.dwella_provider_id == "resend-1"
     assert api.call_args.args[1]["from"] == ROUTING["RESEND_FROM_EMAIL"]
+    assert api.call_args.args[2]["User-Agent"] == "Dwella/1.0"
     assert sum(EmailUsageBucket.objects.values_list("recipients", flat=True)) == 3
 
 

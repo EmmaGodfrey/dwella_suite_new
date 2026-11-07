@@ -159,7 +159,10 @@ class EmailBackend(BaseEmailBackend):
                         result = post_json(
                             "https://api.resend.com/emails",
                             resend_payload(message),
-                            {"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                            {
+                                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                                "User-Agent": "Dwella/1.0",
+                            },
                         )
                         message.dwella_provider_id = result["id"]
                         accepted = 1
