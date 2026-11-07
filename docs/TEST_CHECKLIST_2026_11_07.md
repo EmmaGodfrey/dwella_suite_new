@@ -63,3 +63,25 @@ production frontend build passed. Fifteen synthetic browser scenarios passed wit
 131 catalogue entries, covering saved results, notes/retry, participant separation,
 filters, mobile/dark layouts, administrator read-only controls and CSV download.
 These checks do not establish real inbox or WhatsApp handset delivery.
+
+## Deployed TEST release
+
+`test-v2026.11.07.2` / `14f3a75` passed all four CI gates and TEST deployment in
+[run 42314915893](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/42314915893).
+The live page is https://app.dwella.properties/test/uat. Logged-out visitors are
+sent to TEST login; verified participants can also use the Test checklist sidebar
+link. No production deployment was run.
+
+Independent live checks matched all new backend/frontend source files, the
+131-flow/15-module catalogue, applied migration and restricted runtime DML grants.
+Anonymous API access is rejected with private/no-store responses. There were zero
+saved human results at verification. All ten TEST services were running and their
+configured health checks passed; no migrations remained. TEST configuration file
+hashes and all 19 non-TEST container identities were unchanged. Public registration,
+direct email, restored WhatsApp CONNECT, disabled money movement and hidden guided
+tour were preserved. Outbound WhatsApp OTP remains disabled by the earlier decision;
+its optional OTP readiness check is consequently false.
+
+Before widening invitations, complete one real new-mailbox signup/verification and
+new-number CONNECT/invoice handset journey. Automated validation does not pre-pass
+these participant flows.
