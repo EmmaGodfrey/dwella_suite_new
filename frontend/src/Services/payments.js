@@ -79,6 +79,18 @@ export const useRequestWithdrawal = () => useMutation({
   onSettled: refreshPayouts,
 });
 
+export const usePayoutTiming = () => useQuery({
+  queryKey: keys("payouts", "timing"),
+  queryFn: ({ signal }) => api.get("/payments/payouts/timing/", { signal }),
+  retry: false,
+});
+
+export const useSavePayoutTiming = () => useMutation({
+  mutationFn: (plan) => api.put("/payments/payouts/timing/", plan),
+  retry: false,
+  onSuccess: refreshPayouts,
+});
+
 export const useCancelWithdrawal = () => useMutation({
   mutationFn: (id) => api.post(`/payments/withdrawals/${id}/cancel/`, {}),
   retry: false,

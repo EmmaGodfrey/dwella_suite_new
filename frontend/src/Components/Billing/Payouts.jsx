@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Button, Field, Input } from "@fluentui/react-components";
+import { Button, Field, Input, Radio, RadioGroup, Select } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import {
-  useCancelWithdrawal, usePayoutSummary, usePreviewWithdrawal, useRequestWithdrawal, useWithdrawals,
+  useCancelWithdrawal, usePayoutSummary, usePayoutTiming, usePreviewWithdrawal, useRequestWithdrawal,
+  useSavePayoutTiming, useWithdrawals,
 } from "../../Services/payments";
 import { getUserAccess } from "../../shared/access";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
 import { formatDate, formatMoney } from "../../shared/format";
-import { destinationLong, destinationShort, withdrawalFee, withdrawalStatus } from "../../shared/payouts";
+import {
+  destinationLong, destinationShort, timingLabel, weekdays, withdrawalFee, withdrawalStatus,
+} from "../../shared/payouts";
 import { ReceivingDrawer } from "./ReceivingDetails";
 import "../../shared/records.scss";
 import "./payouts.scss";
@@ -115,6 +118,74 @@ function WithdrawDrawer({ summary, onClose, onChangeAccount }) {
   );
 }
 
+const timings = [
+  { value: "manual", label: "Hold until I request", note: "Rent stays in your balance until you withdraw it." },
+  { value: "settled", label: "As funds settle", note: "Sent soon after each payment settles. Each transfer has its own fee." },
+  { value: "weekly", label: "Weekly", note: "Everything available is sent once a week." },
+  { value: "monthly", label: "Monthly", note: "Everything available is sent once a month." },
+];
+const monthDays = Array.from({ length: 28 }, (_, index) => index + 1);
+const nextRun = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit",
+});
+
+function TimingDrawer({ plan, destination, onClose }) {
+  const [form, setForm] = useState({
+    timing: plan?.timing || "manual", weekday: plan?.weekday ?? 0, month_day: plan?.month_day ?? 0,
+  });
+  const [message, setMessage] = useState("");
+  const save = useSavePayoutTiming();
+  const change = (key, value) => { setMessage(""); setForm((current) => ({ ...current, [key]: value })); };
+  const chosen = timings.find((item) => item.value === form.timing);
+  const submit = async (event) => {
+    event.preventDefault();
+    if (save.isPending) return;
+    try {
+      await save.mutateAsync(form);
+      toast.success(`Payout timing saved · ${timingLabel(form)}.`);
+      onClose();
+    } catch (error) {
+      setMessage(error.data?.timing?.[0] || error.message || "Could not save the payout timing.");
+    }
+  };
+  return (
+    <FormDrawer title="Payout timing" description="Choose when settled rent is sent to your receiving account."
+      onClose={onClose} onSubmit={submit} busy={save.isPending} submitLabel="Save timing" pendingLabel="Saving…">
+      <div className="dwella-withdraw">
+        {message ? <p role="alert" className="dwella-alert danger">{message}</p> : null}
+        <Field label="Send settled rent">
+          <RadioGroup value={form.timing} onChange={(_, data) => change("timing", data.value)}>
+            {timings.map((item) => <Radio key={item.value} value={item.value} label={item.label} />)}
+          </RadioGroup>
+        </Field>
+        {form.timing === "weekly" ? (
+          <Field label="Payout day">
+            <Select value={String(form.weekday)} onChange={(_, data) => change("weekday", Number(data.value))}>
+              {weekdays.map((day, index) => <option key={day} value={index}>{day} · 08:00</option>)}
+            </Select>
+          </Field>
+        ) : null}
+        {form.timing === "monthly" ? (
+          <Field label="Payout day">
+            <Select value={String(form.month_day)} onChange={(_, data) => change("month_day", Number(data.value))}>
+              <option value="0">Last day of the month · 08:00</option>
+              {monthDays.map((day) => <option key={day} value={day}>Day {day} · 08:00</option>)}
+            </Select>
+          </Field>
+        ) : null}
+        <p className="dwella-withdraw-note">
+          {chosen?.note} {form.timing === "manual" ? "" : "Only settled rent is sent, up to the largest amount your balance covers after the Lenco fee. Payments still settling carry forward."}
+        </p>
+        {form.timing !== "manual" ? (
+          <p className="dwella-drawer-note">
+            {destination ? `Sent to ${destinationLong(destination)}.` : "Add a receiving account before choosing automatic payouts."} Times are Lusaka time.
+          </p>
+        ) : null}
+      </div>
+    </FormDrawer>
+  );
+}
+
 function History({ canWithdraw }) {
   const [page, setPage] = useState(1);
   const query = useWithdrawals(page);
@@ -146,7 +217,7 @@ function History({ canWithdraw }) {
                 const status = withdrawalStatus[row.status] || { label: row.status, color: "subtle" };
                 return (
                   <tr key={row.id}>
-                    <td>{requestedAt(row.created_at)}<span className="dwella-cell-note">{row.reference}</span></td>
+                    <td>{requestedAt(row.created_at)}<span className="dwella-cell-note">{row.automatic ? `Automatic · ${row.reference}` : row.reference}</span></td>
                     <td>{destinationShort(row.destination)}</td>
                     <td className="is-numeric">{formatMoney(row.amount)}</td>
                     <td className="is-numeric">{withdrawalFee(row, formatMoney)}</td>
@@ -183,7 +254,8 @@ export default function Payouts() {
   const access = getUserAccess(user.data);
   const canWithdraw = access.persona === "landlord" && !user.data?.is_staff && !user.data?.is_superuser;
   const summary = usePayoutSummary();
-  const [drawer, setDrawer] = useState(null); // null | "withdraw" | "account"
+  const timing = usePayoutTiming();
+  const [drawer, setDrawer] = useState(null); // null | "withdraw" | "account" | "timing"
   const data = summary.data;
   const destination = data?.destination;
   const blocked = !data?.withdrawals_enabled
@@ -195,7 +267,9 @@ export default function Payouts() {
         <div>
           <Link to="/billing">← Invoices</Link>
           <h1>Payouts</h1>
-          <p>Settled rent is yours to withdraw whenever you choose.</p>
+          <p>{timing.data && timing.data.timing !== "manual"
+            ? "Settled rent is sent on your payout timing, and you can still withdraw at any time."
+            : "Settled rent is yours to withdraw whenever you choose."}</p>
         </div>
         {canWithdraw ? (
           <div className="dwella-payouts-actions">
@@ -217,6 +291,18 @@ export default function Payouts() {
             </div>
             {canWithdraw && blocked && !summary.isLoading ? <p className="dwella-payouts-blocked" role="status">{blocked}</p> : null}
           </section>
+          <section className="dwella-surface dwella-payouts-account">
+            <div>
+              <h2>Payout timing</h2>
+              <p>
+                {timing.isLoading ? "Loading…" : timing.isError ? "Could not load your payout timing." : timingLabel(timing.data)}
+                {timing.data?.next_run_at && timing.data.timing !== "settled" ? ` · next ${nextRun.format(new Date(timing.data.next_run_at))}` : ""}
+              </p>
+            </div>
+            {canWithdraw ? (
+              <Button disabled={timing.isLoading || timing.isError} onClick={() => setDrawer("timing")}>Change timing</Button>
+            ) : null}
+          </section>
           <p className="dwella-payouts-note is-callout">
             Your balance stays in Dwella’s Lenco account until you withdraw. Each withdrawal is sent once, and the Lenco transfer fee is shown before you confirm.
           </p>
@@ -229,6 +315,7 @@ export default function Payouts() {
         <WithdrawDrawer summary={data} onClose={() => setDrawer(null)} onChangeAccount={() => setDrawer("account")} />
       ) : null}
       {drawer === "account" ? <ReceivingDrawer destination={destination} onClose={() => setDrawer(null)} /> : null}
+      {drawer === "timing" ? <TimingDrawer plan={timing.data} destination={destination} onClose={() => setDrawer(null)} /> : null}
     </div>
   );
 }
