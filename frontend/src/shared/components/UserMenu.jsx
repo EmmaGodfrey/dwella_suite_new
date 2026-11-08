@@ -1,7 +1,6 @@
 import React from "react";
 import { Avatar, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger } from "@fluentui/react-components";
-import { MoreHorizontal20Regular, Settings24Regular, SignOut24Regular } from "@fluentui/react-icons";
-import { useNavigate } from "react-router-dom";
+import { MoreHorizontal20Regular, SignOut24Regular } from "@fluentui/react-icons";
 
 import { resolveMediaUrl } from "../../Services/apiClient";
 import { accessLabel } from "../access";
@@ -14,7 +13,6 @@ const initialsFor = (user) => {
 // The account block that closes the sidebar. The whole row opens the menu, so
 // the identity stays readable while collapsed and still has one obvious target.
 export const UserMenu = ({ user, onLogout, compact = false }) => {
-  const navigate = useNavigate();
   const avatarUrl = resolveMediaUrl(user?.profile?.avatar_url || user?.profile?.avatar || user?.avatar_url || user?.avatar);
   const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(" ") || user?.email || "Dwella Admin";
 
@@ -41,7 +39,6 @@ export const UserMenu = ({ user, onLogout, compact = false }) => {
           <small>{accessLabel(user)}</small>
         </div>
         <MenuList>
-          <MenuItem icon={<Settings24Regular />} onClick={() => navigate("/settings")}>Settings</MenuItem>
           <MenuItem icon={<SignOut24Regular />} onClick={onLogout}>Log out</MenuItem>
         </MenuList>
       </MenuPopover>
