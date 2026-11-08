@@ -261,8 +261,9 @@ def test_payment_tables_are_private_on_postgres(home):
             "AND relkind='r'"
         )
         rows = cursor.fetchall()
-        assert len(rows) == 8 and all(enabled for _, enabled in rows)
+        assert len(rows) == 9 and all(enabled for _, enabled in rows)
         assert ("payments_withdrawal", True) in rows
+        assert ("payments_payoutplan", True) in rows
         cursor.execute("SELECT 1 FROM pg_roles WHERE rolname='handy_agent'")
         if cursor.fetchone():
             for table, _ in rows:
