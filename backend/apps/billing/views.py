@@ -317,6 +317,9 @@ class PaymentInstructionViewSet(OrganizationScopedModelViewSet):
     def audit(self, action, instruction):
         # Changed payment details are a classic fraud route: always keep a record.
         record_event(
-            self.request, action, instruction, instruction.organization,
+            self.request,
+            action,
+            instruction,
+            instruction.organization,
             kind=instruction.kind,
         )
