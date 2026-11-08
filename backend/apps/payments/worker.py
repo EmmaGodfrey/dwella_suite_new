@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from .models import Collection, Payout, Withdrawal
+from .payout_plans import run_due_plans
 from .services import process_payout, reconcile_collection
 from .withdrawals import process_withdrawal
 
@@ -24,7 +25,8 @@ def _check(handler, row):
 
 
 def run_cycle(limit=50):
-    """Check every collection, payout and withdrawal that is due, oldest first.
+    """Check every collection, payout and withdrawal that is due, oldest first,
+    after starting the withdrawals of due payout timings.
 
     One indexed query per kind picks the due rows; rows that cannot change
     have no next check and are never read. Never starts a collection and
@@ -52,6 +54,8 @@ def run_cycle(limit=50):
             return count
         _check(process_payout, row)
         count += 1
+    # Due payout timings queue their withdrawals for the loop below.
+    count += run_due_plans(now)
     withdrawals = Withdrawal.objects.filter(
         environment=environment, next_check_at__lte=now
     ).order_by("next_check_at")[:limit]

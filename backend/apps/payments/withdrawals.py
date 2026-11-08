@@ -133,7 +133,7 @@ def quote(organization, amount):
     return destination, amount, fee, available
 
 
-def request_withdrawal(*, organization, user, amount, fee, idempotency_key):
+def request_withdrawal(*, organization, user, amount, fee, idempotency_key, automatic=False):
     """Reserve and queue one withdrawal; the same key returns the same withdrawal."""
     from apps.organizations.models import Organization
 
@@ -169,11 +169,12 @@ def request_withdrawal(*, organization, user, amount, fee, idempotency_key):
                     amount=amount,
                     fee_reserved=reserved,
                     next_check_at=timezone.now(),
+                    automatic=automatic,
                 )
         except IntegrityError:
             raise ValidationError("This request is already in use.") from None
-        # Co-managers learn of the request; the requester just made it.
-        notices.withdrawal_changed(row, None, actor=user)
+        # Co-managers learn of a request; an automatic one is news to everyone.
+        notices.withdrawal_changed(row, None, actor=None if automatic else user)
         return row
 
 
@@ -190,20 +191,24 @@ def cancel_withdrawal(withdrawal):
     return row
 
 
-def _still_allowed(row):
+def is_landlord(user, organization):
     from apps.organizations.models import OrganizationMembership
 
+    return OrganizationMembership.objects.filter(
+        organization=organization,
+        user=user,
+        user__is_active=True,
+        is_active=True,
+        role="landlord",
+    ).exists()
+
+
+def _still_allowed(row):
     return (
         row.organization.is_active
         and row.destination.enabled
         and row.debit_account_id == settings.LENCO_DEBIT_ACCOUNT_ID
-        and OrganizationMembership.objects.filter(
-            organization=row.organization,
-            user=row.requested_by,
-            user__is_active=True,
-            is_active=True,
-            role="landlord",
-        ).exists()
+        and is_landlord(row.requested_by, row.organization)
     )
 
 

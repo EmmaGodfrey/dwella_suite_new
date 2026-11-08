@@ -18,7 +18,8 @@ from apps.portal.access import IsPortalTenant, portal_context
 from apps.portal.views import invoices
 
 from .evidence import read_exchange
-from .models import Collection, Destination, Exchange, Withdrawal
+from .models import Collection, Destination, Exchange, PayoutPlan, Withdrawal
+from .payout_plans import save_plan
 from .serializers import (
     AccountDetailsSerializer,
     CheckoutSerializer,
@@ -26,6 +27,7 @@ from .serializers import (
     DestinationApprovalSerializer,
     DestinationSerializer,
     DestinationSetupSerializer,
+    PayoutPlanSerializer,
     TenantCollectionSerializer,
     WithdrawalPreviewSerializer,
     WithdrawalRequestSerializer,
@@ -362,6 +364,41 @@ class PayoutSummaryView(PrivateView):
                 "largest": f"{largest:.2f}" if largest is not None else None,
             }
         )
+
+
+class PayoutPlanView(PrivateView):
+    """When settled rent is sent: held until requested, as it settles, weekly or monthly."""
+
+    def get_permissions(self):
+        classes = [CanSetReceivingDetails] if self.request.method == "PUT" else [CanViewPortfolio]
+        return [permission() for permission in classes]
+
+    def get_throttles(self):
+        return [PaymentWriteThrottle()] if self.request.method == "PUT" else super().get_throttles()
+
+    def get(self, request):
+        plan = PayoutPlan.objects.filter(organization=resolve_workspace(request)).first()
+        return Response(PayoutPlanSerializer(plan or PayoutPlan()).data)
+
+    def put(self, request):
+        serializer = PayoutPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        with transaction.atomic():
+            organization = landlord_workspace(request, lock=True)
+            if data["timing"] != PayoutPlan.Timing.MANUAL and not current_destination(organization):
+                raise ValidationError({"timing": "Add a receiving account first."})
+            plan = save_plan(organization=organization, user=request.user, **data)
+            record_event(
+                request,
+                "payment.payout_timing_changed",
+                plan,
+                organization=organization,
+                timing=plan.timing,
+                weekday=plan.weekday,
+                month_day=plan.month_day,
+            )
+        return Response(PayoutPlanSerializer(plan).data)
 
 
 class WithdrawalPreviewView(PrivateView):

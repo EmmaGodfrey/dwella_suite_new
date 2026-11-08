@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Collection, Destination, Payout, Withdrawal
+from .models import Collection, Destination, Payout, PayoutPlan, Withdrawal
 from .services import normalize_phone
 
 
@@ -130,6 +130,7 @@ class WithdrawalSerializer(serializers.ModelSerializer):
             "created_at",
             "submitted_at",
             "confirmed_at",
+            "automatic",
         ]
 
 
@@ -179,3 +180,10 @@ class TenantCollectionSerializer(CollectionSerializer):
             for key in CollectionSerializer.Meta.fields
             if key not in {"destination", "payout", "fee", "settled_amount", "issue"}
         ]
+
+
+class PayoutPlanSerializer(serializers.Serializer):
+    timing = serializers.ChoiceField(choices=PayoutPlan.Timing.choices)
+    weekday = serializers.IntegerField(min_value=0, max_value=6, default=0)
+    month_day = serializers.IntegerField(min_value=0, max_value=28, default=0)
+    next_run_at = serializers.DateTimeField(read_only=True)
