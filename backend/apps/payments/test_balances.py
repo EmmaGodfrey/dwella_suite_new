@@ -1,4 +1,5 @@
 import json
+import uuid
 from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
@@ -8,7 +9,7 @@ from django.db import connection, transaction
 
 from .balances import sync_balance
 from .evidence import record_exchange
-from .models import BalanceSnapshot, ProviderAccount, ProviderTransaction
+from .models import BalanceSnapshot, ProviderAccount, ProviderTransaction, Withdrawal
 from .provider import ProviderResult
 from .testing import ACCOUNT, paid
 
@@ -120,6 +121,54 @@ def test_rent_owed_to_landlords_must_be_covered(home):
     assert snapshot.difference == 0
     assert snapshot.held_for_landlords == Decimal("97.50")
     assert snapshot.status == "shortfall" and snapshot.surplus == Decimal("-47.50")
+
+
+def delivered_withdrawal(home, amount="11.00", fee="8.50"):
+    return Withdrawal.objects.create(
+        organization=home["org"],
+        destination=home["destination"],
+        requested_by=home["manager"],
+        environment="sandbox",
+        debit_account_id=ACCOUNT,
+        idempotency_key=uuid.uuid4(),
+        amount=amount,
+        fee_reserved="12.00",
+        fee=fee,
+        fee_charged=fee,
+        status="successful",
+    )
+
+
+def feed_with_withdrawal(ledger):
+    return sync_feed(
+        [entry("in", "31.00"), entry("out", "11.00", "debit", "2026-11-01T20:20:18Z")],
+        ledger=ledger,
+    )
+
+
+def test_lenco_debits_the_transfer_fee_without_listing_it(home):
+    # TEST, 1 Nov: K31 in, K11 withdrawn, Lenco's feed lists a K11 debit but
+    # the balance also lost the K8.50 fee it reported on the transfer.
+    ProviderAccount.objects.filter(account_id=ACCOUNT).update(opening_balance=0)
+    delivered_withdrawal(home)
+    snapshot = feed_with_withdrawal("11.50")
+    assert snapshot.expected_balance == Decimal("11.50")
+    assert snapshot.difference == 0 and snapshot.status == "matched"
+
+
+def test_a_first_sync_after_a_withdrawal_keeps_the_fee_out_of_the_opening_balance(home):
+    ProviderAccount.objects.filter(account_id=ACCOUNT).update(opening_balance=None)
+    delivered_withdrawal(home)
+    assert feed_with_withdrawal("11.50").status == "baseline"
+    assert ProviderAccount.objects.get().opening_balance == 0
+    assert feed_with_withdrawal("11.50").status == "matched"
+
+
+def test_a_fee_dwella_did_not_send_is_still_a_mismatch(home):
+    # A transfer made outside Dwella has no recorded fee to explain the gap.
+    ProviderAccount.objects.filter(account_id=ACCOUNT).update(opening_balance=0)
+    snapshot = feed_with_withdrawal("11.50")
+    assert snapshot.status == "mismatch" and snapshot.difference == Decimal("-8.50")
 
 
 def test_changed_or_disappearing_provider_rows_are_not_overwritten():
