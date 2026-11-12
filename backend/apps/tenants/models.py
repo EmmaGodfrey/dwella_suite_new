@@ -53,6 +53,15 @@ class Tenant(OrganizationScopedModel):
         null=True,
     )
     notes = models.TextField(blank=True)
+    # Lets the property manager who added a tenant keep seeing them until a
+    # lease places the tenant in a property.
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        blank=True,
+        null=True,
+    )
 
     class Meta:
         ordering = ["full_name"]

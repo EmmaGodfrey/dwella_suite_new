@@ -27,6 +27,9 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
         on_delete=models.SET_NULL,
         related_name="+",
     )
+    # Property managers may cover a teammate's properties for a limited time.
+    # Every covered change is recorded; an admin can switch this off.
+    allow_teammate_cover = models.BooleanField(default=True)
 
     class Meta:
         ordering = ["name"]
@@ -37,8 +40,13 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
 
 class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
     class Role(models.TextChoices):
-        LANDLORD = "landlord", "Property manager"
+        # Stored key kept from the first release. A property admin oversees the
+        # whole workspace; a property manager works on assigned properties only.
+        LANDLORD = "landlord", "Property admin"
+        MANAGER = "manager", "Property manager"
         TENANT = "tenant", "Tenant"
+
+    MANAGEMENT_ROLES = (Role.LANDLORD, Role.MANAGER)
 
     organization = models.ForeignKey(
         Organization,
@@ -70,3 +78,107 @@ class OrganizationMembership(UUIDModel, TimeStampedModel, ActiveModel):
 
     def __str__(self):
         return f"{self.user} - {self.organization} ({self.role})"
+
+
+class PropertyAssignment(UUIDModel, TimeStampedModel):
+    """A property manager's access to one whole property."""
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="property_assignments"
+    )
+    membership = models.ForeignKey(
+        OrganizationMembership, on_delete=models.CASCADE, related_name="property_assignments"
+    )
+    property = models.ForeignKey(
+        "properties.Property", on_delete=models.CASCADE, related_name="manager_assignments"
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="+",
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["membership", "property"], name="unique_property_assignment"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.membership_id} -> {self.property_id}"
+
+
+class TeamInvitation(UUIDModel, TimeStampedModel):
+    """An emailed, single-use invitation to manage a workspace."""
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="team_invitations"
+    )
+    email = models.EmailField()
+    full_name = models.CharField(max_length=180, blank=True)
+    role = models.CharField(max_length=20, choices=OrganizationMembership.Role.choices)
+    properties = models.ManyToManyField("properties.Property", blank=True, related_name="+")
+    token_hash = models.CharField(max_length=64, unique=True)
+    expires_at = models.DateTimeField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    accepted_at = models.DateTimeField(blank=True, null=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="+"
+    )
+    revoked_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["organization", "email"])]
+
+    def __str__(self):
+        return f"{self.email} ({self.role})"
+
+
+class CoverSession(UUIDModel, TimeStampedModel):
+    """A property manager working on a teammate's properties for a limited time.
+
+    The covering manager keeps their own identity on everything they record;
+    each change made through the cover is written to the audit trail.
+    """
+
+    organization = models.ForeignKey(
+        Organization, on_delete=models.CASCADE, related_name="cover_sessions"
+    )
+    manager = models.ForeignKey(
+        OrganizationMembership, on_delete=models.CASCADE, related_name="cover_sessions"
+    )
+    covering_for = models.ForeignKey(
+        OrganizationMembership, on_delete=models.CASCADE, related_name="covered_sessions"
+    )
+    reason = models.CharField(max_length=300)
+    expires_at = models.DateTimeField()
+    ended_at = models.DateTimeField(blank=True, null=True)
+    ended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, blank=True, null=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["manager", "ended_at", "expires_at"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(manager=models.F("covering_for")),
+                name="cover_session_not_self",
+            ),
+            # One live cover per manager; expiry is checked when it is read.
+            models.UniqueConstraint(
+                fields=["manager"],
+                condition=models.Q(ended_at__isnull=True),
+                name="one_open_cover_per_manager",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.manager_id} covering {self.covering_for_id}"
