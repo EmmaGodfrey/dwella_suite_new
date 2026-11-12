@@ -3,6 +3,7 @@ import uuid
 from django.db import transaction
 from rest_framework.permissions import SAFE_METHODS
 
+from apps.common.property_scope import cover_event_details
 from apps.common.workspaces import is_workspace_scoped
 
 from .services import record_event
@@ -40,6 +41,27 @@ class RequestAuditContextMiddleware:
                         "payment.reversed": "billing.payment", "lease.ended": "leases.lease",
                     }[action]
                     event.resource_id = str(match.kwargs.get("public_id", ""))
+                    event.save(update_fields=["resource_type", "resource_id"])
+            if not session and response.status_code < 400:
+                # A manager covering for a teammate keeps their own name on the
+                # record; this ties the change to the cover and the teammate.
+                if details := cover_event_details(request):
+                    match = request.resolver_match
+                    data = getattr(response, "data", {})
+                    event = record_event(
+                        request,
+                        "cover.change",
+                        path=request.path,
+                        method=request.method,
+                        url_name=match.url_name if match else "",
+                        **details,
+                    )
+                    event.resource_type = "organizations.coversession"
+                    event.resource_id = str(
+                        (match.kwargs.get("public_id") if match else "")
+                        or (data.get("id", "") if isinstance(data, dict) else "")
+                        or details["cover_session"]
+                    )
                     event.save(update_fields=["resource_type", "resource_id"])
             if session and request.method not in {"GET", "HEAD", "OPTIONS"}:
                 if response.status_code >= 400:
