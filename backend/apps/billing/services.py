@@ -111,7 +111,9 @@ def create_invoice(
     return invoice
 
 
-def generate_rent_invoices(organization, period_start, today=None, lead_days=None):
+def generate_rent_invoices(
+    organization, period_start, today=None, lead_days=None, scope=None
+):
     """Issue one rent invoice per active lease covering the month.
 
     Safe to run again for the same month: leases that already have a live
@@ -127,6 +129,9 @@ def generate_rent_invoices(organization, period_start, today=None, lead_days=Non
         .filter(Q(billed_from__isnull=True) | Q(billed_from__lte=first))
         .select_related("tenant", "unit")
     )
+    if scope is not None:
+        # A property manager bills only the properties they work on.
+        leases = scope.filter(leases)
     billed = set(
         Invoice.objects.filter(lease__in=leases, period_start=first)
         .exclude(status=Invoice.Status.VOID)
@@ -222,7 +227,7 @@ def late_fee_follow_ups():
     ).exclude(status=Invoice.Status.VOID)
 
 
-def apply_late_fees(organization, today=None):
+def apply_late_fees(organization, today=None, scope=None):
     """Add each lease's late fee to unpaid rent invoices past their grace period.
 
     A fee is added at most once per invoice. Invoices already sent to ZRA
@@ -246,6 +251,8 @@ def apply_late_fees(organization, today=None):
         .exclude(collection__status="pending")
         .select_related("lease", "tenant", "unit")
     )
+    if scope is not None:
+        candidates = scope.filter(candidates)
     added = 0
     for invoice in candidates:
         lease = invoice.lease

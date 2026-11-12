@@ -17,10 +17,9 @@ from .services import create_invoice
 
 
 def scoped(serializer, model):
-    view = serializer.context.get("view")
-    if view is None:
-        return model.objects.none()
-    return model.objects.for_organization(view.get_organization())
+    from apps.common.property_scope import scoped_for_view
+
+    return scoped_for_view(serializer.context.get("view"), model)
 
 
 class InvoiceLineSerializer(serializers.ModelSerializer):

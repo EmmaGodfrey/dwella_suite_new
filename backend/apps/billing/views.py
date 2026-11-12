@@ -158,8 +158,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         serializer.is_valid(raise_exception=True)
         period = serializer.validated_data["period"]
         organization = self.get_organization()
-        created, skipped = generate_rent_invoices(organization, period)
-        late_fees = apply_late_fees(organization)
+        scope = self.get_property_scope()
+        created, skipped = generate_rent_invoices(organization, period, scope=scope)
+        late_fees = apply_late_fees(organization, scope=scope)
         return Response(
             {
                 "period": period.isoformat(),
@@ -288,6 +289,10 @@ class PaymentInstructionViewSet(OrganizationScopedModelViewSet):
     """Up to three ways tenants can pay the workspace directly, printed on invoices."""
 
     queryset = PaymentInstruction.objects.all()
+    # The team reads these to tell tenants how to pay; where rent goes is an
+    # admin decision.
+    property_scoped = False
+    admin_only_actions = frozenset({"create", "update", "partial_update", "destroy"})
     serializer_class = PaymentInstructionSerializer
     pagination_class = None
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]

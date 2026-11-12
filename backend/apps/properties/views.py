@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.permissions import CanViewPortfolio, IsPlatformAdmin, get_user_access
+from apps.common.property_scope import property_scope
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.common.workspaces import resolve_workspace
 from apps.imports.importers import UnitImporter
@@ -66,8 +67,11 @@ class PropertyDashboardSummaryView(APIView):
                 .count(),
             }
         else:
-            properties = Property.objects.for_organization(organization)
-            units = Unit.objects.for_organization(organization).select_related("property")
+            scope = property_scope(request)
+            properties = scope.filter(Property.objects.for_organization(organization))
+            units = scope.filter(Unit.objects.for_organization(organization)).select_related(
+                "property"
+            )
             organization_data = {
                 "id": str(organization.public_id),
                 "name": organization.name,
@@ -110,7 +114,7 @@ class PropertyDashboardSummaryView(APIView):
             status__in=MaintenanceRequest.OPEN_STATUSES,
         )
         if organization is not None:
-            repairs = repairs.filter(organization=organization)
+            repairs = scope.filter(repairs.filter(organization=organization))
         repair_totals = repairs.aggregate(
             open=Count("pk"),
             urgent=Count("pk", filter=Q(priority=MaintenanceRequest.Priority.URGENT)),
@@ -235,6 +239,8 @@ class PropertyDashboardSummaryView(APIView):
 
 class PropertyViewSet(OrganizationScopedModelViewSet):
     serializer_class = PropertySerializer
+    # Admins add and remove properties; a manager works on the ones assigned.
+    admin_only_actions = frozenset({"create", "destroy"})
     queryset = Property.objects.annotate(
         units_count=Count("units"),
         occupied_units=Count("units", filter=Q(units__occupancy_status="occupied")),
