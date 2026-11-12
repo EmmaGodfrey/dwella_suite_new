@@ -1,5 +1,10 @@
 from django.urls import path
 
+from apps.organizations.team_invitations import (
+    TeamInvitationAcceptView,
+    TeamInvitationPreviewView,
+)
+
 from .email_verification import EmailVerificationConfirmView, EmailVerificationView
 from .invitations import InvitationAcceptView, InvitationPreviewView
 from .registration import RegistrationView
@@ -30,6 +35,16 @@ urlpatterns = [
     path("guided-tour/", GuidedTourView.as_view(), name="guided-tour"),
     path("invitations/preview/", InvitationPreviewView.as_view(), name="invitation-preview"),
     path("invitations/accept/", InvitationAcceptView.as_view(), name="invitation-accept"),
+    path(
+        "team-invitations/preview/",
+        TeamInvitationPreviewView.as_view(),
+        name="team-invitation-preview",
+    ),
+    path(
+        "team-invitations/accept/",
+        TeamInvitationAcceptView.as_view(),
+        name="team-invitation-accept",
+    ),
     path("email-verification/", EmailVerificationView.as_view(), name="email-verification"),
     path(
         "email-verification/confirm/",
