@@ -44,7 +44,7 @@ export default function WorkspaceDetail() {
     </dl></section>
     <section className="admin-card"><h2>Members</h2><AdminTable rows={workspace?.members || []} columns={[
       { key: "member", label: "Member", render: (m) => <><Link className="dwella-table-link" to={`/admin/users/${m.user_id}`}>{m.name}</Link><span className="admin-note">{m.email}</span></> },
-      { key: "role", label: "Role", render: (m) => m.role === "landlord" ? "Property manager" : m.role },
+      { key: "role", label: "Role", render: (m) => m.role === "landlord" ? "Property admin" : m.role === "manager" ? "Property manager" : m.role },
       { key: "security", label: "Security", render: (m) => `2FA ${m.has_two_factor ? "enabled" : "not set"}` },
       { key: "status", label: "Status", render: (m) => <StatusBadge value={m.is_active ? "active" : "inactive"} /> },
       { key: "action", label: "Action", render: (m) => <Link to={`/admin/users/${m.user_id}`}>Manage membership</Link> },

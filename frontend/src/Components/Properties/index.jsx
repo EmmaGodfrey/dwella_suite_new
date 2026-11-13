@@ -33,7 +33,7 @@ import {
   usePropertyQuery,
   useUnitsQuery,
 } from "../../Services/queries";
-import { getUserAccess } from "../../shared/access";
+import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
 import { EmptyState, StatusBadge, labelize, PageActions } from "../../shared/components";
 import ImportDrawer from "../Imports/ImportDrawer";
 import { PropertyPhoto } from "../../shared/components/PropertyPhoto";
@@ -357,6 +357,8 @@ export default function Properties() {
   const { data: user } = useCurrentUserQuery({ staleTime: 60_000 });
   const access = getUserAccess(user);
   const canManage = access.can_manage_properties;
+  // New properties and bulk imports reach beyond one manager's assignments.
+  const canAdd = canManage && isWorkspaceAdmin(user);
   const initialSearch = params.get("search") || "";
   const [search, setSearch] = useState(initialSearch);
   const [filters, setFilters] = useState({
@@ -378,10 +380,10 @@ export default function Properties() {
   useEffect(() => {
     if (!user) return;
     if (params.get("new") === "1") {
-      setMode(canManage ? "add" : "view");
+      setMode(canAdd ? "add" : "view");
       setParams({}, { replace: true });
     }
-  }, [canManage, params, setParams, user]);
+  }, [canAdd, params, setParams, user]);
   useEffect(() => {
     const timeout = setTimeout(
       () =>
@@ -457,7 +459,7 @@ export default function Properties() {
             <div><dt>{Math.round(summary.units.occupancy_rate)}%</dt><dd>occupied</dd></div>
           </dl>
         ) : null}
-        {canManage ? (
+        {canAdd ? (
           <PageActions>
             <Button icon={<ArrowUpload20Regular />} onClick={() => setImporting(true)}>Import units</Button>
             <Button appearance="primary" icon={<Add20Regular />} onClick={() => setMode("add")}>
@@ -534,7 +536,7 @@ export default function Properties() {
             {!listQuery.isLoading && !listQuery.isError && !properties.length && (
               <div className="dwella-portfolio-no-results">
                 {matches ? "No matching properties." : "No properties yet."}
-                {matches || canManage ? (
+                {matches || canAdd ? (
                   <Button size="small" onClick={matches ? clearFilters : () => setMode("add")}>
                     {matches ? "Clear filters" : "Add property"}
                   </Button>
@@ -599,14 +601,16 @@ export default function Properties() {
           ) : (
             <EmptyState
               icon={<Building24Regular />}
-              title={matches ? "No matching properties" : canManage ? "Start your portfolio" : "No property manager properties"}
+              title={matches ? "No matching properties" : canAdd ? "Start your portfolio" : canManage ? "No properties assigned yet" : "No property manager properties"}
               description={
                 matches
                   ? "Try another search or clear the filters."
-                  : canManage ? "Add your first property to begin." : "Properties will appear after a property manager adds them."
+                  : canAdd ? "Add your first property to begin."
+                    : canManage ? "A property admin assigns the properties you work on. They will appear here."
+                      : "Properties will appear after a property manager adds them."
               }
-              actionLabel={matches ? "Clear filters" : canManage ? "Add property" : undefined}
-              onAction={matches ? clearFilters : canManage ? () => setMode("add") : undefined}
+              actionLabel={matches ? "Clear filters" : canAdd ? "Add property" : undefined}
+              onAction={matches ? clearFilters : canAdd ? () => setMode("add") : undefined}
             />
           )}
         </section>

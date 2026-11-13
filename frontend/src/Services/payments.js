@@ -49,7 +49,8 @@ export const useBanks = (options = {}) => useQuery({
 
 const sending = (rows) => rows?.some((row) => ["queued", "submitting", "pending"].includes(row.status));
 
-export const usePayoutSummary = () => useQuery({
+export const usePayoutSummary = (options = {}) => useQuery({
+  ...options,
   queryKey: keys("payouts", "summary"),
   queryFn: ({ signal }) => api.get("/payments/payouts/", { signal }),
   retry: false,
@@ -79,7 +80,8 @@ export const useRequestWithdrawal = () => useMutation({
   onSettled: refreshPayouts,
 });
 
-export const usePayoutTiming = () => useQuery({
+export const usePayoutTiming = (options = {}) => useQuery({
+  ...options,
   queryKey: keys("payouts", "timing"),
   queryFn: ({ signal }) => api.get("/payments/payouts/timing/", { signal }),
   retry: false,

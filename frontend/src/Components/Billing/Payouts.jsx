@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Button, Field, Input, Radio, RadioGroup, Select } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
@@ -7,7 +7,7 @@ import {
   useCancelWithdrawal, usePayoutSummary, usePayoutTiming, usePreviewWithdrawal, useRequestWithdrawal,
   useSavePayoutTiming, useWithdrawals,
 } from "../../Services/payments";
-import { getUserAccess } from "../../shared/access";
+import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
 import { formatDate, formatMoney } from "../../shared/format";
@@ -253,14 +253,17 @@ export default function Payouts() {
   const user = useCurrentUserQuery();
   const access = getUserAccess(user.data);
   const canWithdraw = access.persona === "landlord" && !user.data?.is_staff && !user.data?.is_superuser;
-  const summary = usePayoutSummary();
-  const timing = usePayoutTiming();
+  // Pooled rent, receiving accounts and withdrawals belong to property admins.
+  const allowed = isWorkspaceAdmin(user.data);
+  const summary = usePayoutSummary({ enabled: allowed });
+  const timing = usePayoutTiming({ enabled: allowed });
   const [drawer, setDrawer] = useState(null); // null | "withdraw" | "account" | "timing"
   const data = summary.data;
   const destination = data?.destination;
   const blocked = !data?.withdrawals_enabled
     ? "Withdrawals are not switched on yet."
     : !destination ? "Add a receiving account first." : !data.largest ? "Your balance is too low to withdraw." : "";
+  if (user.data && !allowed) return <Navigate to="/billing" replace />;
   return (
     <div className="dwella-payouts-page">
       <header className="dwella-detail-header">

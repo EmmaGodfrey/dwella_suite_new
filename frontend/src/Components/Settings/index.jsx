@@ -13,7 +13,7 @@ import {
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useSaveSettings, useSettingsResource } from "../../Services/settings";
-import { getUserAccess } from "../../shared/access";
+import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
 import { useFormErrors } from "../../shared/useFormErrors";
 import { StatusBadge } from "../../shared/components";
 import { AdminHeader, AdminState, when } from "../Platform/AdminUI";
@@ -154,18 +154,18 @@ function ChannelRows({ draft, change, channels }) {
   ));
 }
 
-function Notifications({ persona }) {
+function Notifications({ persona, reminderSettings = false }) {
   const personal = useSettingsResource("personal");
   const reminders = useSettingsResource("reminders", {
-    enabled: persona === "landlord",
+    enabled: reminderSettings,
   });
   const query =
-    persona === "landlord" && (reminders.isPending || reminders.isError)
+    reminderSettings && (reminders.isPending || reminders.isError)
       ? reminders
       : personal;
   return (
     <AdminState query={query}>
-      {personal.data && (persona !== "landlord" || reminders.data) && (
+      {personal.data && (!reminderSettings || reminders.data) && (
         <>
           <NotificationForm
             persona={persona}
@@ -671,9 +671,11 @@ export default function Settings() {
   const [params, setParams] = useSearchParams();
   const persona = getUserAccess(user.data).persona;
   const admin = persona === "platform_admin";
+  // Workspace, payment and rent-reminder settings belong to property admins.
+  const workspaceAdmin = persona === "landlord" && isWorkspaceAdmin(user.data);
   const tabs = admin
     ? ["account", "security", "payments", "messaging", "outreach", "assistant", "support", "beta"]
-    : persona === "landlord"
+    : workspaceAdmin
       ? ["account", "workspace", "billing", "notifications", "security"]
       : ["account", "notifications", "security"];
   const tab = tabs.includes(params.get("tab")) ? params.get("tab") : "account";
@@ -720,7 +722,7 @@ export default function Settings() {
         {tab === "security" && <Security />}
         {tab === "workspace" && <Workspace />}
       {tab === "billing" && <ReceivingDetails />}
-        {tab === "notifications" && <Notifications persona={persona} />}
+        {tab === "notifications" && <Notifications persona={persona} reminderSettings={workspaceAdmin} />}
         {tab === "payments" && <PaymentSettings />}
         {tab === "messaging" && <><RuntimeConfiguration section="messaging" /><Messaging /></>}
         {tab === "outreach" && <OutreachSettings embedded />}

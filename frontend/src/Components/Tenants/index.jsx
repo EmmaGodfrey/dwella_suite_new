@@ -13,7 +13,7 @@ import {
 } from "@fluentui/react-icons";
 
 import { useCurrentUserQuery, useTenantQuery, useTenantsQuery } from "../../Services/queries";
-import { getUserAccess } from "../../shared/access";
+import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
 import { EmptyState, SegmentedFilter, PageActions, StatusBadge } from "../../shared/components";
 import { daysUntil, formatDate, formatMoney, initials } from "../../shared/format";
 import { leaseBadgeProps, tenantBadgeProps, tenantStatuses } from "../../shared/tenancy";
@@ -256,8 +256,12 @@ export default function Tenants() {
         />
         {canManage ? (
           <PageActions>
-            <Button icon={<ArrowUpload20Regular />} onClick={() => setDrawer("import")}>Import tenants and leases</Button>
-            <Button onClick={() => setDrawer("import-tenants")}>Import tenants only</Button>
+            {isWorkspaceAdmin(user) ? (
+              <>
+                <Button icon={<ArrowUpload20Regular />} onClick={() => setDrawer("import")}>Import tenants and leases</Button>
+                <Button onClick={() => setDrawer("import-tenants")}>Import tenants only</Button>
+              </>
+            ) : null}
             <Button appearance="primary" icon={<PersonAdd20Regular />} onClick={() => setDrawer("add")}>
               Add tenant
             </Button>

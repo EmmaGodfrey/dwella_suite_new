@@ -17,6 +17,13 @@ test("management capability controls payouts and vendors", () => {
     assert.ok(!moduleChildren(module, { persona: "platform_admin", can_manage_properties: false }).some(c => c.label === restricted));
   }
 });
+test("a property manager keeps proofs and vendors but not payouts", () => {
+  const assigned = { persona: "landlord", role: "manager", can_manage_properties: true };
+  const labels = (module) => moduleChildren(module, assigned).map(c => c.label);
+  assert.ok(labels("billing").includes("Payment proofs"));
+  assert.ok(!labels("billing").includes("Payouts"));
+  assert.ok(labels("maintenance").includes("Vendors"));
+});
 test("billing detail paths select the most specific child", () => {
   const billing = item("billing", "/billing");
   assert.equal(selected(billing, "/billing"), "billing-invoices");
