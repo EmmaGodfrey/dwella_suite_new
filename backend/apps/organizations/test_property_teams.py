@@ -856,7 +856,8 @@ def test_scope_adds_a_fixed_number_of_queries_not_one_per_row(team, django_asser
     with django_assert_max_num_queries(40) as small:
         a.get("/api/v1/tenants/")
     for index in range(12):
-        tenancy(team["org"], team["alpha"], f"A{index + 10}", f"Extra {index}", f"+2609711{index:05d}")
+        phone = f"+2609711{index:05d}"
+        tenancy(team["org"], team["alpha"], f"A{index + 10}", f"Extra {index}", phone)
     with django_assert_max_num_queries(40) as full:
         assert len(rows(a.get("/api/v1/tenants/"))) == 14
     assert len(full.captured_queries) <= len(small.captured_queries) + 1
