@@ -43,6 +43,9 @@ class TransactionFilters(serializers.Serializer):
 
 
 class PlatformCollectionSerializer(CollectionSerializer):
+    # Only platform superusers reach the views that use this.
+    admin_only_fields = ()
+
     environment = serializers.CharField()
     workspace = serializers.CharField(source="organization.name")
     workspace_id = serializers.UUIDField(source="organization.public_id")

@@ -141,6 +141,11 @@ class PayoutSerializer(serializers.ModelSerializer):
 
 
 class CollectionSerializer(serializers.ModelSerializer):
+    # Where pooled rent is sent, and its payout, are for property admins. They
+    # are left out unless the request is known to come from one, wherever this
+    # serializer is nested.
+    admin_only_fields = ("payout", "destination")
+
     provider_status = serializers.CharField(source="provider_state.status", default=None)
     id = serializers.UUIDField(source="public_id")
     invoice_id = serializers.UUIDField(source="invoice.public_id")
@@ -171,6 +176,17 @@ class CollectionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+    def to_representation(self, instance):
+        from apps.common.property_scope import is_property_admin
+
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if self.admin_only_fields and not (request and is_property_admin(request)):
+            for key in self.admin_only_fields:
+                data.pop(key, None)
+        return data
 
 
 class TenantCollectionSerializer(CollectionSerializer):
