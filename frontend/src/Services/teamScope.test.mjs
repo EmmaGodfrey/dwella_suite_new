@@ -16,11 +16,13 @@ test("resetting the scope empties cached records, even ones no screen is showing
   client.setQueryData(["properties", "detail", "covered"], { name: "Covered property" });
   client.setQueryData(["documents", "version", "1"], { pdf: "private" });
   client.setQueryData(["organizations", "team"], { members: [] });
+  client.setQueryData(["organizations", "team", "activity", 1], { email: "admin-only@example.com" });
   await client.invalidateQueries();
   assert.ok(client.getQueryData(["properties", "detail", "covered"]), "invalidation alone keeps the old record");
   await resetPropertyScope(client);
   assert.equal(client.getQueryData(["properties", "detail", "covered"]), undefined);
   assert.equal(client.getQueryData(["documents", "version", "1"]), undefined);
+  assert.equal(client.getQueryData(["organizations", "team", "activity", 1]), undefined);
   assert.deepEqual(client.getQueryData(["organizations", "team"]), { members: [] });
 });
 
@@ -34,6 +36,23 @@ test("a refused refresh after the reset shows nothing from the old scope", async
   await resetPropertyScope(client);
   await assert.rejects(client.fetchQuery({ queryKey: key, queryFn }));
   assert.equal(client.getQueryData(key), undefined);
+});
+
+test("admin demotion clears workspace records and history before a restricted refresh", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const admin = team({ members: [member("me", [], { is_you: true, role: "landlord" })] });
+  const manager = team();
+  assert.notEqual(scopeSignature(admin), scopeSignature(manager));
+  const propertyKey = ["properties", "detail", "beta"];
+  const historyKey = ["organizations", "team", "activity", 1];
+  await client.fetchQuery({ queryKey: propertyKey, queryFn: async () => ({ name: "Beta Court" }) });
+  await client.fetchQuery({ queryKey: historyKey, queryFn: async () => ({ email: "private-admin@example.com" }) });
+  client.setQueryData(["organizations", "team"], manager);
+  await resetPropertyScope(client);
+  await assert.rejects(client.fetchQuery({ queryKey: propertyKey, queryFn: async () => { throw new Error("404"); } }));
+  assert.equal(client.getQueryData(propertyKey), undefined);
+  assert.equal(client.getQueryData(historyKey), undefined);
+  assert.deepEqual(client.getQueryData(["organizations", "team"]), manager);
 });
 
 test("the scope signature changes with assignments, covers, the teammate's properties and role", () => {

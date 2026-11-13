@@ -12,15 +12,17 @@ import "./team.scss";
 
 /**
  * Shown on every page while a property manager works under a cover. It also
- * watches the manager's own scope: an admin can change assignments, end a cover
- * or remove the person from another browser, and this tab must let go of the
- * records it loaded before that.
+ * watches both management roles: another admin can change assignments or roles,
+ * end a cover or remove the person from another browser. This tab must let go
+ * of the records it loaded before that.
  */
 export default function CoverBanner({ user }) {
-  const manager = getUserAccess(user).role === "manager";
+  const { role } = getUserAccess(user);
+  const manager = role === "manager";
+  const watching = manager || role === "landlord";
   const client = useQueryClient();
   const team = useTeam({
-    enabled: manager,
+    enabled: watching,
     staleTime: 30_000,
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
@@ -30,18 +32,22 @@ export default function CoverBanner({ user }) {
   const me = team.data?.members.find((member) => member.is_you);
   const cover = manager && me ? team.data.covers.find((item) => item.manager.id === me.id) : null;
   const expiresAt = cover?.expires_at;
-  const signature = manager && team.data ? scopeSignature(team.data) : "";
+  const signature = watching && team.data ? scopeSignature(team.data) : "";
+  const memberRole = me?.role;
   const seen = useRef("");
-  const refused = manager && [401, 403].includes(team.error?.status);
+  const refused = watching && [401, 403].includes(team.error?.status);
 
   useEffect(() => {
     if (!signature) return;
-    const changed = seen.current && seen.current !== signature;
+    // The first team read may already reflect a role change made while this
+    // tab still has the old account cached. It must clear that scope too.
+    const roleChanged = team.isFetchedAfterMount && memberRole && memberRole !== role;
+    const changed = (seen.current && seen.current !== signature) || roleChanged;
     seen.current = signature;
     if (!changed) return;
     // The role may have changed too, so the account is read again.
     resetPropertyScope(client).then(() => client.invalidateQueries({ queryKey: queryKeys.currentUser }));
-  }, [signature, client]);
+  }, [signature, memberRole, role, team.isFetchedAfterMount, client]);
 
   useEffect(() => {
     // Removed from the team: drop what was loaded and let the shell re-check access.
