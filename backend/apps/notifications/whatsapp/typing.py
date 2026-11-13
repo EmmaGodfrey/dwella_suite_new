@@ -1,9 +1,12 @@
 """Best-effort native typing status. Never an authority for reply send outcomes."""
+
 import json
 import logging
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from django.conf import settings
+
+from apps.audit.provider_credentials import credential
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +34,7 @@ def indicate(reply):
             f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages',
             data=json.dumps(body).encode(), method='POST',
             headers={'Content-Type': 'application/json',
-                     'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'},
+                     'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
         )
         with opener.open(request, timeout=0.5) as result:
             return json.loads(result.read(1024)).get('success') is True

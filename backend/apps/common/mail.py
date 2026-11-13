@@ -15,6 +15,8 @@ from django.core.mail import get_connection
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.validators import validate_email
 
+from apps.audit.provider_credentials import credential
+
 logger = logging.getLogger(__name__)
 ALLOWLIST_BACKEND = "apps.common.mail.AllowlistEmailBackend"
 LOCAL_ONLY_BACKENDS = {
@@ -37,7 +39,7 @@ def delivery_configured():
     if delivery_backend() == "apps.common.email_router.EmailBackend":
         return bool(
             ("resend" in settings.EMAIL_PROVIDER_ORDER
-             and settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL)
+             and credential('RESEND_API_KEY') and settings.RESEND_FROM_EMAIL)
             or ("google" in settings.EMAIL_PROVIDER_ORDER
                 and settings.EMAIL_PRIMARY_BACKEND not in LOCAL_ONLY_BACKENDS)
         )

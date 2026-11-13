@@ -83,6 +83,41 @@ def test_sms_send_payload_sandbox_and_acceptance_is_not_handset_delivery(home):
     assert payload["from"] == "Dwella" and "Opt out:" in payload["message"]
 
 
+@pytest.mark.parametrize("status", [100, 101, 102])
+def test_all_live_acceptance_codes_are_recorded_without_claiming_delivery(home, status):
+    row = sms_delivery(home)
+    result = {"SMSMessageData": {"Recipients": [{
+        "number": row.recipient, "messageId": "accepted-id", "statusCode": status,
+    }]}}
+    with patch("apps.notifications.phone_messaging.post_form", return_value=result):
+        assert dispatch_messages(now=timezone.now().replace(hour=12)) == 1
+    row.refresh_from_db()
+    assert row.status == "sent" and row.delivered_at is None
+
+
+def test_default_sender_is_explicit_test_only_and_omitted_from_request(home, settings):
+    settings.APP_ENVIRONMENT = "test"
+    settings.SMS_ALLOW_DEFAULT_SENDER = True
+    settings.AFRICASTALKING_SENDER_ID = ""
+    settings.AFRICASTALKING_SANDBOX = False
+    settings.OUTBOUND_PHONE_ALLOWLIST = ["+260970000001"]
+    assert channel_readiness()["sms"]
+    row = sms_delivery(home)
+    result = {"SMSMessageData": {"Recipients": [{
+        "number": row.recipient, "messageId": "live-default-id", "statusCode": 100,
+    }]}}
+    with patch("apps.notifications.phone_messaging.post_form", return_value=result) as send:
+        assert send_sms(row) == "live-default-id"
+        assert "from" not in send.call_args.args[1]
+        assert send.call_args.args[0] == "https://api.africastalking.com/version1/messaging"
+    settings.APP_ENVIRONMENT = "production"
+    assert not channel_readiness()["sms"]
+    with patch("apps.notifications.phone_messaging.post_form") as send:
+        with pytest.raises(ProviderRejected, match="sms_sender_not_configured"):
+            send_sms(row)
+        send.assert_not_called()
+
+
 def test_sms_http_200_recipient_rejection_is_a_failure(home):
     row = sms_delivery(home)
     result = {

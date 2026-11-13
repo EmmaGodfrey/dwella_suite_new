@@ -1,4 +1,5 @@
 """Approved-template messages about payment proofs, rechecked immediately before sending."""
+
 import hashlib
 import logging
 import secrets
@@ -12,6 +13,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException
 
+from apps.audit.provider_credentials import credential
 from apps.audit.runtime_settings import approved_whatsapp_templates, runtime_settings
 from apps.billing.models import PaymentProof
 from apps.common.provider_http import ProviderRejected, post_json
@@ -177,7 +179,7 @@ def dispatch_proof_notices(limit=20, seconds=20):
                 f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
                 f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages',
                 payload(row, config, token if row.purpose == 'review' else ''),
-                {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'},
+                {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
             )
             provider_id = result['messages'][0]['id']
             if not isinstance(provider_id, str) or not provider_id or len(provider_id) > 160:

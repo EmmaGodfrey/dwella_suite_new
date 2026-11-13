@@ -1,9 +1,11 @@
 """Send a proof's files to the verified reviewer, just before the review message itself."""
+
 import logging
 import uuid
 
 from django.conf import settings
 
+from apps.audit.provider_credentials import credential
 from apps.billing.models import PaymentProofFile
 from apps.common.provider_http import post_json, post_request
 
@@ -29,7 +31,7 @@ def send_evidence(reply):
     """True when every file went out. A failure never blocks the review message."""
     base = (f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
             f'{settings.WHATSAPP_PHONE_NUMBER_ID}')
-    auth = {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'}
+    auth = {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"}
     items = PaymentProofFile.objects.filter(
         organization_id=reply.organization_id, public_id__in=reply.view['evidence'],
     ).order_by('created_at')[:6]

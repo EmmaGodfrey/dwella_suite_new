@@ -15,6 +15,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.access_state import email_status
+from apps.audit.provider_credentials import credential
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
 from apps.common.property_scope import management_members, property_ids_of
@@ -459,7 +460,7 @@ def send_phone(row, subject, body, url, now, target=None):
             f"https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/"
             f"{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
             payload,
-            {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"},
+            {"Authorization": f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
         )
         provider_id = result["messages"][0]["id"]
     OperationalDelivery.objects.filter(pk=row.pk).update(recipient=consent.phone)
