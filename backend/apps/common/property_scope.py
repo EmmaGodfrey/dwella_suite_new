@@ -32,7 +32,6 @@ PATHS = {
     "documents.signedleaseoriginal": ("lease__unit__property_id",),
     "integrations.fiscalreceipt": ("invoice__unit__property_id",),
     "payments.collection": ("invoice__unit__property_id",),
-    "notifications.messagedelivery": ("invoice__unit__property_id",),
 }
 
 # Records the whole management team shares; they belong to no single property.
@@ -149,6 +148,24 @@ def scope_for_membership(membership):
     )
 
 
+def management_members(organization_id, property_ids=()):
+    """Active admins of a workspace, plus managers assigned to any given property."""
+    from apps.organizations.models import OrganizationMembership
+
+    who = Q(role=OrganizationMembership.Role.LANDLORD)
+    ids = [pk for pk in property_ids if pk is not None]
+    if ids:
+        who |= Q(
+            role=OrganizationMembership.Role.MANAGER,
+            pk__in=OrganizationMembership.objects.filter(
+                property_assignments__property_id__in=ids
+            ).values("pk"),
+        )
+    return OrganizationMembership.objects.filter(
+        who, organization_id=organization_id, is_active=True
+    )
+
+
 def _raw(request):
     return getattr(request, "_request", request)
 
@@ -226,6 +243,12 @@ def touch(request, *property_ids):
     if touched is None:
         touched = raw._property_touches = set()
     touched.update(pid for pid in property_ids if pid is not None)
+
+
+def noted(request, obj):
+    """Note the property an already-scoped record belongs to; returns the record."""
+    touch(request, *property_ids_of(obj))
+    return obj
 
 
 def require_in_scope(request, obj, message=OUT_OF_SCOPE):

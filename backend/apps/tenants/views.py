@@ -58,7 +58,8 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
         if (
             self.action in self.whole_tenant_actions
             and not scope.everything
-            and tenant.leases.exclude(scope.q("unit__property_id")).exists()
+            # Asked afresh: the tenant's prefetched leases are already narrowed.
+            and Lease.objects.filter(tenant=tenant).exclude(scope.q("unit__property_id")).exists()
         ):
             raise PermissionDenied(
                 "This tenant also rents a property you do not manage. Ask a property admin."

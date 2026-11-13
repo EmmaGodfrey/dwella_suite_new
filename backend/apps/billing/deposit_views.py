@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 from apps.common.permissions import CanManagePortfolio, CanViewPortfolio
-from apps.common.workspaces import resolve_workspace
+from apps.common.property_scope import noted
 from apps.leases.models import Lease
 from apps.portal.access import IsPortalTenant, portal_context
 
@@ -127,19 +127,25 @@ class ManagerView(APIView):
         return [DepositWriteThrottle()]
 
     def lease(self, public_id):
-        return get_object_or_404(
-            Lease.objects.for_organization(resolve_workspace(self.request)).select_related(
-                "tenant", "unit__property", "organization"
+        return noted(
+            self.request,
+            get_object_or_404(
+                Lease.objects.for_request(self.request).select_related(
+                    "tenant", "unit__property", "organization"
+                ),
+                public_id=public_id,
             ),
-            public_id=public_id,
         )
 
     def deduction(self, public_id):
-        return get_object_or_404(
-            DepositDeduction.objects.for_organization(
-                resolve_workspace(self.request)
-            ).select_related("lease__tenant", "lease__unit__property", "lease__organization"),
-            public_id=public_id,
+        return noted(
+            self.request,
+            get_object_or_404(
+                DepositDeduction.objects.for_request(self.request).select_related(
+                    "lease__tenant", "lease__unit__property", "lease__organization"
+                ),
+                public_id=public_id,
+            ),
         )
 
     def done(self, lease, action, resource, **meta):
@@ -274,7 +280,7 @@ class DeductionEvidenceView(ManagerView):
 class EvidenceFileView(ManagerView):
     def get(self, request, public_id):
         item = get_object_or_404(
-            DepositEvidence.objects.for_organization(resolve_workspace(request)),
+            DepositEvidence.objects.for_request(request),
             public_id=public_id,
         )
         return evidence_response(item)

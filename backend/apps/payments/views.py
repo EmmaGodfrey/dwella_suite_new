@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 from apps.common.permissions import CanManageOrganization, CanViewPortfolio, IsPlatformSuperuser
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.portal.access import IsPortalTenant, portal_context
@@ -169,9 +170,12 @@ class ManagerCollectionList(PrivateView, generics.ListAPIView):
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
-        rows = Collection.objects.filter(
-            organization=resolve_workspace(self.request)
-        ).select_related("invoice", "payment", "destination", "payout")
+        # Online payments follow their invoice's property.
+        rows = (
+            property_scope(self.request)
+            .filter(Collection.objects.filter(organization=resolve_workspace(self.request)))
+            .select_related("invoice", "payment", "destination", "payout")
+        )
         invoice_id = self.request.query_params.get("invoice")
         if invoice_id:
             from uuid import UUID
@@ -247,7 +251,9 @@ def notify_destination_change(user, row):
 
 
 class ManagerDestinationView(PrivateView):
-    permission_classes = [CanViewPortfolio]
+    # Rent is pooled per workspace: receiving accounts, balances, payout timing
+    # and withdrawals are read and changed by property admins only.
+    permission_classes = [CanManageOrganization]
 
     def get_throttles(self):
         return (
@@ -347,7 +353,7 @@ class BankListView(PrivateView):
 
 
 class PayoutSummaryView(PrivateView):
-    permission_classes = [CanViewPortfolio]
+    permission_classes = [CanManageOrganization]
 
     def get(self, request):
         organization = resolve_workspace(request)
@@ -370,7 +376,9 @@ class PayoutPlanView(PrivateView):
     """When settled rent is sent: held until requested, as it settles, weekly or monthly."""
 
     def get_permissions(self):
-        classes = [CanSetReceivingDetails] if self.request.method == "PUT" else [CanViewPortfolio]
+        classes = (
+            [CanSetReceivingDetails] if self.request.method == "PUT" else [CanManageOrganization]
+        )
         return [permission() for permission in classes]
 
     def get_throttles(self):
@@ -426,7 +434,9 @@ class WithdrawalListView(PrivateView, generics.ListAPIView):
     serializer_class = WithdrawalSerializer
 
     def get_permissions(self):
-        classes = [CanSetReceivingDetails] if self.request.method == "POST" else [CanViewPortfolio]
+        classes = (
+            [CanSetReceivingDetails] if self.request.method == "POST" else [CanManageOrganization]
+        )
         return [permission() for permission in classes]
 
     def get_throttles(self):

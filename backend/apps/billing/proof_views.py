@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 from apps.common.permissions import CanManagePortfolio, CanViewPortfolio
-from apps.common.workspaces import resolve_workspace
+from apps.common.property_scope import noted
 from apps.portal.access import IsPortalTenant, portal_context
 
 from . import proofs
@@ -151,7 +151,7 @@ class ManagerProofView(APIView):
         return [ProofWriteThrottle()]
 
     def queryset(self):
-        return PaymentProof.objects.for_organization(resolve_workspace(self.request))
+        return PaymentProof.objects.for_request(self.request)
 
     def finalize_response(self, request, response, *args, **kwargs):
         return private(super().finalize_response(request, response, *args, **kwargs))
@@ -195,7 +195,7 @@ class ManagerProofDetailView(ManagerProofView):
 
 class ManagerProofDecisionView(ManagerProofView):
     def post(self, request, public_id, decision):
-        row = get_object_or_404(self.queryset(), public_id=public_id)
+        row = noted(request, get_object_or_404(self.queryset(), public_id=public_id))
         note = valid(ReviewSerializer, request)["note"]
         if decision == "confirm":
             row = proofs.confirm(row, user=request.user)
@@ -213,7 +213,7 @@ class ManagerProofDecisionView(ManagerProofView):
 class ManagerProofFileView(ManagerProofView):
     def get(self, request, public_id):
         item = get_object_or_404(
-            PaymentProofFile.objects.for_organization(resolve_workspace(request)),
+            PaymentProofFile.objects.for_request(request),
             public_id=public_id,
         )
         return evidence_response(item)
