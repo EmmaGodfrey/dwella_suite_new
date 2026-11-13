@@ -4,6 +4,24 @@ from django.db import models
 from apps.common.models import TimeStampedModel, UUIDModel
 
 
+class ProviderCredential(models.Model):
+    name = models.CharField(max_length=80, primary_key=True)
+    encrypted_value = models.BinaryField(editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return self.name
+
+
+class ProviderCredentialProof(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    last_counter = models.BigIntegerField(default=-1)
+
+    def __str__(self):
+        return f"Credential proof for user {self.user_id}"
+
+
 class PlatformSettings(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
     handy_agent_enabled = models.BooleanField(default=False)
