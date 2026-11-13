@@ -11,6 +11,7 @@ import { SupportAccessProvider, SupportBanner } from "../Components/Platform/Sup
 import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
 import AccessRemoved from "../Components/Portal/AccessRemoved";
+import CoverBanner from "../Components/Team/CoverBanner";
 
 const getCachedUser = () => {
   try {
@@ -89,6 +90,7 @@ const AppLayout = () => {
       <div className="dwella-main-frame">
         <AppTopbar onMobileOpen={() => setMobileOpen(true)} />
         <SupportBanner />
+        <CoverBanner user={user} />
 
         <main className="dwella-content" data-tour="dashboard-overview">
           <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
