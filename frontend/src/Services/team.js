@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./apiClient";
 import { toSearchParams } from "./queries";
+import { resetPropertyScope } from "./teamScope.mjs";
+
+export { resetPropertyScope, scopeSignature } from "./teamScope.mjs";
 
 const TEAM = "/organizations/team/";
 export const teamKeys = {
@@ -31,9 +34,7 @@ function useTeamChange(mutationFn, { everything = false } = {}) {
     retry: false,
     onSuccess: async (data) => {
       client.setQueryData(teamKeys.team, data);
-      // A cover changes which properties this person can see: drop every list
-      // held from before so nothing from the old scope stays on screen.
-      if (everything) await client.invalidateQueries();
+      if (everything) await resetPropertyScope(client);
       else await client.invalidateQueries({ queryKey: ["organizations", "team", "activity"] });
     },
   });
