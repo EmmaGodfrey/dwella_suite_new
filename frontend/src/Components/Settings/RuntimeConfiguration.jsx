@@ -89,7 +89,7 @@ const groups = {
     ],
     [
       "SMS",
-      "Use a registered sender. API credentials remain protected on the server.",
+      "Use an approved sender or the provider default when available for TEST.",
       ["sms_sender_id", "sms_enabled"],
     ],
     [
@@ -308,7 +308,7 @@ function ConfigurationForm({ section, data }) {
       key === "email_from_address"
         ? ready.approved_email_senders
         : key === "sms_sender_id"
-          ? ready.approved_sms_senders
+          ? [...(ready.sms_default_sender_allowed ? [""] : []), ...ready.approved_sms_senders]
           : null;
     if (approved?.length)
       return (
@@ -317,12 +317,12 @@ function ConfigurationForm({ section, data }) {
             value={draft[key]}
             onChange={(e) => change(key, e.target.value)}
           >
-            {key === "sms_sender_id" && (
+            {key === "sms_sender_id" && !ready.sms_default_sender_allowed && (
               <option value="">Choose a sender</option>
             )}
             {approved.map((v) => (
               <option key={v} value={v}>
-                {v}
+                {v || "Provider default (TEST)"}
               </option>
             ))}
           </Select>

@@ -23,6 +23,7 @@ import ReceivingDetails from "../Billing/ReceivingDetails";
 import OutreachSettings from "../Outreach/Settings";
 import AssistantSettings from "../Platform/Settings";
 import RuntimeConfiguration from "./RuntimeConfiguration";
+import ProviderCredentials from "./ProviderCredentials";
 import SupportContacts from "../../shared/components/SupportContacts";
 import NotificationPhone from "./NotificationPhone";
 import "./settings.scss";
@@ -724,7 +725,7 @@ export default function Settings() {
       {tab === "billing" && <ReceivingDetails />}
         {tab === "notifications" && <Notifications persona={persona} reminderSettings={workspaceAdmin} />}
         {tab === "payments" && <PaymentSettings />}
-        {tab === "messaging" && <><RuntimeConfiguration section="messaging" /><Messaging /></>}
+        {tab === "messaging" && <><RuntimeConfiguration section="messaging" /><ProviderCredentials /><Messaging /></>}
         {tab === "outreach" && <OutreachSettings embedded />}
         {tab === "assistant" && <><RuntimeConfiguration section="assistant" /><AssistantSettings embedded /></>}
         {tab === "support" && <RuntimeConfiguration section="support" />}
