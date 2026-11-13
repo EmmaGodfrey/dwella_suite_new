@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import viewsets
 from rest_framework.permissions import SAFE_METHODS
 
@@ -51,17 +52,20 @@ class OrganizationScopedModelViewSet(viewsets.ModelViewSet):
 
     # The queryset and the serializers' related fields already keep a manager
     # inside their properties. These checks run after the save as a second
-    # fence: a record created in, or moved to, another property is refused and
-    # the request's transaction rolls the write back.
+    # fence: a record created in, or moved to, another property is refused. The
+    # save and the check share a savepoint, so a refusal undoes the write (DRF
+    # turns the refusal into a response without rolling anything back itself).
     def perform_create(self, serializer):
-        instance = serializer.save(organization=self.get_organization())
-        if self.property_scoped:
-            self.check_saved(instance)
+        with transaction.atomic():
+            instance = serializer.save(organization=self.get_organization())
+            if self.property_scoped:
+                self.check_saved(instance)
 
     def perform_update(self, serializer):
-        instance = serializer.save()
-        if self.property_scoped:
-            self.check_saved(instance)
+        with transaction.atomic():
+            instance = serializer.save()
+            if self.property_scoped:
+                self.check_saved(instance)
 
     def check_saved(self, instance):
         require_in_scope(self.request, instance)

@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Exists, F, OuterRef, Prefetch, Q, Sum
 from django.db.models.functions import Coalesce
 from rest_framework import serializers
@@ -67,10 +68,11 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
         return tenant
 
     def perform_create(self, serializer):
-        instance = serializer.save(
-            organization=self.get_organization(), created_by=self.request.user
-        )
-        self.check_saved(instance)
+        with transaction.atomic():
+            instance = serializer.save(
+                organization=self.get_organization(), created_by=self.request.user
+            )
+            self.check_saved(instance)
 
     def get_throttles(self):
         from apps.accounts.invitations import InvitationWriteThrottle

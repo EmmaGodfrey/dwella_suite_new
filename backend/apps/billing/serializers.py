@@ -221,12 +221,24 @@ class InvoiceSerializer(OrganizationScopedSerializer):
             raise serializers.ValidationError("Add at least one charge.")
         return value
 
+    def sees_every_property(self):
+        from apps.common.property_scope import property_scope
+
+        request = self.context.get("request")
+        return bool(request and property_scope(request).everything)
+
     def validate(self, attrs):
         if self.instance is not None:
             return attrs
         lease = attrs.get("lease")
         if lease and lease.tenant_id != attrs["tenant"].id:
             raise serializers.ValidationError({"lease": ["This lease belongs to another tenant."]})
+        if lease is None and not self.sees_every_property():
+            # A charge with no lease belongs to no property, so only a property
+            # admin can raise one; a manager's charge follows the tenant's lease.
+            raise serializers.ValidationError(
+                {"tenant": ["Choose a tenant with a lease at one of your properties."]}
+            )
         attrs.setdefault("issue_date", timezone.localdate())
         if attrs["due_date"] < attrs["issue_date"]:
             raise serializers.ValidationError(
