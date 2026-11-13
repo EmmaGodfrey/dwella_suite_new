@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.audit.services import record_event
+from apps.common.property_scope import touch
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.integrations import smart_invoice
 
@@ -159,8 +160,13 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         period = serializer.validated_data["period"]
         organization = self.get_organization()
         scope = self.get_property_scope()
-        created, skipped = generate_rent_invoices(organization, period, scope=scope)
-        late_fees = apply_late_fees(organization, scope=scope)
+        # The properties actually billed, so work done under a cover is audited.
+        touched = set()
+        created, skipped = generate_rent_invoices(
+            organization, period, scope=scope, touched=touched
+        )
+        late_fees = apply_late_fees(organization, scope=scope, touched=touched)
+        touch(request, *touched)
         return Response(
             {
                 "period": period.isoformat(),

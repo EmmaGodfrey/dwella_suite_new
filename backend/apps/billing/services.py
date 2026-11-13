@@ -112,13 +112,14 @@ def create_invoice(
 
 
 def generate_rent_invoices(
-    organization, period_start, today=None, lead_days=None, scope=None
+    organization, period_start, today=None, lead_days=None, scope=None, touched=None
 ):
     """Issue one rent invoice per active lease covering the month.
 
     Safe to run again for the same month: leases that already have a live
     invoice for it are skipped. With `lead_days`, a lease is only billed once
     its due day is that close (automatic billing). Returns (created, skipped).
+    `touched`, when given, collects the properties that were billed.
     """
     today = today or timezone.localdate()
     first, last = month_bounds(period_start.replace(day=1))
@@ -176,6 +177,8 @@ def generate_rent_invoices(
             ],
         )
         created += 1
+        if touched is not None:
+            touched.add(lease.unit.property_id)
     return created, len(billed)
 
 
@@ -227,7 +230,7 @@ def late_fee_follow_ups():
     ).exclude(status=Invoice.Status.VOID)
 
 
-def apply_late_fees(organization, today=None, scope=None):
+def apply_late_fees(organization, today=None, scope=None, touched=None):
     """Add each lease's late fee to unpaid rent invoices past their grace period.
 
     A fee is added at most once per invoice. Invoices already sent to ZRA
@@ -296,6 +299,8 @@ def apply_late_fees(organization, today=None, scope=None):
                 )
                 refresh_totals(locked)
         added += 1
+        if touched is not None and invoice.unit_id:
+            touched.add(invoice.unit.property_id)
     return added
 
 
