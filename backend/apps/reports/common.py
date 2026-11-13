@@ -13,6 +13,7 @@ from rest_framework.utils.urls import replace_query_param
 from rest_framework.views import APIView
 
 from apps.common.permissions import CanViewPortfolio
+from apps.common.property_scope import EVERYTHING
 from apps.properties.models import Property
 from apps.tenants.models import Tenant
 
@@ -47,15 +48,16 @@ def organization_today(organization):
     return timezone.localdate(timezone=zone)
 
 
-def validate_scope(organization, params):
+def validate_scope(organization, params, scope=EVERYTHING):
+    """Check the chosen property and tenant are ones this person may report on."""
     property_id = params.get("property")
-    if property_id and not Property.objects.for_organization(organization).filter(
+    if property_id and not scope.filter(Property.objects.for_organization(organization)).filter(
         public_id=property_id
     ).exists():
         raise serializers.ValidationError({"property": "Select a property in this workspace."})
     tenant = None
     if params.get("tenant"):
-        tenant = Tenant.objects.for_organization(organization).only(
+        tenant = scope.filter(Tenant.objects.for_organization(organization)).only(
             "id", "public_id", "full_name", "is_active"
         ).filter(public_id=params["tenant"]).first()
         if tenant is None:

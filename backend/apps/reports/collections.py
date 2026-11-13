@@ -1,6 +1,7 @@
 from django.db.models import Count, F, Q, Sum
 
 from apps.billing.models import Payment
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 
 from .common import (
@@ -31,8 +32,9 @@ class CollectionsReportView(ReportView):
         params = CollectionParameters(data=request.query_params, context={"today": today})
         params.is_valid(raise_exception=True)
         data = params.validated_data
-        tenant = validate_scope(org, data)
-        payments = Payment.objects.for_organization(org).filter(
+        scope = property_scope(request)
+        tenant = validate_scope(org, data, scope)
+        payments = scope.filter(Payment.objects.for_organization(org)).filter(
             reversed_at__isnull=True,
             invoice__organization=org,
             invoice__tenant_id=F("tenant_id"),
