@@ -40,3 +40,11 @@ TEST can use `APP_SMS_ALLOW_DEFAULT_SENDER=true` with an empty sender ID. This e
 PostgreSQL validation: the initial full run passed 1,812 tests and found one new integration-fixture failure: the Resend path uses the separate `email_quota` connection, which that test had not declared. The fixture now uses transactional access to both database aliases and closes the mirror connection. The corrected PostgreSQL credential/runtime/email/SMS group passed all 102 tests, including concurrent replacement and RLS checks. The final tagged CI run is required to pass both complete database suites before TEST deployment.
 
 Measured local enabled-store reads: six requested credential names use one query; metadata uses one query and excludes ciphertext. No external provider calls were used in these checks.
+
+## TEST release completed, 2026-11-13
+
+Released as `test-v2026.11.13.2` at `9c487c2`. [Tagged CI and deployment](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/43431993153) and [develop CI](https://github.com/EmmaGodfrey/dwella_suite_new/actions/runs/43431986579) passed all four gates, including both complete backend suites. Production deployment was skipped.
+
+Deployed verification passed under the restricted database role: anonymous denial, private/no-store metadata, encrypted replacement, replay denial, RLS and a mocked statusCode100 SMS send. Temporary records were rolled back, and no provider requests were made. All 10 TEST services were healthy/running; all 21 non-TEST container identities and the existing business-record counts were unchanged. Public health/login/permission checks and desktop/mobile browser checks passed.
+
+SMS is now enabled through the validated, audited persisted TEST admin setting with the provider default sender. The protected source environment default remains off; the database setting is the explicit active override. The scheduler sees SMS ready and retains its existing messages job. No held requests were released, no consent was created and no extra real SMS was sent. Delivery-callback registration and branded sender-ID KYC remain separate provider setup tasks; production activation was not performed.
