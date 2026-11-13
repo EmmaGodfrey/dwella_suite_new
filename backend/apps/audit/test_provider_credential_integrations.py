@@ -4,6 +4,7 @@ import json
 from unittest.mock import patch
 
 import pytest
+from django.db import connections
 from rest_framework.test import APIClient
 
 from .models import ProviderCredential
@@ -12,6 +13,12 @@ from .test_provider_credentials import admin as admin_fixture
 
 pytestmark = pytest.mark.django_db
 admin = admin_fixture
+
+
+@pytest.fixture(autouse=True)
+def close_quota_connection():
+    yield
+    connections["email_quota"].close()
 
 
 def test_credentials_are_used_by_sms_and_webhook_verification(admin, settings):
@@ -32,6 +39,7 @@ def test_credentials_are_used_by_sms_and_webhook_verification(admin, settings):
     assert send.call_args.args[2]["apiKey"] == SECRET
 
 
+@pytest.mark.django_db(transaction=True, databases=["default", "email_quota"])
 def test_resend_and_meta_use_replacements_instead_of_environment_values(admin, settings):
     from django.core.mail import EmailMessage
 
