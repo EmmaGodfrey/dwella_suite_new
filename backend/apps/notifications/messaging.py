@@ -16,6 +16,7 @@ from apps.audit.runtime_settings import runtime_settings
 from apps.billing.models import Invoice
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
+from apps.common.property_scope import EVERYTHING, scope_for_membership
 from apps.common.provider_http import ProviderRejected
 from apps.organizations.models import OrganizationMembership
 from apps.subscriptions.services import require_feature
@@ -58,9 +59,12 @@ def address(tenant, channel):
     return tenant.email if channel == "email" else tenant.phone_number
 
 
-def preview(*, organization, actor, data, source="manager"):
+def preview(*, organization, actor, data, source="manager", scope=EVERYTHING):
     require_feature(organization, f"{data['channel']}_messages")
-    active = Tenant.objects.filter(organization=organization, is_active=True).order_by("pk")
+    # A manager writes to tenants of their own properties; "all tenants" means those.
+    active = scope.filter(
+        Tenant.objects.filter(organization=organization, is_active=True)
+    ).order_by("pk")
     skipped = 0
     if data.get("all_tenants"):
         tenants = list(active[: ALL_TENANTS_LIMIT + 1])
@@ -102,7 +106,7 @@ def preview(*, organization, actor, data, source="manager"):
 
 
 @transaction.atomic
-def confirm(*, message, actor):
+def confirm(*, message, actor, scope=EVERYTHING):
     message = (
         MessageRequest.objects.select_for_update().select_related("organization").get(pk=message.pk)
     )
@@ -115,10 +119,12 @@ def confirm(*, message, actor):
         raise ValidationError("This preview expired. Preview the message again.")
     tenants = {
         str(t.public_id): t
-        for t in Tenant.objects.filter(
-            organization=message.organization,
-            is_active=True,
-            public_id__in=[r["id"] for r in message.recipients],
+        for t in scope.filter(
+            Tenant.objects.filter(
+                organization=message.organization,
+                is_active=True,
+                public_id__in=[r["id"] for r in message.recipients],
+            )
         )
     }
     rows = []
@@ -476,14 +482,27 @@ def feature_available(organization, channel):
     return True
 
 
-def actor_allowed(organization, actor):
-    return (
-        actor.is_active
-        and not email_status(actor)["required"]
-        and OrganizationMembership.objects.filter(
-            organization=organization, user=actor, is_active=True, role="landlord"
-        ).exists()
+def actor_allowed(organization, actor, tenant=None):
+    """Whether the sender may still write to this tenant, checked at send time."""
+    if not actor.is_active or email_status(actor)["required"]:
+        return False
+    membership = (
+        OrganizationMembership.objects.filter(
+            organization=organization,
+            user=actor,
+            is_active=True,
+            role__in=OrganizationMembership.MANAGEMENT_ROLES,
+        )
+        .select_related("organization")
+        .first()
     )
+    if membership is None:
+        return False
+    scope = scope_for_membership(membership)
+    if scope.everything or tenant is None:
+        return scope.everything
+    # An assignment removed after the message was queued stops the send.
+    return Tenant.objects.filter(scope.tenant_q(), pk=tenant.pk).exists()
 
 
 def dispatch_block(row, config, now):
@@ -493,7 +512,7 @@ def dispatch_block(row, config, now):
         return "permission_removed"
     if address(row.tenant, row.channel) != row.recipient:
         return "recipient_changed"
-    if row.request_id and not actor_allowed(organization, row.request.actor):
+    if row.request_id and not actor_allowed(organization, row.request.actor, row.tenant):
         return "permission_removed"
     if not feature_available(organization, row.channel):
         return "feature_unavailable"

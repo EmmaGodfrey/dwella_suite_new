@@ -17,6 +17,7 @@ from django.utils import timezone
 from apps.accounts.access_state import email_status
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
+from apps.common.property_scope import management_members, property_ids_of
 from apps.common.provider_http import ProviderRejected, post_json
 from apps.organizations.models import OrganizationMembership
 
@@ -97,6 +98,14 @@ def context(target):
     return target.organization, getattr(target, "tenant", None)
 
 
+def target_property_ids(target):
+    """The property a notice is about; money that is pooled per workspace has none."""
+    label = target._meta.label_lower
+    if label == "maintenance.maintenanceupdate":
+        return {target.request.property_id}
+    return property_ids_of(target)
+
+
 def enqueue(
     target,
     event,
@@ -120,9 +129,10 @@ def enqueue(
             ("manager", user, None)
             for user in apps.get_model(settings.AUTH_USER_MODEL)
             .objects.filter(
-                organization_memberships__organization=organization,
-                organization_memberships__role="landlord",
-                organization_memberships__is_active=True,
+                # Admins, and the managers assigned to the property concerned.
+                pk__in=management_members(
+                    organization.pk, target_property_ids(target)
+                ).values("user_id"),
                 is_active=True,
                 is_staff=False,
                 is_superuser=False,
@@ -206,12 +216,9 @@ def authorised(row, target):
             and not user.is_staff
             and not user.is_superuser
             and not email_status(user)["required"]
-            and OrganizationMembership.objects.filter(
-                organization_id=org.pk,
-                user=user,
-                role="landlord",
-                is_active=True,
-            ).exists()
+            and management_members(org.pk, target_property_ids(target))
+            .filter(user=user)
+            .exists()
         )
     if not tenant or not tenant.is_active or tenant.pk != row.tenant_id:
         return False

@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, serializers
@@ -8,6 +9,7 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 from apps.common.permissions import CanManagePortfolio, IsPlatformSuperuser
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 from apps.tenants.models import Tenant
 
@@ -89,6 +91,23 @@ class PrivateMessagesMixin:
         return response
 
 
+def deliveries(request):
+    """Messages the person may see: all for an admin, their tenants' for a manager."""
+    rows = MessageDelivery.objects.filter(organization=resolve_workspace(request))
+    scope = property_scope(request)
+    if scope.everything:
+        return rows
+    return rows.filter(
+        scope.q("invoice__unit__property_id")
+        | Q(
+            invoice__isnull=True,
+            tenant_id__in=Tenant.objects.filter(
+                organization=resolve_workspace(request)
+            ).filter(scope.tenant_q()).values("pk"),
+        )
+    )
+
+
 class PreviewView(PrivateMessagesMixin, APIView):
     permission_classes = [CanManagePortfolio]
     throttle_classes = [MessageWriteThrottle]
@@ -98,7 +117,10 @@ class PreviewView(PrivateMessagesMixin, APIView):
         data = ComposeSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         message = preview(
-            organization=resolve_workspace(request), actor=request.user, data=data.validated_data
+            organization=resolve_workspace(request),
+            actor=request.user,
+            data=data.validated_data,
+            scope=property_scope(request),
         )
         record_event(
             request,
@@ -122,7 +144,9 @@ class ConfirmView(PreviewView):
             actor=request.user,
         )
         with transaction.atomic():
-            message = confirm(message=message, actor=request.user)
+            message = confirm(
+                message=message, actor=request.user, scope=property_scope(request)
+            )
             record_event(
                 request,
                 "message.confirmed",
@@ -148,7 +172,8 @@ class RecipientsView(PrivateMessagesMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return (
-            Tenant.objects.filter(organization=resolve_workspace(self.request), is_active=True)
+            Tenant.objects.for_request(self.request)
+            .filter(is_active=True)
             .order_by("full_name")
             .only("public_id", "full_name", "email", "phone_number")
         )
@@ -189,7 +214,7 @@ class MessagesView(PrivateMessagesMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return (
-            MessageDelivery.objects.filter(organization=resolve_workspace(self.request))
+            deliveries(self.request)
             .select_related("tenant", "organization")
             .defer("body")
             .order_by("-created_at", "-pk")
@@ -214,18 +239,15 @@ class MessageDetailView(PreviewView):
 
     def get(self, request, public_id):
         row = get_object_or_404(
-            MessageDelivery.objects.select_related("tenant", "organization"),
+            deliveries(request).select_related("tenant", "organization"),
             public_id=public_id,
-            organization=resolve_workspace(request),
         )
         return Response({**DeliverySerializer(row).data, "body": row.body})
 
     def post(self, request, public_id):
         data = ConfirmSerializer(data=request.data)
         data.is_valid(raise_exception=True)
-        row = get_object_or_404(
-            MessageDelivery, public_id=public_id, organization=resolve_workspace(request)
-        )
+        row = get_object_or_404(deliveries(request), public_id=public_id)
         MessageDelivery.objects.filter(pk=row.pk, status__in=["held", "queued"]).update(
             status="cancelled", reason="cancelled_by_manager"
         )
