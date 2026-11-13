@@ -31,9 +31,24 @@ BOARD_DONE_WINDOW = timedelta(days=7)
 
 class VendorViewSet(OrganizationScopedModelViewSet):
     serializer_class = VendorSerializer
-    queryset = Vendor.objects.annotate(
-        open_jobs=Count("requests", filter=Q(requests__status__in=MaintenanceRequest.OPEN_STATUSES))
-    )
+    # The whole team uses one vendor directory; only an admin removes from it.
+    property_scoped = False
+    admin_only_actions = frozenset({"destroy"})
+    queryset = Vendor.objects.all()
+
+    def get_queryset(self):
+        # Open jobs are counted within the properties the person works on.
+        return (
+            super()
+            .get_queryset()
+            .annotate(
+                open_jobs=Count(
+                    "requests",
+                    filter=Q(requests__status__in=MaintenanceRequest.OPEN_STATUSES)
+                    & self.get_property_scope().q("requests__property_id"),
+                )
+            )
+        )
     filterset_fields = ["is_active", "trade"]
     search_fields = ["name", "trade", "contact_name", "phone_number"]
     ordering_fields = ["name", "created_at"]

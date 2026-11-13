@@ -15,18 +15,23 @@ from .rendering import digest, invoice_pdf, lease_pdf
 from .snapshots import fingerprint, invoice_source, lease_source
 
 
-def active_signer(user, organization):
+def active_signer(user, organization, lease=None):
+    """Who may sign for the landlord: an admin, or a manager assigned to the property."""
+    if not user or not user.is_active or user.is_staff or user.is_superuser:
+        return False
+    membership = OrganizationMembership.objects.filter(
+        user=user,
+        organization=organization,
+        is_active=True,
+        role__in=OrganizationMembership.MANAGEMENT_ROLES,
+    ).first()
+    if membership is None:
+        return False
+    if membership.role == OrganizationMembership.Role.LANDLORD:
+        return True
     return bool(
-        user
-        and user.is_active
-        and not user.is_staff
-        and not user.is_superuser
-        and OrganizationMembership.objects.filter(
-            user=user,
-            organization=organization,
-            is_active=True,
-            role="landlord",
-        ).exists()
+        lease
+        and membership.property_assignments.filter(property_id=lease.unit.property_id).exists()
     )
 
 
@@ -46,7 +51,7 @@ def require_current(document):
         or not lease.tenant.is_active
         or not lease.organization.is_active
         or document.source_fingerprint != fingerprint(lease_source(lease))
-        or not active_signer(document.landlord_signer, lease.organization)
+        or not active_signer(document.landlord_signer, lease.organization, lease)
         or signer.email.casefold() != document.snapshot["landlord_signer_email"].casefold()
         or signer_name != document.snapshot["landlord_signer_name"]
     ):
@@ -118,7 +123,7 @@ def create_lease_document(request, lease, data):
 
     require_document_details(lease.tenant)
     signer = data["landlord_signer"]
-    if not active_signer(signer, lease.organization):
+    if not active_signer(signer, lease.organization, lease):
         raise ValidationError({"landlord_signer": ["Choose an active property-manager account."]})
     if not lease.tenant.email:
         raise ValidationError(

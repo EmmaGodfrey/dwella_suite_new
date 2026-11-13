@@ -70,7 +70,7 @@ def issue_tenant_invitation(request, tenant):
         or users.filter(is_staff=True).exists()
         or users.filter(is_superuser=True).exists()
         or OrganizationMembership.objects.filter(
-            user__in=users, is_active=True, role="landlord"
+            user__in=users, is_active=True, role__in=OrganizationMembership.MANAGEMENT_ROLES
         ).exists()
     ):
         raise ValidationError("This address cannot be used for a tenant account. Contact support.")

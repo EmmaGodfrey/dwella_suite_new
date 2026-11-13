@@ -108,8 +108,7 @@ class PrepareLeaseSerializer(serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        organization = self.context["organization"]
-        self.fields["lease"].queryset = Lease.objects.for_organization(organization)
+        self.fields["lease"].queryset = Lease.objects.for_request(self.context["request"])
 
     def validate_terms_approved(self, value):
         if not value:
@@ -120,7 +119,10 @@ class PrepareLeaseSerializer(serializers.Serializer):
         request = self.context["request"]
         signer_id = attrs.get("landlord_signer", request.user.pk)
         signer = get_user_model().objects.filter(pk=signer_id).first()
-        if not active_signer(signer, self.context["organization"]) or not signer.email:
+        if (
+            not active_signer(signer, self.context["organization"], attrs.get("lease"))
+            or not signer.email
+        ):
             raise serializers.ValidationError(
                 {
                     "landlord_signer": [
@@ -175,7 +177,7 @@ class AttachOriginalSerializer(serializers.Serializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["lease"].queryset = Lease.objects.for_organization(self.context["organization"])
+        self.fields["lease"].queryset = Lease.objects.for_request(self.context["request"])
 
     def validate_confirmed_original(self, value):
         if not value:
