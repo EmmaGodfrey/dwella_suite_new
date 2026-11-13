@@ -14,9 +14,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.common.property_scope import noted
+from apps.common.property_scope import noted, scoped
 from apps.common.viewsets import OrganizationScopedModelViewSet
-from apps.organizations.models import OrganizationMembership
+from apps.organizations.models import OrganizationMembership, PropertyAssignment
 
 from .files import MAX_SOURCE_BYTES, inspect_pdf, source_preview
 from .models import DocumentSignature, DocumentVersion, SignedLeaseOriginal
@@ -167,6 +167,20 @@ class DocumentViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):
         document = create_lease_document(request, lease, data)
         return Response(self.get_serializer(document).data, status=status.HTTP_201_CREATED)
 
+    def lease_for_signers(self, request):
+        from apps.leases.models import Lease
+
+        try:
+            public_id = UUID(request.query_params.get("lease", ""))
+        except ValueError:
+            return None
+        return (
+            scoped(request, Lease.objects.all())
+            .filter(public_id=public_id)
+            .select_related("unit")
+            .first()
+        )
+
     @action(detail=False, methods=["get"])
     def signers(self, request):
         # Admins may sign any lease. A manager may sign for a property assigned
@@ -175,6 +189,15 @@ class DocumentViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):
         who = Q(role=OrganizationMembership.Role.LANDLORD)
         if not self.get_property_scope().everything:
             who |= Q(role=OrganizationMembership.Role.MANAGER, user=request.user)
+        elif lease := self.lease_for_signers(request):
+            # An admin preparing this lease may also pick a manager assigned to
+            # its property.
+            who |= Q(
+                role=OrganizationMembership.Role.MANAGER,
+                pk__in=PropertyAssignment.objects.filter(
+                    property_id=lease.unit.property_id
+                ).values("membership_id"),
+            )
         members = OrganizationMembership.objects.filter(
             who,
             organization=self.get_organization(),

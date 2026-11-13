@@ -63,12 +63,14 @@ class DocumentSerializer(OrganizationScopedSerializer):
             )
         return checked[key]
 
-    def signer_is_active(self, user, organization):
+    def signer_is_active(self, user, organization, lease=None):
         # Metadata only: signing actions still recheck live membership themselves.
+        # A manager signs only for a property assigned to them, so the answer
+        # is kept per property.
         checked = self.context.setdefault("_document_signer_checks", {})
-        key = (user.pk, organization.pk)
+        key = (user.pk, organization.pk, lease.unit.property_id if lease else None)
         if key not in checked:
-            checked[key] = active_signer(user, organization)
+            checked[key] = active_signer(user, organization, lease)
         return checked[key]
 
     def get_can_sign(self, obj):
@@ -83,7 +85,7 @@ class DocumentSerializer(OrganizationScopedSerializer):
             and request
             and request.user.is_authenticated
             and request.user.pk == obj.landlord_signer_id
-            and self.signer_is_active(request.user, obj.organization)
+            and self.signer_is_active(request.user, obj.organization, obj.lease)
             and not any(signature.role == "landlord" for signature in obj.signatures.all())
         )
 

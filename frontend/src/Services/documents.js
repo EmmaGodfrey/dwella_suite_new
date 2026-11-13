@@ -46,8 +46,10 @@ export function useOriginalDocuments(lease) {
   return useQuery({ queryKey: ["documents", "originals", lease], enabled: Boolean(lease),
     queryFn: () => api.get(`/documents/originals/?lease=${lease}&page_size=100`) });
 }
-export function useDocumentSigners() {
-  return useQuery({ queryKey: ["documents", "signers"], queryFn: () => api.get(`${root}signers/`) });
+// With a lease, a property admin is also offered the managers assigned to its property.
+export function useDocumentSigners(lease) {
+  return useQuery({ queryKey: ["documents", "signers", lease || ""],
+    queryFn: () => api.get(`${root}signers/${lease ? `?lease=${lease}` : ""}`) });
 }
 export function usePrepareDocument(options = {}) {
   const cache = useQueryClient();
