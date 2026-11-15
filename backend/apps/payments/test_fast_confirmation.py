@@ -147,6 +147,9 @@ def test_worker_runs_a_three_second_recheck_without_waiting_out_its_pause(home):
         with (
             patch.object(command, "run_cycle", cycle),
             patch.object(command, "balance_configured", return_value=False),
+            # The test's own transaction would otherwise be closed under it.
+            patch.object(command, "close_old_connections"),
+            patch.object(command.logger, "exception", side_effect=AssertionError),
             pytest.raises(KeyboardInterrupt),
         ):
             call_command("run_payments_worker")
