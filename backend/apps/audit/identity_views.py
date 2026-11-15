@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count
 from django.http import FileResponse
@@ -11,6 +9,7 @@ from rest_framework.response import Response
 
 from apps.accounts.models import IdentityVerification
 from apps.accounts.serializers import IdentityVerificationSerializer
+from apps.common.email_design import branded_email
 from apps.common.mail import delivery_configured
 from apps.common.permissions import IsPlatformAdmin
 
@@ -92,10 +91,20 @@ class IdentityReviewViewSet(viewsets.ReadOnlyModelViewSet):
         record_event(request, f"identity.{decision}", verification, reason=reason,
                      user_id=verification.user_id)
         if delivery_configured():
-            transaction.on_commit(lambda: send_mail(
-                "Your Dwella identity review", f"Your identity check was {decision}. {reason}",
-                settings.DEFAULT_FROM_EMAIL, [verification.user.email], fail_silently=False,
-            ), robust=True)
+            approved = decision == "approved"
+            message = branded_email(
+                "Your Dwella identity review",
+                f"Your identity check was {decision}. {reason}",
+                [verification.user.email],
+                heading="Identity check approved" if approved else "Identity check not approved",
+                eyebrow="Identity review",
+                paragraphs=(
+                    ["Your identity check is approved. No further action is needed."]
+                    if approved
+                    else ["We could not approve your identity check.", f"Reason: {reason}"]
+                ),
+            )
+            transaction.on_commit(lambda: message.send(fail_silently=False), robust=True)
         return Response(self.get_serializer(verification).data)
 
     @action(detail=True, methods=["get"])

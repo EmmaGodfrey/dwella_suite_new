@@ -178,6 +178,14 @@ def invite_member(request, organization, *, email, full_name, role, properties):
         f"{link}\n\nThis invitation expires in {INVITATION_DAYS} days. If you already have a "
         "Dwella account, sign in with this email address first.",
         email,
+        heading=f"Join {organization} on Dwella",
+        eyebrow="Team invitation",
+        paragraphs=[f"{display_name(request.user)} invited you to join {organization} "
+                    f"as a {label}."],
+        action_url=link,
+        action_label="Accept invitation",
+        note=f"This invitation expires in {INVITATION_DAYS} days. If you already have a Dwella "
+             "account, sign in with this email address first.",
     ):
         raise ValidationError("The invitation could not be delivered. Please try again.")
     record_event(

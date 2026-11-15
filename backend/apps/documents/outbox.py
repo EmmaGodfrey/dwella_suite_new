@@ -8,13 +8,13 @@ from datetime import timedelta
 from cryptography.fernet import Fernet, MultiFernet
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
-from django.core.mail import EmailMessage
 from django.db import connection, transaction
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from rest_framework.exceptions import ValidationError
 
+from apps.common.email_design import branded_email
 from apps.common.email_router import EmailDeliveryUnknown
 from apps.common.mail import delivery_configured, recipient_allowed
 
@@ -103,11 +103,17 @@ def message_for(row):
             return None
         recipients = list(dict.fromkeys(filter(None, [document.snapshot["tenant_email"],
                                            document.snapshot["landlord_signer_email"]])))
-        message = EmailMessage(
-            f"Signed lease {document.snapshot['reference']} · v{document.version}",
+        reference = document.snapshot["reference"]
+        message = branded_email(
+            f"Signed lease {reference} · v{document.version}",
             "All required signatures have been recorded. Your completed agreement and signing "
             "record are attached. This does not change the tenancy's activation status.",
-            settings.DEFAULT_FROM_EMAIL, to=recipients,
+            recipients,
+            heading=f"Lease {reference} is signed",
+            eyebrow="Lease signing",
+            paragraphs=["All required signatures have been recorded. Your completed agreement "
+                        "and signing record are attached as a PDF."],
+            note="Signing does not by itself change the tenancy's activation status.",
         )
         message.attach(f"{document.snapshot['reference']}-v{document.version}.pdf",
                        bytes(document.pdf), "application/pdf")
@@ -126,6 +132,13 @@ def message_for(row):
                     or not invite.otp_hash or not check_password(payload["code"], invite.otp_hash)):
                 return None
             subject = "Your Dwella lease verification code"
+            design = dict(
+                heading="Your verification code",
+                eyebrow="Lease signing",
+                paragraphs=["Enter this code to open your lease for review."],
+                code=payload["code"],
+                note="The code expires in 10 minutes. Entering it does not sign anything.",
+            )
             body = (f"Your verification code is {payload['code']}. It expires in 10 minutes.\n\n"
                     "This code only opens your lease for review; "
                     "entering it does not sign anything."
@@ -138,7 +151,16 @@ def message_for(row):
             body = (f"You have been invited to review a lease agreement.\n\n{link}\n\n"
                     "The link expires in 7 days. "
                     "We will verify your email before showing the agreement.")
-        message = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, to=[invite.email])
+            design = dict(
+                heading=f"Review and sign lease {document.snapshot['reference']}",
+                eyebrow=str(document.organization),
+                paragraphs=["You have been invited to review and sign a lease agreement."],
+                action_url=link,
+                action_label="Review lease",
+                note="The link expires in 7 days. We will send a code to this email address "
+                     "before showing the agreement.",
+            )
+        message = branded_email(subject, body, [invite.email], **design)
     message.extra_headers["Message-ID"] = f"<dwella-signing-{row.public_id}@mail.dwella.properties>"
     return message
 

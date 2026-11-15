@@ -247,6 +247,12 @@ def notify_destination_change(user, row):
         f"({row.account_name}).\n\nIf you did not make this change, sign in, change your "
         "password and contact Dwella support straight away.",
         user.email,
+        heading="Your receiving account changed",
+        eyebrow="Security notice",
+        paragraphs=[f"Withdrawals from {row.organization.name} will now go to {where} "
+                    f"({row.account_name})."],
+        note="If you did not make this change, sign in, change your password and contact "
+             "Dwella support straight away.",
     )
 
 

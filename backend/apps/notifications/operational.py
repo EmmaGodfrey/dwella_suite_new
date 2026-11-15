@@ -9,13 +9,13 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.access_state import email_status
 from apps.audit.provider_credentials import credential
+from apps.common.email_design import branded_email
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
 from apps.common.property_scope import management_members, property_ids_of
@@ -82,6 +82,20 @@ TITLES = {
     "proof.submitted": "Payment to confirm",
     "proof.needs_information": "Your property manager has a question about your payment",
     "proof.rejected": "Payment not received",
+}
+
+# Button wording by event family; anything else falls back to "Open Dwella".
+ACTION_LABELS = {
+    "invoice": "View invoice",
+    "payment": "View receipt",
+    "lease": "View lease",
+    "repair": "View repair",
+    "deposit": "View lease",
+    "proof": "View payment",
+    "collection": "View invoice",
+    "withdrawal": "View payouts",
+    "payout": "View payouts",
+    "whatsapp": "Open settings",
 }
 
 
@@ -550,7 +564,18 @@ def dispatch_operational(*, limit=50, now=None):
                 OperationalDelivery.objects.filter(pk=pk, claim_token=token).update(
                     attempts=F("attempts") + 1,
                 )
-                message = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [address])
+                message = branded_email(
+                    subject,
+                    body,
+                    [address],
+                    heading=TITLES[row.event],
+                    eyebrow=str(row.organization),
+                    paragraphs=body.split("\n\n")[1:2],
+                    action_url=url,
+                    action_label=ACTION_LABELS.get(row.event.split(".")[0], "Open Dwella"),
+                    footer="You get this notice because of your Dwella account. "
+                    "Manage notifications in Settings.",
+                )
                 message.dwella_bulk = True
                 message.extra_headers["Message-ID"] = (
                     f"<dwella-notice-{row.public_id}@{settings.EMAIL_MESSAGE_ID_DOMAIN}>"

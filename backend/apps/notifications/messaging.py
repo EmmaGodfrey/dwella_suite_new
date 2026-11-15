@@ -5,7 +5,7 @@ from time import monotonic
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.conf import settings
-from django.core.mail import EmailMessage, get_connection
+from django.core.mail import get_connection
 from django.db import transaction
 from django.db.models import F, Q
 from django.utils import timezone
@@ -14,6 +14,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from apps.accounts.access_state import email_status
 from apps.audit.runtime_settings import runtime_settings
 from apps.billing.models import Invoice
+from apps.common.email_design import branded_email
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
 from apps.common.property_scope import EVERYTHING, scope_for_membership
@@ -419,8 +420,12 @@ def dispatch_messages(*, now=None, limit=50):
                     provider, provider_id = "africastalking", send_sms(row, provider_config)
                     sent = 1
                 else:
-                    email = EmailMessage(
-                        row.subject, row.body, settings.DEFAULT_FROM_EMAIL, [row.recipient],
+                    email = branded_email(
+                        row.subject, row.body, [row.recipient],
+                        eyebrow=str(row.organization),
+                        footer=f"Sent by {row.organization} through Dwella."
+                        + (" Reply to this email to reach them." if row.organization.email
+                           else ""),
                         connection=transport,
                         reply_to=[row.organization.email] if row.organization.email else None,
                     )

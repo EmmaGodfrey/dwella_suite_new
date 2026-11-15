@@ -29,6 +29,8 @@ from .models import (
 from .operational import dispatch_operational, enqueue, schedule_operational
 from .phone_links import receive_link
 
+SEND = "apps.common.email_design.EmailMultiAlternatives.send"
+
 pytestmark = pytest.mark.django_db(transaction=True)
 BASE = "/api/v1/notifications/"
 
@@ -207,11 +209,11 @@ def test_known_quota_failure_waits_but_unknown_send_is_not_repeated(house, mailo
     paid(house)
     now = timezone.now()
     with patch(
-        "apps.notifications.operational.EmailMessage.send", side_effect=EmailQuotaExceeded()
+        "apps.common.email_design.EmailMultiAlternatives.send", side_effect=EmailQuotaExceeded()
     ):
         assert dispatch_operational(now=now) == 0
     assert OperationalDelivery.objects.filter(reason="email_quota_reached").count() == 2
-    with patch("apps.notifications.operational.EmailMessage.send", side_effect=TimeoutError()):
+    with patch(SEND, side_effect=TimeoutError()):
         assert dispatch_operational(now=now + timedelta(minutes=16)) == 0
     assert OperationalDelivery.objects.filter(status="review").count() == 2
     assert dispatch_operational(now=now + timedelta(hours=2)) == 0
@@ -663,7 +665,7 @@ def test_two_workers_cannot_send_the_same_email_twice(house):
         finally:
             connections.close_all()
 
-    with patch("apps.notifications.operational.EmailMessage.send", return_value=1) as send:
+    with patch(SEND, return_value=1) as send:
         with ThreadPoolExecutor(max_workers=2) as pool:
             assert sum(pool.map(lambda _: work(), range(2))) == 2
     assert send.call_count == 2
