@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./apiClient";
 import { queryClient } from "./queryClient";
 import { toSearchParams } from "./queries";
+import { checkoutRefresh } from "../shared/paymentFeedback.mjs";
 
 const keys = (...parts) => ["onlinePayments", ...parts];
 
@@ -107,7 +108,7 @@ export const useTenantCollections = (invoiceId) => useQuery({
   queryKey: keys("tenant", invoiceId),
   queryFn: () => api.get(`/payments/tenant/collections/?invoice=${invoiceId}`),
   enabled: Boolean(invoiceId), retry: false,
-  refetchInterval: (query) => query.state.data?.results?.some((row) => row.status === "pending") ? 15_000 : false,
+  refetchInterval: (query) => checkoutRefresh(query.state.data?.results),
 });
 
 export const useManagerCollections = (invoiceId) => useQuery({

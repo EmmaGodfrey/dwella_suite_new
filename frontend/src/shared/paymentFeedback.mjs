@@ -28,3 +28,15 @@ export function paymentFeedback({ stage, collection, delayed = false, returnedKi
         : "Waiting for Lenco’s confirmation. Your balance and receipt will update once your payment is verified." };
   return null;
 }
+
+// A tenant watching a fresh payment sees it confirmed within about two
+// seconds of Dwella recording it; older open payments refresh more slowly.
+// Each refresh reads Dwella's saved record and never asks Lenco directly.
+export function checkoutRefresh(rows, now = Date.now()) {
+  const open = (rows || []).filter((row) => row.status === "pending");
+  if (!open.length) return false;
+  const age = now - Math.max(...open.map((row) => Date.parse(row.created_at) || 0));
+  if (age < 3 * 60_000) return 2_000;
+  if (age < 10 * 60_000) return 5_000;
+  return 15_000;
+}

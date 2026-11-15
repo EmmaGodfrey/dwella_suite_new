@@ -44,3 +44,17 @@ test("new checkout does not show a previous partial payment as its result", () =
     status: "successful", payment_id: "earlier-receipt"
   } }).kind, "opening");
 });
+
+test("a fresh open payment refreshes every two seconds, then backs off", async () => {
+  const { checkoutRefresh } = await import("./paymentFeedback.mjs");
+  const now = Date.parse("2026-11-15T18:10:00Z");
+  const row = (status, minutesAgo) => ({ status, created_at: new Date(now - minutesAgo * 60_000).toISOString() });
+  assert.equal(checkoutRefresh([row("pending", 0.5)], now), 2_000);
+  assert.equal(checkoutRefresh([row("pending", 5)], now), 5_000);
+  assert.equal(checkoutRefresh([row("pending", 20)], now), 15_000);
+  // The newest open payment sets the pace.
+  assert.equal(checkoutRefresh([row("pending", 20), row("pending", 1)], now), 2_000);
+  // Nothing open: no refresh at all.
+  assert.equal(checkoutRefresh([row("successful", 0.5), row("failed", 1)], now), false);
+  assert.equal(checkoutRefresh(undefined, now), false);
+});
