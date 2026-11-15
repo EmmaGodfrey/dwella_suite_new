@@ -17,6 +17,10 @@ CHECKOUT_WINDOW = timedelta(minutes=30)
 # A submitted payout Lenco has not confirmed by then needs a person.
 PAYOUT_CONFIRMATION_LIMIT = timedelta(days=3)
 SETTLEMENT_OVERDUE = timedelta(days=7)
+# Lenco's status can trail its own webhook by a few seconds. Ask again soon
+# for this long after a webhook, then fall back to the normal pace.
+WEBHOOK_FOLLOW_UP = timedelta(minutes=1)
+WEBHOOK_RECHECK = timedelta(seconds=3)
 
 
 def stamp(value):
@@ -38,7 +42,16 @@ def checkout_window_over(row, now):
     return now - checkout_started(row) >= CHECKOUT_WINDOW
 
 
+def recent_webhook(row, now):
+    webhook = parse_stamp((row.provider_state or {}).get("webhook_at"))
+    return bool(webhook) and now - webhook < WEBHOOK_FOLLOW_UP
+
+
 def collection_next_check(row, now):
+    unfinished = (Collection.Status.PENDING, Collection.Status.FAILED, Collection.Status.EXPIRED)
+    if row.status in unfinished and recent_webhook(row, now):
+        # Bounded: at most about twenty extra checks per webhook.
+        return now + WEBHOOK_RECHECK
     if row.status == Collection.Status.FAILED:
         # Only a webhook reopens a failed checkout, and only for a while.
         webhook = parse_stamp((row.provider_state or {}).get("webhook_at"))

@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import close_old_connections
 from django.utils import timezone
 
+from apps.payments import wake
 from apps.payments.balances import sync_balance
 from apps.payments.worker import run_cycle
 
@@ -62,9 +63,7 @@ class Command(BaseCommand):
                 logger.exception("Payments worker pass failed")
             if busy:
                 continue
-            for _ in range(IDLE_SECONDS):
-                if stopping:
-                    break
-                time.sleep(1)
+            # A webhook or status request cuts the pause short.
+            wake.wait(IDLE_SECONDS, stopping)
         if cache.get(LOCK_KEY) == token:
             cache.delete(LOCK_KEY)

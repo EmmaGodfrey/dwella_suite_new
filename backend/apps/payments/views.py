@@ -35,6 +35,7 @@ from .serializers import (
     WithdrawalSerializer,
 )
 from .services import approve_destination, checkout_payload, start_checkout, submit_mobile_money
+from .wake import wake
 from .webhooks import MAX_WEBHOOK, receive_webhook
 from .withdrawals import (
     AccountNotFound,
@@ -159,9 +160,12 @@ class TenantCollectionDetail(PrivateView):
         row = self.row(request, public_id)
         # Bring the next check forward; the callback is never evidence of
         # payment. Finished rows have nothing left to check.
-        Collection.objects.filter(pk=row.pk).filter(
-            Q(status__in=["pending", "expired"]) | Q(status="successful", settled=False)
-        ).update(next_check_at=timezone.now())
+        if (
+            Collection.objects.filter(pk=row.pk)
+            .filter(Q(status__in=["pending", "expired"]) | Q(status="successful", settled=False))
+            .update(next_check_at=timezone.now())
+        ):
+            wake()
         return Response(TenantCollectionSerializer(row).data, status=202)
 
 

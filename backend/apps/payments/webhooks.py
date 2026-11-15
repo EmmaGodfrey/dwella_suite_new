@@ -10,6 +10,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from .evidence import record_exchange, strict_json
 from .models import Collection, Exchange, Payout, Withdrawal
 from .schedule import stamp
+from .wake import wake
 
 MAX_WEBHOOK = 128 * 1024
 EVENTS = {
@@ -98,3 +99,4 @@ def receive_webhook(body, signature):
             row.provider_state = {**row.provider_state, "webhook_at": stamp(now)}
             fields.append("provider_state")
         row.save(update_fields=fields)
+        wake()
