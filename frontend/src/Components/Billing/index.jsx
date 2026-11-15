@@ -47,8 +47,8 @@ function SummaryStrip() {
   const month = data ? periodLabel(data.month) : "";
   return (
     <div className="dwella-stat-strip">
-      {stat(`Billed · ${month}`, formatMoney(data?.billed_this_month, { whole: true }), data ? `${data.invoices_this_month} invoices` : null)}
-      {stat(`Collected · ${month}`, formatMoney(data?.collected_this_month, { whole: true }), null, "is-positive")}
+      {stat(`Billed for ${month}`, formatMoney(data?.billed_this_month, { whole: true }), data ? `${data.invoices_this_month} ${data.invoices_this_month === 1 ? "invoice" : "invoices"}` : null)}
+      {stat(`Received in ${month}`, formatMoney(data?.collected_this_month, { whole: true }), "Payments recorded this month, for any invoice", "is-positive")}
       {stat("Outstanding", formatMoney(data?.outstanding, { whole: true }), "Across all unpaid invoices")}
       {stat("Overdue", formatMoney(data?.overdue, { whole: true }), data ? `${data.overdue_count} ${data.overdue_count === 1 ? "invoice" : "invoices"}` : null, Number(data?.overdue) > 0 ? "is-negative" : undefined)}
     </div>

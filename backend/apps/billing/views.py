@@ -186,9 +186,6 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         outstanding = F("total") - F("amount_paid")
         # Old debt brought into Dwella counts as owed, but was not billed this month.
         charges = invoices.filter(is_opening_balance=False)
-        billed = charges.filter(issue_date__range=(first, last)).aggregate(
-            total=Coalesce(Sum("total"), ZERO), count=Count("id")
-        )
         payments = Payment.objects.filter(invoice__in=self.get_queryset(), reversed_at__isnull=True)
         collected = payments.filter(paid_on__range=(first, last)).aggregate(
             total=Coalesce(Sum("amount"), ZERO)
@@ -203,7 +200,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
             paid=Coalesce(Sum("amount_paid"), ZERO),
             not_yet_due=Coalesce(Sum(outstanding, filter=Q(due_date__gte=today)), ZERO),
             overdue=Coalesce(Sum(outstanding, filter=Q(due_date__lt=today)), ZERO),
+            count=Count("id"),
         )
+        invoices_this_month = this_month.pop("count")
         # Six months of billed vs collected, keyed by the month billed for.
         months = [first]
         for _ in range(5):
@@ -217,8 +216,11 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         return Response(
             {
                 "month": first.isoformat(),
-                "billed_this_month": money(billed["total"]),
-                "invoices_this_month": billed["count"],
+                # Billed uses the same month-billed-for basis as the dashboard
+                # breakdown, so both screens report one figure.
+                "billed_this_month": money(this_month["billed"]),
+                "invoices_this_month": invoices_this_month,
+                # Cash recorded this month against any invoice, old or new.
                 "collected_this_month": money(collected["total"]),
                 "outstanding": money(
                     unpaid.aggregate(total=Coalesce(Sum(outstanding), ZERO))["total"]
