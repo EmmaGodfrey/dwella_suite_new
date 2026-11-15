@@ -107,3 +107,50 @@ def test_tenant_status_request_wakes_only_for_an_open_checkout(
     with django_capture_on_commit_callbacks(execute=True):
         client.post(url)
     assert cache.get(wake.WAKE_KEY) is None
+
+
+def test_idle_pause_ends_when_the_next_collection_is_due(home):
+    from .worker import idle_seconds
+
+    row = checkout(home)
+    Collection.objects.filter(pk=row.pk).update(next_check_at=timezone.now() + WEBHOOK_RECHECK)
+    assert 2 < idle_seconds(5) <= 3
+    Collection.objects.filter(pk=row.pk).update(next_check_at=timezone.now() - timedelta(seconds=1))
+    # Overdue: a short floor, never a busy spin.
+    assert idle_seconds(5) == 0.25
+    Collection.objects.filter(pk=row.pk).update(next_check_at=None)
+    assert idle_seconds(5) == 5
+
+
+def test_worker_runs_a_three_second_recheck_without_waiting_out_its_pause(home):
+    """The real worker loop, timed: no nudge, a row due in about one second."""
+    import time
+
+    from django.core.management import call_command
+
+    from .management.commands import run_payments_worker as command
+
+    row = checkout(home)
+    Collection.objects.filter(pk=row.pk).update(
+        next_check_at=timezone.now() + timedelta(seconds=1)
+    )
+    calls = []
+
+    def cycle():
+        calls.append(time.monotonic())
+        if len(calls) == 2:
+            raise KeyboardInterrupt  # end the loop; Exception would be swallowed
+        return 0
+
+    cache.delete(command.LOCK_KEY)
+    try:
+        with (
+            patch.object(command, "run_cycle", cycle),
+            patch.object(command, "balance_configured", return_value=False),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            call_command("run_payments_worker")
+    finally:
+        cache.delete(command.LOCK_KEY)
+    # Before this fix the second pass came after the full five-second pause.
+    assert calls[1] - calls[0] < 2

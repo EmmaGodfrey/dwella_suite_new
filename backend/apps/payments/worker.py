@@ -65,3 +65,25 @@ def run_cycle(limit=50):
         _check(process_withdrawal, row)
         count += 1
     return count
+
+
+def idle_seconds(longest, shortest=0.25):
+    """How long the idle worker may pause before the next collection is due.
+
+    A checkout rechecked seconds after its webhook must not wait out the
+    whole idle pause. One read of the partial next-check index; payouts and
+    withdrawals are checked no faster than every thirty seconds, so the
+    normal pause already suits them.
+    """
+    due = (
+        Collection.objects.filter(
+            environment=settings.LENCO_ENVIRONMENT, next_check_at__isnull=False
+        )
+        .order_by("next_check_at")
+        .values_list("next_check_at", flat=True)
+        .first()
+    )
+    if due is None:
+        return longest
+    wait = (due - timezone.now()).total_seconds()
+    return min(longest, max(shortest, wait))

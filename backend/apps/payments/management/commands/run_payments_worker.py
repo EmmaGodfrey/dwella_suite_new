@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from apps.payments import wake
 from apps.payments.balances import sync_balance
-from apps.payments.worker import run_cycle
+from apps.payments.worker import idle_seconds, run_cycle
 
 logger = logging.getLogger(__name__)
 HEARTBEAT_KEY = "payments-worker:heartbeat"
@@ -63,7 +63,13 @@ class Command(BaseCommand):
                 logger.exception("Payments worker pass failed")
             if busy:
                 continue
-            # A webhook or status request cuts the pause short.
-            wake.wait(IDLE_SECONDS, stopping)
+            # Pause until the next collection is due at the latest; a webhook
+            # or status request cuts the pause short.
+            try:
+                pause = idle_seconds(IDLE_SECONDS)
+            except Exception:
+                logger.exception("Payments worker could not read the next check")
+                pause = IDLE_SECONDS
+            wake.wait(pause, stopping)
         if cache.get(LOCK_KEY) == token:
             cache.delete(LOCK_KEY)
