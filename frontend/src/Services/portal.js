@@ -72,7 +72,11 @@ export const useRepairPhoto = portalMutation(({ id, file }) => {
 
 export const useUpdatePortalProfile = portalMutation(
   (payload) => api.patch("/portal/profile/", payload),
-  (data) => queryClient.setQueryData(key("profile"), data),
+  (data) => {
+    queryClient.setQueryData(key("profile"), data);
+    // Receipts read the tenant's details, so blocked ones can now issue.
+    queryClient.invalidateQueries({ queryKey: key("payments") });
+  },
 );
 
 // Document clients for the shared paper preview. Lease versions and invoices

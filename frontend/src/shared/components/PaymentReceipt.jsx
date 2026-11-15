@@ -3,10 +3,11 @@ import { paymentMethodLabel } from "../billing";
 import { formatDate } from "../format";
 import "./paymentReceipt.scss";
 
-export default function PaymentReceipt({ receipt }) {
+export default function PaymentReceipt({ receipt, detailsLink = null }) {
   if (receipt.missing_details?.length) return <div className="dwella-callout is-warning" role="status">
     <strong>Payment recorded; tenant details needed for the receipt</strong>
     <p>{receipt.missing_details.map(item => item.label).join(", ")}. Complete these details to issue the document. The payment remains recorded.</p>
+    {detailsLink}
   </div>;
   const issuer = receipt.issuer;
   const money = (value) =>
