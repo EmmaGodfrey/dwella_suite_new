@@ -53,6 +53,13 @@ def send_verification(request, user):
         f"Confirm your email address:\n\n{url}\n\nThis link expires in 24 hours. "
         "Confirming does not sign you in. If you did not request this, ignore this email.",
         email,
+        heading="Confirm your email address",
+        paragraphs=["Confirm this address so Dwella can send you receipts, reminders and "
+                    "account notices."],
+        action_url=url,
+        action_label="Confirm email address",
+        note="This link expires in 24 hours. Confirming does not sign you in. "
+             "If you did not request this, you can ignore this email.",
     )
     if not delivered:
         link.delete()

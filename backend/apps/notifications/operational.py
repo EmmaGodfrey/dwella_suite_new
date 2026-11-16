@@ -9,14 +9,16 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.apps import apps
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.access_state import email_status
+from apps.audit.provider_credentials import credential
+from apps.common.email_design import branded_email
 from apps.common.email_router import EmailQuotaExceeded
 from apps.common.mail import delivery_configured, recipient_allowed
+from apps.common.property_scope import management_members, property_ids_of
 from apps.common.provider_http import ProviderRejected, post_json
 from apps.organizations.models import OrganizationMembership
 
@@ -82,6 +84,20 @@ TITLES = {
     "proof.rejected": "Payment not received",
 }
 
+# Button wording by event family; anything else falls back to "Open Dwella".
+ACTION_LABELS = {
+    "invoice": "View invoice",
+    "payment": "View receipt",
+    "lease": "View lease",
+    "repair": "View repair",
+    "deposit": "View lease",
+    "proof": "View payment",
+    "collection": "View invoice",
+    "withdrawal": "View payouts",
+    "payout": "View payouts",
+    "whatsapp": "Open settings",
+}
+
 
 def context(target):
     """Return the organisation and subject tenant; never infer a recipient from a phone."""
@@ -95,6 +111,14 @@ def context(target):
     if label in ("billing.depositdeduction", "billing.depositentry"):
         return target.organization, target.lease.tenant
     return target.organization, getattr(target, "tenant", None)
+
+
+def target_property_ids(target):
+    """The property a notice is about; money that is pooled per workspace has none."""
+    label = target._meta.label_lower
+    if label == "maintenance.maintenanceupdate":
+        return {target.request.property_id}
+    return property_ids_of(target)
 
 
 def enqueue(
@@ -120,9 +144,10 @@ def enqueue(
             ("manager", user, None)
             for user in apps.get_model(settings.AUTH_USER_MODEL)
             .objects.filter(
-                organization_memberships__organization=organization,
-                organization_memberships__role="landlord",
-                organization_memberships__is_active=True,
+                # Admins, and the managers assigned to the property concerned.
+                pk__in=management_members(
+                    organization.pk, target_property_ids(target)
+                ).values("user_id"),
                 is_active=True,
                 is_staff=False,
                 is_superuser=False,
@@ -206,12 +231,9 @@ def authorised(row, target):
             and not user.is_staff
             and not user.is_superuser
             and not email_status(user)["required"]
-            and OrganizationMembership.objects.filter(
-                organization_id=org.pk,
-                user=user,
-                role="landlord",
-                is_active=True,
-            ).exists()
+            and management_members(org.pk, target_property_ids(target))
+            .filter(user=user)
+            .exists()
         )
     if not tenant or not tenant.is_active or tenant.pk != row.tenant_id:
         return False
@@ -452,7 +474,7 @@ def send_phone(row, subject, body, url, now, target=None):
             f"https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/"
             f"{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
             payload,
-            {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"},
+            {"Authorization": f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
         )
         provider_id = result["messages"][0]["id"]
     OperationalDelivery.objects.filter(pk=row.pk).update(recipient=consent.phone)
@@ -542,7 +564,18 @@ def dispatch_operational(*, limit=50, now=None):
                 OperationalDelivery.objects.filter(pk=pk, claim_token=token).update(
                     attempts=F("attempts") + 1,
                 )
-                message = EmailMessage(subject, body, settings.DEFAULT_FROM_EMAIL, [address])
+                message = branded_email(
+                    subject,
+                    body,
+                    [address],
+                    heading=TITLES[row.event],
+                    eyebrow=str(row.organization),
+                    paragraphs=body.split("\n\n")[1:2],
+                    action_url=url,
+                    action_label=ACTION_LABELS.get(row.event.split(".")[0], "Open Dwella"),
+                    footer="You get this notice because of your Dwella account. "
+                    "Manage notifications in Settings.",
+                )
                 message.dwella_bulk = True
                 message.extra_headers["Message-ID"] = (
                     f"<dwella-notice-{row.public_id}@{settings.EMAIL_MESSAGE_ID_DOMAIN}>"

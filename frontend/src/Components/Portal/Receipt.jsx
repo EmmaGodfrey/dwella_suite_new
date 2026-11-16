@@ -8,6 +8,7 @@ import { usePortalReceipt } from "../../Services/portal";
 import { StatusBadge } from "../../shared/components";
 import PaymentReceipt from "../../shared/components/PaymentReceipt";
 import PortalState from "./PortalState";
+import { RECEIPT_DETAILS_ID } from "./ReceiptDetails";
 
 export default function PortalReceipt() {
   const { id } = useParams();
@@ -28,7 +29,11 @@ export default function PortalReceipt() {
           <Button appearance="primary" disabled={Boolean(receipt.missing_details?.length)} icon={<Print20Regular />} onClick={() => window.print()}>Print / Save PDF</Button>
         </div>
       </div>
-      <PaymentReceipt receipt={receipt} />
+      <PaymentReceipt receipt={receipt} detailsLink={
+        <p><Link to={`/settings?tab=account&section=${RECEIPT_DETAILS_ID}&return=${encodeURIComponent(`/billing/receipts/${id}`)}`}>
+          Add your details
+        </Link></p>
+      } />
       <p className="dwella-receipt-context"><Link to={`/billing?invoice=${receipt.invoice_id}`}>
         View invoice {receipt.invoice_reference}
       </Link></p>

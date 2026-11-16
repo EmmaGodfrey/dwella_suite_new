@@ -12,6 +12,12 @@ class OrganizationScopedQuerySet(ActiveQuerySet):
             return self.none()
         return self.filter(organization=organization)
 
+    def for_request(self, request):
+        """Rows in the request's workspace that its property scope allows."""
+        from .property_scope import scoped
+
+        return scoped(request, self)
+
 
 class ActiveManager(models.Manager.from_queryset(ActiveQuerySet)):
     pass

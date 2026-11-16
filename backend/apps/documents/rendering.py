@@ -6,6 +6,7 @@ from datetime import date
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
+from threading import Lock
 from xml.sax.saxutils import escape
 
 from reportlab.lib import colors
@@ -132,6 +133,13 @@ class NumberedCanvas(Canvas):
         super().save()
 
 
+# ReportLab keeps each document's glyph subsets in a WeakKeyDictionary on the
+# shared, registered TTFont. That dictionary is not thread safe: concurrent
+# builds in threaded workers can lose a document's entry, which then saves
+# with an empty subset and fails. Building is fast, so serialise it.
+_build_lock = Lock()
+
+
 def build(flow, reference):
     output = io.BytesIO()
     captured = []
@@ -152,7 +160,8 @@ def build(flow, reference):
         author="Dwella",
         pageCompression=1,
     )
-    doc.build(flow, canvasmaker=canvas)
+    with _build_lock:
+        doc.build(flow, canvasmaker=canvas)
     return output.getvalue(), captured[0].page_count
 
 

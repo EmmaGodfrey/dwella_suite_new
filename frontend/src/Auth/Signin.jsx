@@ -53,7 +53,7 @@ const Signin = () => {
   const resetUid = searchParams.get("reset_uid");
   const resetToken = searchParams.get("reset_token");
   const welcome = searchParams.get("welcome") === "1";
-  const destination = (data) => searchParams.get("invitation") === "1" ? "/accept-invitation" : data?.user?.email_verification?.required ? "/verify-email" : "/dashboard";
+  const destination = (data) => searchParams.get("invitation") === "1" ? "/accept-invitation" : searchParams.get("invitation") === "team" ? "/accept-team-invitation" : data?.user?.email_verification?.required ? "/verify-email" : "/dashboard";
   const { validate, clearError, clearAll, fieldProps } = useFormErrors();
 
   // Each mode is a different form; stale messages should not carry across.

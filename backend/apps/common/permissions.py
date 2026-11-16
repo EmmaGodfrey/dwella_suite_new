@@ -4,11 +4,13 @@ from apps.organizations.models import OrganizationMembership
 
 from .workspaces import resolve_workspace
 
-# Dwella has three account types: platform super admins (is_superuser), and
-# landlords and tenants inside a workspace. Only landlords see the portfolio.
-PORTFOLIO_ROLES = {OrganizationMembership.Role.LANDLORD}
+# Platform super admins (is_superuser) sit outside workspaces. Inside one, a
+# property admin (stored as `landlord`) oversees everything, a property manager
+# works on assigned properties, and tenants use the tenant portal. Which
+# properties a manager reaches is decided in property_scope, not here.
+PORTFOLIO_ROLES = set(OrganizationMembership.MANAGEMENT_ROLES)
 
-PORTFOLIO_MANAGER_ROLES = {OrganizationMembership.Role.LANDLORD}
+PORTFOLIO_MANAGER_ROLES = set(OrganizationMembership.MANAGEMENT_ROLES)
 
 
 def get_active_membership(user):
@@ -78,6 +80,8 @@ def access_representation(
             "can_manage_properties": bool(organization and verified_access),
             "can_view_reports": bool(organization and verified_access),
             "can_manage_organization": bool(organization and verified_access),
+            "is_property_admin": bool(organization and verified_access),
+            "property_scope": "all",
         }
 
     role = membership.role if membership else None
@@ -86,9 +90,11 @@ def access_representation(
         "tenant"
         if role == OrganizationMembership.Role.TENANT
         else "landlord"
-        if role
+        if role in PORTFOLIO_ROLES
         else "unassigned"
     )
+    # Both management roles use the manager app; `role` tells them apart.
+    admin = available and role == OrganizationMembership.Role.LANDLORD
     return {
         "persona": persona,
         "tenant_access_removed": bool(tenant_access_removed),
@@ -99,7 +105,9 @@ def access_representation(
         "can_view_portfolio": available and role in PORTFOLIO_ROLES,
         "can_manage_properties": available and role in PORTFOLIO_MANAGER_ROLES,
         "can_view_reports": available and role in PORTFOLIO_ROLES,
-        "can_manage_organization": available and role == OrganizationMembership.Role.LANDLORD,
+        "can_manage_organization": admin,
+        "is_property_admin": admin,
+        "property_scope": "all" if admin else "assigned" if role in PORTFOLIO_ROLES else "none",
     }
 
 
@@ -167,13 +175,13 @@ class CanViewPortfolio(WorkspacePermission):
 
 
 class CanManagePortfolio(WorkspacePermission):
-    message = "Only a landlord can make this change."
+    message = "You do not have permission to make this change."
     access_key = "can_manage_properties"
     roles = PORTFOLIO_MANAGER_ROLES
 
 
 class CanManageOrganization(WorkspacePermission):
-    message = "Only a landlord of this workspace can change this."
+    message = "Only a property admin of this workspace can do this."
     access_key = "can_manage_organization"
 
     def has_object_permission(self, request, view, obj):

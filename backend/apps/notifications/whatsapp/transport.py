@@ -1,4 +1,5 @@
 """User-initiated replies only. Claims commit before bounded provider I/O."""
+
 import time
 import uuid
 from datetime import timedelta
@@ -9,6 +10,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
+from apps.audit.provider_credentials import credential
 from apps.common.provider_http import ProviderRejected, post_json, post_request
 from apps.notifications.models import PhoneMessagingConsent
 from apps.notifications.phone_messaging import normalize_phone, phone_allowed, whatsapp_ready
@@ -182,7 +184,7 @@ def dispatch_replies(limit=20, seconds=30, *, lane=None):
                     if reason:
                         raise PermissionDenied('This connection changed.') from None
                 else:
-                    auth = {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'}
+                    auth = {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"}
                     base = (f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
                             f'{settings.WHATSAPP_PHONE_NUMBER_ID}')
                     body, content_type = _multipart(
@@ -208,7 +210,7 @@ def dispatch_replies(limit=20, seconds=30, *, lane=None):
                 f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
                 f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages',
                 payload(reply, document_media, filename),
-                {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'},
+                {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
             )
             provider_id = result['messages'][0]['id']
             if not isinstance(provider_id, str) or not provider_id or len(provider_id) > 160:

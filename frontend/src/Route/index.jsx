@@ -5,6 +5,7 @@ import Signin from "../Auth/Signin";
 import Signup from "../Auth/Signup";
 import VerifyEmail from "../Auth/VerifyEmail";
 import AcceptInvitation from "../Auth/AcceptInvitation";
+import AcceptTeamInvitation from "../Auth/AcceptTeamInvitation";
 import LayoutRoutes from "../Route/LayoutRoutes";
 import PrivateRoute from "./PrivateRoute";
 import { AUTHENTICATED_STORAGE_KEY } from "../shared/storage";
@@ -55,6 +56,7 @@ const Routers = () => {
             <Route path="/register" element={<Signup />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/accept-invitation" element={<AcceptInvitation />} />
+            <Route path="/accept-team-invitation" element={<AcceptTeamInvitation />} />
             <Route path="/sign/:token" element={<PublicSigning />} />
           </Routes>
         </Suspense>

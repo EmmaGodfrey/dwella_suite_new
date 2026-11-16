@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.db.models import Count, F, IntegerField, Q, Sum, Value
 
 from apps.billing.models import Invoice, Payment
+from apps.common.property_scope import EVERYTHING, property_scope
 from apps.common.workspaces import resolve_workspace
 
 from .common import (
@@ -34,12 +35,13 @@ STATEMENT_HEADERS = [
 class TenantStatement:
     """Two bounded aggregates, an ordered SQL union, and at most two page-prefix sums."""
 
-    def __init__(self, organization, tenant, params):
+    def __init__(self, organization, tenant, params, scope=EVERYTHING):
+        # A manager's statement covers the tenant's charges in their properties only.
         self.organization, self.tenant, self.params = organization, tenant, params
-        self.charges = Invoice.objects.for_organization(organization).filter(
+        self.charges = scope.filter(Invoice.objects.for_organization(organization)).filter(
             tenant=tenant, issue_date__lte=params["date_to"],
         ).exclude(status=Invoice.Status.VOID)
-        self.credits = Payment.objects.for_organization(organization).filter(
+        self.credits = scope.filter(Payment.objects.for_organization(organization)).filter(
             tenant=tenant, invoice__tenant=tenant, invoice__organization=organization,
             reversed_at__isnull=True,
             paid_on__lte=params["date_to"],
@@ -144,13 +146,14 @@ class TenantStatementView(ReportView):
         params = StatementParameters(data=request.query_params, context={"today": today})
         params.is_valid(raise_exception=True)
         data = params.validated_data
-        tenant = validate_scope(org, data)
-        return statement_response(request, org, tenant, data, today)
+        scope = property_scope(request)
+        tenant = validate_scope(org, data, scope)
+        return statement_response(request, org, tenant, data, today, scope)
 
 
-def statement_response(request, organization, tenant, params, today):
+def statement_response(request, organization, tenant, params, today, scope=EVERYTHING):
     """Render an already authorised tenant's ledger for manager or portal access."""
-    statement = TenantStatement(organization, tenant, params)
+    statement = TenantStatement(organization, tenant, params, scope)
     if params.get("export") == "csv":
         return csv_response(
             f"dwella-statement-{tenant.public_id}-{params['date_from']}-{params['date_to']}",

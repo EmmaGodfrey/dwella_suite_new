@@ -149,7 +149,15 @@ def test_webhook_revives_an_expired_checkout_and_extends_its_window(home):
     row.refresh_from_db()
     assert row.provider_state["webhook_at"] and row.next_check_at <= timezone.now()
     reconcile(row, collection_result(row, state="pending", settled=False))
-    # Within the webhook's window: watched closely again, not given up.
+    # Just after the webhook Lenco's status may still be catching up: ask again in seconds.
+    assert row.next_check_at - row.last_checked_at == timedelta(seconds=3)
+    later = (timezone.now() - timedelta(minutes=2)).isoformat()
+    Collection.objects.filter(pk=row.pk).update(
+        provider_state={**row.provider_state, "webhook_at": later}
+    )
+    row.refresh_from_db()
+    reconcile(row, collection_result(row, state="pending", settled=False))
+    # Still within the webhook's window: watched closely again, not given up.
     assert row.next_check_at - row.last_checked_at == timedelta(minutes=2)
 
 

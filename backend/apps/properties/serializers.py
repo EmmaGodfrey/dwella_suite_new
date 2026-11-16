@@ -70,9 +70,9 @@ class UnitSerializer(OrganizationScopedSerializer):
 
     def get_fields(self):
         fields = super().get_fields()
-        view = self.context.get("view")
-        if view is not None:
-            fields["property"].queryset = Property.objects.for_organization(view.get_organization())
+        from apps.common.property_scope import scoped_for_view
+
+        fields["property"].queryset = scoped_for_view(self.context.get("view"), Property)
         return fields
 
     class Meta:

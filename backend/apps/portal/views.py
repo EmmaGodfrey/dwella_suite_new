@@ -404,10 +404,23 @@ class ProfileView(PortalMixin, APIView):
             )
             serializer = ProfileSerializer(tenant, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            previous = tenant.phone_number
+            previous = {key: getattr(tenant, key) for key in serializer.validated_data}
             serializer.save()
-            if previous != tenant.phone_number:
+            changed = sorted(
+                key for key, value in previous.items() if getattr(tenant, key) != value
+            )
+            if "phone_number" in changed:
                 record_event(
                     request, "tenant.contact_updated_by_tenant", tenant, tenant.organization
+                )
+            details = [key for key in changed if key != "phone_number"]
+            if details:
+                # Field names only; the values stay on the tenant record.
+                record_event(
+                    request,
+                    "tenant.details_updated_by_tenant",
+                    tenant,
+                    tenant.organization,
+                    fields=details,
                 )
         return Response(serializer.data)

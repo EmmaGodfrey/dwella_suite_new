@@ -6,6 +6,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 
+from apps.audit.provider_credentials import credential, provider_credentials
 from apps.audit.runtime_settings import (
     approved_sms_senders,
     approved_whatsapp_templates,
@@ -28,25 +29,34 @@ def normalize_phone(value):
 
 def whatsapp_ready(config=None):
     config = runtime_settings() if config is None else config
+    keys = provider_credentials(
+        "WHATSAPP_ACCESS_TOKEN", "WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"
+    )
     return bool(
         config["whatsapp_enabled"]
-        and settings.WHATSAPP_ACCESS_TOKEN
+        and keys["WHATSAPP_ACCESS_TOKEN"]
         and settings.WHATSAPP_PHONE_NUMBER_ID
         and settings.WHATSAPP_BUSINESS_ACCOUNT_ID
-        and settings.WHATSAPP_APP_SECRET
-        and settings.WHATSAPP_VERIFY_TOKEN
+        and keys["WHATSAPP_APP_SECRET"]
+        and keys["WHATSAPP_VERIFY_TOKEN"]
     )
+
+
+def sms_sender_allowed(sender):
+    if sender:
+        return sender in approved_sms_senders()
+    return settings.APP_ENVIRONMENT == "test" and settings.SMS_ALLOW_DEFAULT_SENDER
 
 
 def sms_ready(config=None):
     config = runtime_settings() if config is None else config
+    keys = provider_credentials("AFRICASTALKING_API_KEY", "AFRICASTALKING_CALLBACK_TOKEN")
     return bool(
         config["sms_enabled"]
         and settings.AFRICASTALKING_USERNAME
-        and settings.AFRICASTALKING_API_KEY
-        and config["sms_sender_id"]
-        and config["sms_sender_id"] in approved_sms_senders()
-        and len(settings.AFRICASTALKING_CALLBACK_TOKEN) >= 32
+        and keys["AFRICASTALKING_API_KEY"]
+        and sms_sender_allowed(config["sms_sender_id"])
+        and len(keys["AFRICASTALKING_CALLBACK_TOKEN"]) >= 32
     )
 
 
@@ -68,15 +78,19 @@ def send_sms(row, config=None):
         if settings.AFRICASTALKING_SANDBOX
         else ("api.africastalking.com")
     )
+    payload = {
+        "username": settings.AFRICASTALKING_USERNAME,
+        "to": normalize_phone(row.recipient),
+        "message": sms_body(row),
+    }
+    if config["sms_sender_id"]:
+        payload["from"] = config["sms_sender_id"]
+    elif not sms_sender_allowed(""):
+        raise ProviderRejected("sms_sender_not_configured")
     result = post_form(
         f"https://{host}/version1/messaging",
-        {
-            "username": settings.AFRICASTALKING_USERNAME,
-            "to": normalize_phone(row.recipient),
-            "message": sms_body(row),
-            "from": config["sms_sender_id"],
-        },
-        {"apiKey": settings.AFRICASTALKING_API_KEY, "Accept": "application/json"},
+        payload,
+        {"apiKey": credential("AFRICASTALKING_API_KEY"), "Accept": "application/json"},
     )
     recipients = result["SMSMessageData"]["Recipients"]
     if len(recipients) != 1:
@@ -84,7 +98,7 @@ def send_sms(row, config=None):
     recipient = recipients[0]
     if normalize_phone(recipient["number"]) != normalize_phone(row.recipient):
         raise ValueError("Unexpected SMS recipient.")
-    if recipient.get("statusCode") not in {101, 102}:
+    if recipient.get("statusCode") not in {100, 101, 102}:
         raise ProviderRejected(f"at_{recipient.get('statusCode', 'unknown')}")
     return recipient["messageId"]
 
@@ -232,6 +246,6 @@ def send_whatsapp(row, config=None):
         f"https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/"
         f"{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
         payload,
-        {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"},
+        {"Authorization": f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
     )
     return result["messages"][0]["id"]

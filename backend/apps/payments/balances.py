@@ -4,8 +4,10 @@ Each sync reads the balance, the transactions since a little before the newest
 one already imported, then the balance again. Two independent checks follow:
 
 * consistent: the opening balance plus every imported credit, minus every
-  debit, equals Lenco's ledger balance. A gap or a changed row fails it and
-  the next sync re-imports the full history.
+  debit and the fee Lenco reported on each of Dwella's delivered transfers,
+  equals Lenco's ledger balance. Lenco's feed lists a transfer's debit at its
+  amount alone while the balance also loses the fee. A gap or a changed row
+  fails it and the next sync re-imports the full history.
 * covered: the ledger holds at least the rent still owed to landlords
   (settled rent not yet paid out or in flight). Money above that, such as
   Dwella's own float, is shown as surplus and never blocks payouts.
@@ -269,11 +271,13 @@ def sync_balance():
             credits, debits = totals["credits"] or ZERO, totals["debits"] or ZERO
             imported = totals["count"]
         app = landlord_totals(account)
+        # Fees never appear as their own rows in Lenco's feed.
+        fees = app["payout_fees_total"]
         baseline = not issue and account.opening_balance is None
         if baseline:
-            account.opening_balance = ledger - credits + debits
+            account.opening_balance = ledger - credits + debits + fees
         expected = (
-            account.opening_balance + credits - debits
+            account.opening_balance + credits - debits - fees
             if not issue and account.opening_balance is not None
             else None
         )

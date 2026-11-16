@@ -20,6 +20,8 @@ from .models import AccountAccessState, EmailVerificationLink, GuidedTourState, 
 from .security import _hotp
 from .tours import TOURS
 
+SEND = "apps.common.email_design.EmailMultiAlternatives.send"
+
 pytestmark = pytest.mark.django_db
 VERIFY = "/api/v1/accounts/email-verification/"
 CONFIRM = VERIFY + "confirm/"
@@ -108,7 +110,7 @@ def test_resend_replaces_links_only_after_successful_delivery(person):
     original = email_token()
     assert client.post(VERIFY).status_code == 429
     EmailVerificationLink.objects.update(created_at=timezone.now() - timedelta(minutes=2))
-    with patch("apps.accounts.account_mail.send_mail", side_effect=OSError("SMTP down")):
+    with patch(SEND, side_effect=OSError("SMTP down")):
         assert client.post(VERIFY).status_code == 503
     assert EmailVerificationLink.objects.count() == 1
     assert not EmailVerificationLink.objects.get().revoked_at
@@ -132,7 +134,7 @@ def test_legacy_access_is_preserved_without_claiming_verification(person, worksp
 
 
 def test_mail_failures_remain_generic_and_console_never_logs_secrets(person, settings, capsys):
-    with patch("apps.accounts.account_mail.send_mail", side_effect=OSError("SMTP down")):
+    with patch(SEND, side_effect=OSError("SMTP down")):
         good = APIClient().post("/api/v1/accounts/password-reset/", {"email": person.email})
         missing = APIClient().post(
             "/api/v1/accounts/password-reset/", {"email": "absent@example.com"}
@@ -269,7 +271,7 @@ def test_existing_privileged_or_other_workspace_accounts_cannot_be_claimed(perso
 def test_invitation_password_delivery_and_replacement_failures_are_safe(person, workspace):
     tenant, token = invited_tenant(person, workspace)
     assert APIClient().post(ACCEPT, {"token": token, "password": "short"}).status_code == 400
-    with patch("apps.accounts.account_mail.send_mail", side_effect=OSError("Delivery down")):
+    with patch(SEND, side_effect=OSError("Delivery down")):
         assert (
             client_for(person).post(f"/api/v1/tenants/{tenant.public_id}/invite/").status_code
             == 400

@@ -364,6 +364,13 @@ class PasswordResetRequestView(APIView):
                 "Reset your Dwella Suite password",
                 f"Use this link to reset your password: {reset_url}",
                 user.email,
+                heading="Reset your password",
+                paragraphs=["We received a request to reset the password for your Dwella "
+                            "account. Choose a new one with the button below."],
+                action_url=reset_url,
+                action_label="Reset password",
+                note="If you did not ask for this, ignore this email. Your password stays "
+                     "the same until you choose a new one.",
             )
 
         return Response(

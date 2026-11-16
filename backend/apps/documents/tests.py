@@ -22,6 +22,8 @@ from .models import DocumentVersion, SignedLeaseOriginal, SigningEmail, SigningI
 from .outbox import deliver_pending
 from .rendering import digest
 
+SEND = "apps.common.email_design.EmailMultiAlternatives.send"
+
 ROOT = "/api/v1/documents/versions/"
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -385,7 +387,7 @@ def test_render_failure_rolls_back_and_invite_delivery_failure_is_actionable(set
         with pytest.raises(ValueError):
             client.post(f"{ROOT}{doc['id']}/sign/", sign_payload(doc))
     assert not DocumentVersion.objects.get().signatures.exists()
-    with patch("apps.documents.outbox.EmailMessage.send", side_effect=OSError("Provider failure")):
+    with patch(SEND, side_effect=OSError("Provider failure")):
         response = client.post(f"{ROOT}{doc['id']}/invite/", {"email_link": True})
         assert response.status_code == 200
         assert response.json()["response_data"]["email_queued"]
@@ -413,7 +415,7 @@ def test_delivery_failure_retains_completed_document_and_retry_is_idempotent(
     client = setup[2]
     public, _, url = verified(client, doc)
     first = client.post(f"{ROOT}{doc['id']}/sign/", sign_payload(doc)).json()["response_data"]
-    with patch("apps.documents.outbox.EmailMessage.send", side_effect=OSError("Unavailable")):
+    with patch(SEND, side_effect=OSError("Unavailable")):
         with django_capture_on_commit_callbacks(execute=True):
             result = public.post(url + "sign/", sign_payload(first, setup[3].tenant.full_name))
         if failure_reason == "expired_queue":

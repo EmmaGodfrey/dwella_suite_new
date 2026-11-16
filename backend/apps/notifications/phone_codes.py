@@ -15,6 +15,7 @@ from rest_framework.exceptions import APIException, Throttled, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle, UserRateThrottle
 
+from apps.audit.provider_credentials import credential
 from apps.audit.runtime_settings import approved_whatsapp_templates
 from apps.audit.services import record_event
 from apps.common.provider_http import ProviderRejected, post_json
@@ -152,7 +153,7 @@ class PhoneCodeView(PhoneLinkView):
                 f"https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/"
                 f"{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
                 payload,
-                {"Authorization": f"Bearer {settings.WHATSAPP_ACCESS_TOKEN}"},
+                {"Authorization": f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
             )
             provider_id = result["messages"][0]["id"]
             if not isinstance(provider_id, str) or not 1 <= len(provider_id) <= 160:

@@ -4,7 +4,7 @@ import { Button, Checkbox, Field, Input, Radio, RadioGroup, Select } from "@flue
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useBanks, useCheckReceivingAccount, useReceivingDetails, useSaveReceivingDetails } from "../../Services/payments";
-import { getUserAccess } from "../../shared/access";
+import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
 import { networks } from "../../shared/payouts";
@@ -187,7 +187,7 @@ function accountRows(destination) {
 
 export default function ReceivingDetails() {
   const user = useCurrentUserQuery();
-  const allowed = getUserAccess(user.data).persona === "landlord";
+  const allowed = getUserAccess(user.data).persona === "landlord" && isWorkspaceAdmin(user.data);
   const query = useReceivingDetails({ enabled: allowed });
   const [editing, setEditing] = useState(false);
   if (user.isPending) return <p role="status">Loading receiving details…</p>;

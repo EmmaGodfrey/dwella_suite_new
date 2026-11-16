@@ -219,6 +219,8 @@ class Withdrawal(UUIDModel, TimeStampedModel):
     submitted_at = models.DateTimeField(null=True)
     confirmed_at = models.DateTimeField(null=True)
     next_check_at = models.DateTimeField(null=True)
+    # Started by the workspace's payout timing rather than by a person.
+    automatic = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
@@ -244,6 +246,45 @@ class Withdrawal(UUIDModel, TimeStampedModel):
                 name="payments_withdrawal_provider",
             ),
             models.Index(fields=["organization", "status"], name="payments_withdrawal_org"),
+        ]
+
+
+class PayoutPlan(UUIDModel, TimeStampedModel):
+    """When a workspace's settled rent is sent without anyone asking.
+
+    Each run is an ordinary withdrawal of the largest amount the balance
+    allows, requested on behalf of the manager who chose the timing, so it
+    passes every check a manual withdrawal does.
+    """
+
+    class Timing(models.TextChoices):
+        MANUAL = "manual", "Hold until I request"
+        SETTLED = "settled", "As funds settle"
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
+
+    organization = models.OneToOneField(
+        "organizations.Organization", on_delete=models.CASCADE, related_name="payout_plan"
+    )
+    timing = models.CharField(max_length=8, choices=Timing.choices, default=Timing.MANUAL)
+    # Monday is 0.
+    weekday = models.PositiveSmallIntegerField(default=0)
+    # 1-28, or 0 for the last day of the month.
+    month_day = models.PositiveSmallIntegerField(default=0)
+    set_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    next_run_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=Q(weekday__lte=6), name="payout_plan_weekday"),
+            models.CheckConstraint(condition=Q(month_day__lte=28), name="payout_plan_month_day"),
+        ]
+        indexes = [
+            models.Index(
+                fields=["next_run_at"],
+                condition=Q(next_run_at__isnull=False),
+                name="payments_plan_due",
+            )
         ]
 
 

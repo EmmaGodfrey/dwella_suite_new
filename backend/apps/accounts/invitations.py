@@ -70,7 +70,7 @@ def issue_tenant_invitation(request, tenant):
         or users.filter(is_staff=True).exists()
         or users.filter(is_superuser=True).exists()
         or OrganizationMembership.objects.filter(
-            user__in=users, is_active=True, role="landlord"
+            user__in=users, is_active=True, role__in=OrganizationMembership.MANAGEMENT_ROLES
         ).exists()
     ):
         raise ValidationError("This address cannot be used for a tenant account. Contact support.")
@@ -90,6 +90,14 @@ def issue_tenant_invitation(request, tenant):
         "This invitation expires in 3 days. Existing users must sign in with the invited email. "
         "Accepting an invitation does not sign a lease or make a payment.",
         email,
+        heading="You're invited to your tenant account",
+        eyebrow=str(tenant.organization),
+        paragraphs=[f"{tenant.organization} invited you to Dwella, where you can see your "
+                    "lease, invoices, receipts and repair requests in one place."],
+        action_url=link,
+        action_label="Accept invitation",
+        note="This invitation expires in 3 days. If you already use Dwella, sign in with this "
+             "email address. Accepting does not sign a lease or make a payment.",
     ):
         raise ValidationError("The invitation could not be delivered. Please try again.")
     tenant.portal_invitations.filter(accepted_at__isnull=True, revoked_at__isnull=True).exclude(

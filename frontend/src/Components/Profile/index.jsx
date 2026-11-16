@@ -11,6 +11,7 @@ import { PageSection, defaultStatusColor, StatusBadge } from "../../shared/compo
 import { useFormErrors } from "../../shared/useFormErrors";
 import { getUserAccess } from "../../shared/access";
 import ContactDetails from "../Portal/ContactDetails";
+import ReceiptDetails from "../Portal/ReceiptDetails";
 
 const displayStatus = (value) => {
   const status = (value || "not_submitted").replace(/_/g, " ");
@@ -140,8 +141,8 @@ const Profile = () => {
         </aside>
 
         <div className="dwella-profile-stack">
-          {getUserAccess(user).persona === "tenant" ? <ContactDetails /> : null}
-          <PageSection className="dwella-profile-section" title="Account details" note="Keep your admin identity accurate for audit trails and ownership records.">
+          {getUserAccess(user).persona === "tenant" ? <><ContactDetails /><ReceiptDetails /></> : null}
+          <PageSection className="dwella-profile-section" title="Account details" note={getUserAccess(user).persona === "tenant" ? "Your name as it appears to your property manager." : "Keep your admin identity accurate for audit trails and ownership records."}>
             <form noValidate onSubmit={submitProfile}>
               <div className="dwella-form-grid">
                 <Field label="First name" required {...profileErrors.fieldProps("firstName")}><Input value={form.firstName} onChange={(_, data) => updateForm("firstName", data.value)} /></Field>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{{ heading }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f5f9;font-family:'Segoe UI',Helvetica,Arial,sans-serif;color:#111a2b;-webkit-text-size-adjust:100%;">
+{% if preheader %}<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">{{ preheader }}&#8199;&#65279;&#847;&nbsp;&#8199;&#65279;&#847;&nbsp;</div>{% endif %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;background:#f3f5f9;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #e3e8f0;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;">
+        <tr>
+          <td style="height:5px;background:#2ba053;font-size:0;line-height:0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td style="padding:22px 32px 18px;border-bottom:1px solid #edf0f5;">
+            <table role="presentation" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-right:11px;vertical-align:middle;">
+                  <img src="{{ site_url }}/brand/dwella-mark.png" width="38" height="34" alt="" style="display:block;width:38px;height:34px;border:0;">
+                </td>
+                <td style="vertical-align:middle;font-size:21px;line-height:1;font-weight:700;color:#1d417e;">Dwella</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:30px 32px 6px;">
+            {% if eyebrow %}<p style="margin:0 0 8px;font-size:12px;line-height:1.4;font-weight:700;letter-spacing:0.6px;color:#1b7a40;text-transform:uppercase;">{{ eyebrow }}</p>{% endif %}
+            <h1 style="margin:0;font-size:24px;line-height:1.3;font-weight:700;color:#111a2b;">{{ heading }}</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 32px 30px;font-size:16px;line-height:1.6;color:#344054;">
+            {% for paragraph in paragraphs %}<p style="margin:0 0 16px;">{{ paragraph }}</p>{% endfor %}
+            {% if code %}
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 22px;">
+              <tr>
+                <td style="padding:14px 22px;background:#eef2f9;border-radius:8px;font-family:Consolas,'Courier New',monospace;font-size:30px;line-height:1;font-weight:700;letter-spacing:6px;color:#1d417e;">{{ code }}</td>
+              </tr>
+            </table>
+            {% endif %}
+            {% if action_url %}
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 20px;">
+              <tr>
+                <td style="border-radius:8px;background:#1d417e;">
+                  <a href="{{ action_url }}" style="display:inline-block;padding:13px 24px;color:#ffffff;font-size:15px;line-height:1.2;font-weight:700;text-decoration:none;border-radius:8px;">{{ action_label }}</a>
+                </td>
+              </tr>
+            </table>
+            {% endif %}
+            {% if note %}<p style="margin:4px 0 16px;padding:12px 14px;background:#f5f7fa;border-left:3px solid #2ba053;color:#4b566c;font-size:14px;line-height:1.55;">{{ note }}</p>{% endif %}
+            {% if action_url %}<p style="margin:18px 0 0;color:#667085;font-size:13px;line-height:1.5;">If the button doesn't work, copy this link into your browser:<br><a href="{{ action_url }}" style="color:#1d417e;word-break:break-all;">{{ action_url }}</a></p>{% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 32px;background:#f7f9fc;border-top:1px solid #edf0f5;color:#667085;font-size:12px;line-height:1.6;">
+            {% if footer %}<p style="margin:0 0 6px;">{{ footer }}</p>{% endif %}
+            <p style="margin:0;">Dwella keeps rent, tenants, leases and repairs in one clear place. <a href="{{ site_url }}" style="color:#1d417e;text-decoration:underline;">dwella.properties</a></p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:14px 0 0;color:#8a93a3;font-size:11px;line-height:1.5;text-align:center;">Dwella is a product by EG Labs, Lusaka, Zambia.</p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

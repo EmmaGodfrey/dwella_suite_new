@@ -15,6 +15,8 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
+from apps.audit.provider_credentials import credential
+
 from .models import MessageDelivery, PhoneMessagingConsent
 from .phone_messaging import normalize_phone, phone_variants
 
@@ -156,7 +158,7 @@ class WhatsAppWebhookView(APIView):
     throttle_classes = [CallbackThrottle]
 
     def get(self, request):
-        token = settings.WHATSAPP_VERIFY_TOKEN
+        token = credential('WHATSAPP_VERIFY_TOKEN')
         supplied = request.query_params.get("hub.verify_token", "")
         if (
             not token
@@ -179,7 +181,7 @@ class WhatsAppWebhookView(APIView):
         raw = request.body
         if len(raw) > MAX_BODY:
             return Response({"detail": "Callback too large."}, status=413)
-        secret = settings.WHATSAPP_APP_SECRET
+        secret = credential('WHATSAPP_APP_SECRET')
         expected = "sha256=" + hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
         if not secret or not hmac.compare_digest(
             expected.encode(), request.headers.get("X-Hub-Signature-256", "").encode()
@@ -240,7 +242,7 @@ class SMSWebhookView(APIView):
     kind = "delivery"
 
     def post(self, request):
-        token = settings.AFRICASTALKING_CALLBACK_TOKEN
+        token = credential('AFRICASTALKING_CALLBACK_TOKEN')
         if len(token) < 32 or not hmac.compare_digest(
             token.encode(),
             request.query_params.get("token", "").encode(),

@@ -16,6 +16,7 @@ import Receipts from "../Components/Billing/Receipts";
 import Reports from "../Components/Reports";
 import Setup from "../Components/Setup";
 import Properties from "../Components/Properties";
+import Team from "../Components/Team";
 import BetaSignups from "../Components/BetaSignups";
 import Users from "../Components/Platform/Users";
 import UserDetail from "../Components/Platform/UserDetail";
@@ -82,6 +83,7 @@ export const routes = [
     description: "Tenant CRM, occupancy records, and communication history.",
     Component: <Tenants />,
   },
+  { path: "/team", title: "Team", description: "Who works on which properties.", Component: <Team /> },
   {
     path: `/leases`,
     title: "Leases",

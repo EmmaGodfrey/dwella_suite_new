@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 from apps.audit.services import record_event
 from apps.common.pagination import StandardPageNumberPagination
 from apps.common.permissions import CanManagePortfolio, CanViewPortfolio
+from apps.common.property_scope import noted
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 
@@ -53,9 +54,9 @@ class BatchSerializer(serializers.Serializer):
         return rows
 
 
-def leases(organization):
+def leases(request):
     return (
-        Lease.objects.for_organization(organization)
+        Lease.objects.for_request(request)
         .filter(status=Lease.Status.ACTIVE)
         .select_related("tenant", "unit__property")
     )
@@ -105,7 +106,7 @@ class OpeningBalancesView(APIView):
             status=Invoice.Status.VOID
         )
         rows = (
-            leases(resolve_workspace(request))
+            leases(request)
             .prefetch_related(Prefetch("invoices", queryset=balances, to_attr="opening_invoices"))
             .annotate(deposit_recorded=Sum("deposit_entries__amount"))
             .order_by("tenant__full_name", "pk")
@@ -136,7 +137,7 @@ class OpeningBalancesView(APIView):
         organization = resolve_workspace(request)
         found = {
             lease.public_id: lease
-            for lease in leases(organization).filter(
+            for lease in leases(request).filter(
                 public_id__in=[row["lease"] for row in rows]
             )
         }
@@ -161,6 +162,7 @@ class OpeningBalancesView(APIView):
     def apply(self, request, organization, lease, row, as_of):
         if lease is None:
             raise ValidationError({"lease": ["This lease is not active in this workspace."]})
+        noted(request, lease)
         if row.get("owes") is not None:
             invoice = opening.record_opening_balance(
                 lease, amount=row["owes"], owed_since=row.get("owed_since") or as_of

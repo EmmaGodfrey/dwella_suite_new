@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils import timezone
 from rest_framework import serializers
 
+from apps.audit.provider_credentials import FIELDS, credential, provider_credentials
 from apps.common.mail import delivery_configured
 
 from .runtime_settings import (
@@ -126,16 +127,18 @@ class RuntimeSettingsSerializer(serializers.Serializer):
         ):
             failures["beta_emails_enabled"] = "Configure an email connection first."
         if effective["sms_enabled"] and set(attrs) & {"sms_enabled", "sms_sender_id"}:
+            from apps.notifications.phone_messaging import sms_sender_allowed
+
             if not all(
                 (
                     settings.AFRICASTALKING_USERNAME,
-                    settings.AFRICASTALKING_API_KEY,
-                    effective["sms_sender_id"],
-                    len(settings.AFRICASTALKING_CALLBACK_TOKEN) >= 32,
+                    credential('AFRICASTALKING_API_KEY'),
+                    sms_sender_allowed(effective["sms_sender_id"]),
+                    len(credential('AFRICASTALKING_CALLBACK_TOKEN')) >= 32,
                 )
             ):
                 failures["sms_enabled"] = "Complete Africa's Talking credentials and sender setup."
-            elif effective["sms_sender_id"] not in approved_sms_senders():
+            elif not sms_sender_allowed(effective["sms_sender_id"]):
                 failures["sms_sender_id"] = "Choose an approved SMS sender."
         if effective["whatsapp_enabled"] and set(attrs) & {
             "whatsapp_enabled",
@@ -144,11 +147,11 @@ class RuntimeSettingsSerializer(serializers.Serializer):
         }:
             if not all(
                 (
-                    settings.WHATSAPP_ACCESS_TOKEN,
+                    credential('WHATSAPP_ACCESS_TOKEN'),
                     settings.WHATSAPP_PHONE_NUMBER_ID,
                     settings.WHATSAPP_BUSINESS_ACCOUNT_ID,
-                    settings.WHATSAPP_APP_SECRET,
-                    settings.WHATSAPP_VERIFY_TOKEN,
+                    credential('WHATSAPP_APP_SECRET'),
+                    credential('WHATSAPP_VERIFY_TOKEN'),
                     effective["whatsapp_template"],
                 )
             ):
@@ -187,6 +190,7 @@ class RuntimeSettingsSerializer(serializers.Serializer):
 
 def readiness(instance):
     config = runtime_settings(instance=instance)
+    keys = provider_credentials(*FIELDS)
     return {
         "assistant_configured": assistant_configured(config),
         "assistant_verified": bool(config.get("assistant_verified_url")),
@@ -197,14 +201,17 @@ def readiness(instance):
         "email_daily_max": min(400, settings.EMAIL_GOOGLE_LIMIT),
         "sms_credentials_configured": bool(
             settings.AFRICASTALKING_USERNAME
-            and settings.AFRICASTALKING_API_KEY
-            and len(settings.AFRICASTALKING_CALLBACK_TOKEN) >= 32
+            and keys["AFRICASTALKING_API_KEY"]
+            and len(keys["AFRICASTALKING_CALLBACK_TOKEN"]) >= 32
+        ),
+        "sms_default_sender_allowed": bool(
+            settings.APP_ENVIRONMENT == "test" and settings.SMS_ALLOW_DEFAULT_SENDER
         ),
         "whatsapp_credentials_configured": bool(
-            settings.WHATSAPP_ACCESS_TOKEN
+            keys["WHATSAPP_ACCESS_TOKEN"]
             and settings.WHATSAPP_PHONE_NUMBER_ID
             and settings.WHATSAPP_BUSINESS_ACCOUNT_ID
-            and settings.WHATSAPP_APP_SECRET
-            and settings.WHATSAPP_VERIFY_TOKEN
+            and keys["WHATSAPP_APP_SECRET"]
+            and keys["WHATSAPP_VERIFY_TOKEN"]
         ),
     }

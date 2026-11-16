@@ -10,9 +10,11 @@ from rest_framework.views import APIView
 
 from apps.billing.models import Invoice, Payment
 from apps.common.permissions import CanViewPortfolio
+from apps.common.property_scope import EVERYTHING, property_scope
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest
+from apps.organizations.models import CoverSession
 from apps.payments.models import Payout, Withdrawal
 from apps.portal.access import portal_context
 
@@ -20,11 +22,12 @@ from .models import NotificationPreferences, NotificationRead
 from .tenant_alerts import tenant_alerts
 
 
-def live_alerts(org):
+def live_alerts(org, scope=EVERYTHING, user=None):
+    """Alerts for the properties the person works on; workspace money is for admins."""
     today = timezone.localdate()
     alerts = []
     for invoice in (
-        Invoice.objects.for_organization(org)
+        scope.filter(Invoice.objects.for_organization(org))
         .filter(status__in=Invoice.UNPAID_STATUSES, due_date__lt=today)
         .select_related("tenant")
         .order_by("due_date", "pk")[:100]
@@ -43,7 +46,7 @@ def live_alerts(org):
             }
         )
     for lease in (
-        Lease.objects.for_organization(org)
+        scope.filter(Lease.objects.for_organization(org))
         .filter(status=Lease.Status.ACTIVE, end_date__lte=today + timedelta(days=30))
         # A renewal in progress already answers "this lease ends soon".
         .exclude(
@@ -66,7 +69,7 @@ def live_alerts(org):
             }
         )
     for lease in (
-        Lease.objects.for_organization(org)
+        scope.filter(Lease.objects.for_organization(org))
         .filter(
             renewal_of__isnull=False,
             status__in=(Lease.Status.DRAFT, Lease.Status.PENDING_SIGNATURE),
@@ -87,7 +90,7 @@ def live_alerts(org):
             }
         )
     for repair in (
-        MaintenanceRequest.objects.for_organization(org)
+        scope.filter(MaintenanceRequest.objects.for_organization(org))
         .filter(status__in=MaintenanceRequest.OPEN_STATUSES)
         .order_by("created_at", "pk")[:100]
     ):
@@ -102,7 +105,7 @@ def live_alerts(org):
             }
         )
     for payment in (
-        Payment.objects.for_organization(org)
+        scope.filter(Payment.objects.for_organization(org))
         .filter(reversed_at__isnull=True, created_at__gte=timezone.now() - timedelta(days=7))
         .select_related("tenant")
         .order_by("-created_at", "pk")[:100]
@@ -122,6 +125,8 @@ def live_alerts(org):
             collection__organization=org,
             status__in=["failed", "review"],
         )
+        # Payouts and withdrawals move pooled workspace money.
+        .filter(Q() if scope.everything else Q(pk__in=[]))
         .select_related("collection__invoice")
         .order_by("-updated_at")[:100]
     ):
@@ -144,6 +149,7 @@ def live_alerts(org):
     }
     for withdrawal in (
         Withdrawal.objects.filter(organization=org)
+        .filter(Q() if scope.everything else Q(pk__in=[]))
         .filter(
             Q(status__in=["failed", "review"])
             | Q(status="successful", confirmed_at__gte=timezone.now() - timedelta(days=7))
@@ -158,6 +164,27 @@ def live_alerts(org):
                 "body": f"{org.currency} {withdrawal.amount:.2f} · {withdrawal.reference}",
                 "path": "/billing/payouts",
                 "date": timezone.localtime(withdrawal.updated_at).date().isoformat(),
+            }
+        )
+    covers = CoverSession.objects.filter(
+        organization=org, ended_at__isnull=True, expires_at__gt=timezone.now()
+    ).select_related("manager__user", "covering_for__user")
+    if not scope.everything:
+        # A manager is told when a teammate is working on their properties.
+        covers = covers.filter(covering_for__user=user) if user else covers.none()
+    for cover in covers[:100]:
+        who = cover.manager.user.get_full_name().strip() or cover.manager.user.email
+        whom = (
+            cover.covering_for.user.get_full_name().strip() or cover.covering_for.user.email
+        )
+        alerts.append(
+            {
+                "id": f"cover:{cover.public_id}",
+                "kind": "team",
+                "title": f"{who} is covering for {whom}",
+                "body": cover.reason,
+                "path": "/team",
+                "date": timezone.localtime(cover.created_at).date().isoformat(),
             }
         )
     return sorted(alerts, key=lambda alert: (alert["date"], alert["id"]))
@@ -196,7 +223,9 @@ class NotificationsView(APIView):
 
     def alerts(self, request):
         portal = getattr(request, "tenant_notification_context", None)
-        return tenant_alerts(portal, request.user) if portal else live_alerts(self.organization())
+        if portal:
+            return tenant_alerts(portal, request.user)
+        return live_alerts(self.organization(), property_scope(request), request.user)
 
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)

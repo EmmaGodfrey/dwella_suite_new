@@ -31,7 +31,22 @@ export function setAuthToken(token) {
   queueMicrotask(() => window.dispatchEvent(new Event("dwella:auth-changed")));
 }
 
+// DRF rejects a revoked or expired token before any view runs, even on public
+// endpoints such as invitation and signing links. The session is already
+// gone, so forget it and resend the request signed out.
+const DEAD_TOKEN = /^(invalid token|token has expired|user inactive or deleted)\.?$/i;
+
 export async function apiRequest(path, options = {}) {
+  try {
+    return await sendRequest(path, options);
+  } catch (error) {
+    if (!error.deadToken) throw error;
+    setAuthToken(null);
+    return sendRequest(path, options);
+  }
+}
+
+async function sendRequest(path, options = {}) {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
   const context = getSupportRequestContext();
@@ -68,6 +83,7 @@ export async function apiRequest(path, options = {}) {
     // from here to mark the offending field instead of only toasting.
     error.status = response.status;
     error.data = typeof payload === "object" ? payload.response_data : undefined;
+    error.deadToken = Boolean(token) && [401, 403].includes(response.status) && DEAD_TOKEN.test(String(message || "").trim());
     if (response.status === 403 && /workspace support session|invalid workspace|workspace is suspended/i.test(error.message)) {
       expireSupportContext();
     }
@@ -101,6 +117,8 @@ export const api = {
       method: "PATCH",
       body: body instanceof FormData ? body : JSON.stringify(body),
     }),
+  put: (path, body, options) =>
+    apiRequest(path, { ...options, method: "PUT", body: JSON.stringify(body) }),
   delete: (path, body, options) => apiRequest(path, {
     ...options, method: "DELETE", ...(body ? { body: JSON.stringify(body) } : {}),
   }),

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./apiClient";
 import { queryClient } from "./queryClient";
 import { toSearchParams } from "./queries";
+import { checkoutRefresh } from "../shared/paymentFeedback.mjs";
 
 const keys = (...parts) => ["onlinePayments", ...parts];
 
@@ -49,7 +50,8 @@ export const useBanks = (options = {}) => useQuery({
 
 const sending = (rows) => rows?.some((row) => ["queued", "submitting", "pending"].includes(row.status));
 
-export const usePayoutSummary = () => useQuery({
+export const usePayoutSummary = (options = {}) => useQuery({
+  ...options,
   queryKey: keys("payouts", "summary"),
   queryFn: ({ signal }) => api.get("/payments/payouts/", { signal }),
   retry: false,
@@ -79,6 +81,19 @@ export const useRequestWithdrawal = () => useMutation({
   onSettled: refreshPayouts,
 });
 
+export const usePayoutTiming = (options = {}) => useQuery({
+  ...options,
+  queryKey: keys("payouts", "timing"),
+  queryFn: ({ signal }) => api.get("/payments/payouts/timing/", { signal }),
+  retry: false,
+});
+
+export const useSavePayoutTiming = () => useMutation({
+  mutationFn: (plan) => api.put("/payments/payouts/timing/", plan),
+  retry: false,
+  onSuccess: refreshPayouts,
+});
+
 export const useCancelWithdrawal = () => useMutation({
   mutationFn: (id) => api.post(`/payments/withdrawals/${id}/cancel/`, {}),
   retry: false,
@@ -93,7 +108,7 @@ export const useTenantCollections = (invoiceId) => useQuery({
   queryKey: keys("tenant", invoiceId),
   queryFn: () => api.get(`/payments/tenant/collections/?invoice=${invoiceId}`),
   enabled: Boolean(invoiceId), retry: false,
-  refetchInterval: (query) => query.state.data?.results?.some((row) => row.status === "pending") ? 15_000 : false,
+  refetchInterval: (query) => checkoutRefresh(query.state.data?.results),
 });
 
 export const useManagerCollections = (invoiceId) => useQuery({

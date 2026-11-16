@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from apps.audit.services import record_event
+from apps.common.property_scope import touch
 from apps.common.viewsets import OrganizationScopedModelViewSet
 from apps.integrations import smart_invoice
 
@@ -158,8 +159,14 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         serializer.is_valid(raise_exception=True)
         period = serializer.validated_data["period"]
         organization = self.get_organization()
-        created, skipped = generate_rent_invoices(organization, period)
-        late_fees = apply_late_fees(organization)
+        scope = self.get_property_scope()
+        # The properties actually billed, so work done under a cover is audited.
+        touched = set()
+        created, skipped = generate_rent_invoices(
+            organization, period, scope=scope, touched=touched
+        )
+        late_fees = apply_late_fees(organization, scope=scope, touched=touched)
+        touch(request, *touched)
         return Response(
             {
                 "period": period.isoformat(),
@@ -179,9 +186,6 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         outstanding = F("total") - F("amount_paid")
         # Old debt brought into Dwella counts as owed, but was not billed this month.
         charges = invoices.filter(is_opening_balance=False)
-        billed = charges.filter(issue_date__range=(first, last)).aggregate(
-            total=Coalesce(Sum("total"), ZERO), count=Count("id")
-        )
         payments = Payment.objects.filter(invoice__in=self.get_queryset(), reversed_at__isnull=True)
         collected = payments.filter(paid_on__range=(first, last)).aggregate(
             total=Coalesce(Sum("amount"), ZERO)
@@ -196,7 +200,9 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
             paid=Coalesce(Sum("amount_paid"), ZERO),
             not_yet_due=Coalesce(Sum(outstanding, filter=Q(due_date__gte=today)), ZERO),
             overdue=Coalesce(Sum(outstanding, filter=Q(due_date__lt=today)), ZERO),
+            count=Count("id"),
         )
+        invoices_this_month = this_month.pop("count")
         # Six months of billed vs collected, keyed by the month billed for.
         months = [first]
         for _ in range(5):
@@ -210,8 +216,11 @@ class InvoiceViewSet(OrganizationScopedModelViewSet):
         return Response(
             {
                 "month": first.isoformat(),
-                "billed_this_month": money(billed["total"]),
-                "invoices_this_month": billed["count"],
+                # Billed uses the same month-billed-for basis as the dashboard
+                # breakdown, so both screens report one figure.
+                "billed_this_month": money(this_month["billed"]),
+                "invoices_this_month": invoices_this_month,
+                # Cash recorded this month against any invoice, old or new.
                 "collected_this_month": money(collected["total"]),
                 "outstanding": money(
                     unpaid.aggregate(total=Coalesce(Sum(outstanding), ZERO))["total"]
@@ -288,6 +297,10 @@ class PaymentInstructionViewSet(OrganizationScopedModelViewSet):
     """Up to three ways tenants can pay the workspace directly, printed on invoices."""
 
     queryset = PaymentInstruction.objects.all()
+    # The team reads these to tell tenants how to pay; where rent goes is an
+    # admin decision.
+    property_scoped = False
+    admin_only_actions = frozenset({"create", "update", "partial_update", "destroy"})
     serializer_class = PaymentInstructionSerializer
     pagination_class = None
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
@@ -317,6 +330,9 @@ class PaymentInstructionViewSet(OrganizationScopedModelViewSet):
     def audit(self, action, instruction):
         # Changed payment details are a classic fraud route: always keep a record.
         record_event(
-            self.request, action, instruction, instruction.organization,
+            self.request,
+            action,
+            instruction,
+            instruction.organization,
             kind=instruction.kind,
         )

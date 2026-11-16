@@ -12,13 +12,15 @@ from rest_framework.views import APIView
 
 from apps.audit.services import record_event
 from apps.common.permissions import CanManageOrganization, CanViewPortfolio, IsPlatformSuperuser
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 from apps.organizations.models import Organization, OrganizationMembership
 from apps.portal.access import IsPortalTenant, portal_context
 from apps.portal.views import invoices
 
 from .evidence import read_exchange
-from .models import Collection, Destination, Exchange, Withdrawal
+from .models import Collection, Destination, Exchange, PayoutPlan, Withdrawal
+from .payout_plans import save_plan
 from .serializers import (
     AccountDetailsSerializer,
     CheckoutSerializer,
@@ -26,12 +28,14 @@ from .serializers import (
     DestinationApprovalSerializer,
     DestinationSerializer,
     DestinationSetupSerializer,
+    PayoutPlanSerializer,
     TenantCollectionSerializer,
     WithdrawalPreviewSerializer,
     WithdrawalRequestSerializer,
     WithdrawalSerializer,
 )
 from .services import approve_destination, checkout_payload, start_checkout, submit_mobile_money
+from .wake import wake
 from .webhooks import MAX_WEBHOOK, receive_webhook
 from .withdrawals import (
     AccountNotFound,
@@ -156,9 +160,12 @@ class TenantCollectionDetail(PrivateView):
         row = self.row(request, public_id)
         # Bring the next check forward; the callback is never evidence of
         # payment. Finished rows have nothing left to check.
-        Collection.objects.filter(pk=row.pk).filter(
-            Q(status__in=["pending", "expired"]) | Q(status="successful", settled=False)
-        ).update(next_check_at=timezone.now())
+        if (
+            Collection.objects.filter(pk=row.pk)
+            .filter(Q(status__in=["pending", "expired"]) | Q(status="successful", settled=False))
+            .update(next_check_at=timezone.now())
+        ):
+            wake()
         return Response(TenantCollectionSerializer(row).data, status=202)
 
 
@@ -167,9 +174,12 @@ class ManagerCollectionList(PrivateView, generics.ListAPIView):
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
-        rows = Collection.objects.filter(
-            organization=resolve_workspace(self.request)
-        ).select_related("invoice", "payment", "destination", "payout")
+        # Online payments follow their invoice's property.
+        rows = (
+            property_scope(self.request)
+            .filter(Collection.objects.filter(organization=resolve_workspace(self.request)))
+            .select_related("invoice", "payment", "destination", "payout")
+        )
         invoice_id = self.request.query_params.get("invoice")
         if invoice_id:
             from uuid import UUID
@@ -241,11 +251,19 @@ def notify_destination_change(user, row):
         f"({row.account_name}).\n\nIf you did not make this change, sign in, change your "
         "password and contact Dwella support straight away.",
         user.email,
+        heading="Your receiving account changed",
+        eyebrow="Security notice",
+        paragraphs=[f"Withdrawals from {row.organization.name} will now go to {where} "
+                    f"({row.account_name})."],
+        note="If you did not make this change, sign in, change your password and contact "
+             "Dwella support straight away.",
     )
 
 
 class ManagerDestinationView(PrivateView):
-    permission_classes = [CanViewPortfolio]
+    # Rent is pooled per workspace: receiving accounts, balances, payout timing
+    # and withdrawals are read and changed by property admins only.
+    permission_classes = [CanManageOrganization]
 
     def get_throttles(self):
         return (
@@ -345,7 +363,7 @@ class BankListView(PrivateView):
 
 
 class PayoutSummaryView(PrivateView):
-    permission_classes = [CanViewPortfolio]
+    permission_classes = [CanManageOrganization]
 
     def get(self, request):
         organization = resolve_workspace(request)
@@ -362,6 +380,43 @@ class PayoutSummaryView(PrivateView):
                 "largest": f"{largest:.2f}" if largest is not None else None,
             }
         )
+
+
+class PayoutPlanView(PrivateView):
+    """When settled rent is sent: held until requested, as it settles, weekly or monthly."""
+
+    def get_permissions(self):
+        classes = (
+            [CanSetReceivingDetails] if self.request.method == "PUT" else [CanManageOrganization]
+        )
+        return [permission() for permission in classes]
+
+    def get_throttles(self):
+        return [PaymentWriteThrottle()] if self.request.method == "PUT" else super().get_throttles()
+
+    def get(self, request):
+        plan = PayoutPlan.objects.filter(organization=resolve_workspace(request)).first()
+        return Response(PayoutPlanSerializer(plan or PayoutPlan()).data)
+
+    def put(self, request):
+        serializer = PayoutPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        with transaction.atomic():
+            organization = landlord_workspace(request, lock=True)
+            if data["timing"] != PayoutPlan.Timing.MANUAL and not current_destination(organization):
+                raise ValidationError({"timing": "Add a receiving account first."})
+            plan = save_plan(organization=organization, user=request.user, **data)
+            record_event(
+                request,
+                "payment.payout_timing_changed",
+                plan,
+                organization=organization,
+                timing=plan.timing,
+                weekday=plan.weekday,
+                month_day=plan.month_day,
+            )
+        return Response(PayoutPlanSerializer(plan).data)
 
 
 class WithdrawalPreviewView(PrivateView):
@@ -389,7 +444,9 @@ class WithdrawalListView(PrivateView, generics.ListAPIView):
     serializer_class = WithdrawalSerializer
 
     def get_permissions(self):
-        classes = [CanSetReceivingDetails] if self.request.method == "POST" else [CanViewPortfolio]
+        classes = (
+            [CanSetReceivingDetails] if self.request.method == "POST" else [CanManageOrganization]
+        )
         return [permission() for permission in classes]
 
     def get_throttles(self):

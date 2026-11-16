@@ -52,8 +52,13 @@ def home():
     lease.tenant.email = user.email
     lease.tenant.save(update_fields=["user", "email"])
     return {
-        "org": org, "lease": lease, "neighbour": neighbour, "invoice": invoice,
-        "payment": payment, "user": user, "client": client,
+        "org": org,
+        "lease": lease,
+        "neighbour": neighbour,
+        "invoice": invoice,
+        "payment": payment,
+        "user": user,
+        "client": client,
     }
 
 
@@ -125,10 +130,16 @@ def test_draft_leases_and_unshared_documents_stay_hidden(home):
     lease.status = "active"
     lease.save(update_fields=["status"])
     common = {
-        "organization": home["org"], "kind": "lease", "lease": lease,
+        "organization": home["org"],
+        "kind": "lease",
+        "lease": lease,
         "snapshot": {"reference": "L1"},
-        "source_fingerprint": "x", "unsigned_pdf": b"%PDF", "pdf": b"%PDF-1.4 test",
-        "sha256": "a" * 64, "page_count": 1, "created_by": home["user"],
+        "source_fingerprint": "x",
+        "unsigned_pdf": b"%PDF",
+        "pdf": b"%PDF-1.4 test",
+        "sha256": "a" * 64,
+        "page_count": 1,
+        "created_by": home["user"],
     }
     ready = DocumentVersion.objects.create(version=1, status="ready", **common)
     signing = DocumentVersion.objects.create(version=2, status="signing", **common)
@@ -203,7 +214,8 @@ def test_repairs_need_a_current_tenancy(home):
 def test_tenant_updates_their_phone_but_not_their_email(home):
     client = home["client"]
     response = client.patch(
-        "/api/v1/portal/profile/", {"phone_number": "0977 000 111", "email": "x@example.com"},
+        "/api/v1/portal/profile/",
+        {"phone_number": "0977 000 111", "email": "x@example.com"},
         format="json",
     )
     assert response.status_code == 200
@@ -230,9 +242,10 @@ def test_manager_removes_portal_access_and_keeps_the_records(home):
     assert Invoice.objects.filter(tenant=tenant).exists()
     assert AuditEvent.objects.filter(action="tenant.portal_access_removed").exists()
     # Tenants cannot remove access themselves.
-    assert home["client"].post(
-        f"/api/v1/tenants/{tenant.public_id}/remove-portal-access/"
-    ).status_code == 403
+    assert (
+        home["client"].post(f"/api/v1/tenants/{tenant.public_id}/remove-portal-access/").status_code
+        == 403
+    )
 
 
 def test_tenant_adds_a_photo_to_their_repair(home):
@@ -245,8 +258,11 @@ def test_tenant_adds_a_photo_to_their_repair(home):
     Image.new("RGB", (4, 4), "white").save(raw, format="PNG")
     lease = home["lease"]
     job = create_request(
-        organization=home["org"], property=lease.unit.property, unit=lease.unit,
-        tenant=lease.tenant, title="Damp wall",
+        organization=home["org"],
+        property=lease.unit.property,
+        unit=lease.unit,
+        tenant=lease.tenant,
+        title="Damp wall",
     )
     response = home["client"].post(
         f"/api/v1/portal/maintenance/{job.public_id}/photos/",

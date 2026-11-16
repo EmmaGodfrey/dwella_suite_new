@@ -9,7 +9,7 @@ import "./documents.scss";
 
 function PrepareAgreement({ lease, previous, onClose, onPrepared }) {
   const [step, setStep] = useState(0);
-  const signers = useDocumentSigners();
+  const signers = useDocumentSigners(lease.id);
   const [values, setValues] = useState({ landlord_name: previous?.snapshot.landlord_name || "", landlord_address: previous?.snapshot.landlord_address || "",
     landlord_signer: previous?.landlord_signer_id || "", agreement_text: previous?.snapshot.agreement_text || "", schedule_text: previous?.snapshot.schedule_text || "", terms_approved: false });
   const [error, setError] = useState("");
@@ -32,9 +32,9 @@ function PrepareAgreement({ lease, previous, onClose, onPrepared }) {
     {step === 0 && <>
       <Field label="Landlord legal name" required><Input value={values.landlord_name} maxLength={180} onChange={(_, d) => update("landlord_name", d.value)} /></Field>
       <Field label="Landlord address" required><Textarea rows={3} value={values.landlord_address} maxLength={2000} onChange={(_, d) => update("landlord_address", d.value)} /></Field>
-      <Field label="Authorised signatory" required hint="This active property manager signs using their own account.">
+      <Field label="Authorised signatory" required hint="A property admin, or a manager assigned to this property, signs using their own account.">
         <Select value={String(values.landlord_signer)} onChange={(_, d) => update("landlord_signer", d.value)}>
-          <option value="">Choose property manager</option>{signers.data?.map(signer => <option key={signer.id} value={signer.id}>{signer.name} · {signer.email}</option>)}
+          <option value="">Choose who signs</option>{signers.data?.map(signer => <option key={signer.id} value={signer.id}>{signer.name} · {signer.email}</option>)}
         </Select>
       </Field>
       {signers.isLoading && <p role="status">Loading authorised accounts…</p>}

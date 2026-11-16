@@ -2,6 +2,9 @@
 // other screen rather than floating in the middle.
 .dwella-profile-screen {
   max-width: 1120px;
+  // Settings places this screen beside its own section list, so the space
+  // available is narrower than the viewport; stack on the screen's width.
+  container-type: inline-size;
 }
 
 // `align-items: start` matters here: grid items stretch by default, so the
@@ -124,6 +127,16 @@ body.dark-only .dwella-profile-summary {
 
 body.dark-only .dwella-profile-summary {
   background: var(--dwella-paper);
+}
+
+@container (max-width: 46rem) {
+  .dwella-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dwella-profile-summary {
+    position: static;
+  }
 }
 
 @media (max-width: 900px) {

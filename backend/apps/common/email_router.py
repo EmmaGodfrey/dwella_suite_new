@@ -10,6 +10,8 @@ from django.db import connection, transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.audit.provider_credentials import credential
+
 from .models import EmailRoutingLock, EmailUsageBucket
 from .provider_http import ProviderRejected, post_json
 
@@ -61,7 +63,11 @@ def reserve_provider(recipients, now=None, *, allow_fallback=True, bulk=False):
                 if used.get("google", 0) + recipients <= ceiling(limit):
                     provider = candidate
                     break
-            elif candidate == "resend" and settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL:
+            elif (
+                candidate == "resend"
+                and credential("RESEND_API_KEY")
+                and settings.RESEND_FROM_EMAIL
+            ):
                 month = hour.replace(day=1, hour=0)
                 monthly = buckets.filter(provider="resend", hour__gte=month).aggregate(
                     total=Sum("recipients")
@@ -160,7 +166,7 @@ class EmailBackend(BaseEmailBackend):
                             "https://api.resend.com/emails",
                             resend_payload(message),
                             {
-                                "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                                "Authorization": f"Bearer {credential('RESEND_API_KEY')}",
                                 "User-Agent": "Dwella/1.0",
                             },
                         )

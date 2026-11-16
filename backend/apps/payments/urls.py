@@ -23,6 +23,7 @@ urlpatterns = [
     path("destination/check/", views.AccountCheckView.as_view()),
     path("banks/", views.BankListView.as_view()),
     path("payouts/", views.PayoutSummaryView.as_view()),
+    path("payouts/timing/", views.PayoutPlanView.as_view()),
     path("withdrawals/", views.WithdrawalListView.as_view()),
     path("withdrawals/preview/", views.WithdrawalPreviewView.as_view()),
     path("withdrawals/<uuid:public_id>/cancel/", views.WithdrawalCancelView.as_view()),

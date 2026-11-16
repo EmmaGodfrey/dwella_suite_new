@@ -1,6 +1,7 @@
 from rest_framework import generics, serializers
 
 from apps.common.permissions import CanViewPortfolio, IsPlatformSuperuser
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 
 from .models import OperationalDelivery
@@ -44,10 +45,14 @@ class OperationalMessagesView(generics.ListAPIView):
     search_fields = ["event", "recipient"]
 
     def get_queryset(self):
+        rows = OperationalDelivery.objects.filter(
+            organization=resolve_workspace(self.request),
+        )
+        if not property_scope(self.request).everything:
+            # A manager sees the notices sent to them, not the workspace log.
+            rows = rows.filter(recipient_user=self.request.user)
         return (
-            OperationalDelivery.objects.filter(
-                organization=resolve_workspace(self.request),
-            )
+            rows
             .select_related("organization")
             .order_by("-created_at", "-pk")
         )

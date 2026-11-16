@@ -4,7 +4,7 @@ from uuid import UUID
 
 from django.core.cache import cache
 from django.core.files.uploadhandler import FileUploadHandler, StopUpload
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.http import FileResponse, HttpResponse
 from django_filters import rest_framework as filters
 from rest_framework import status
@@ -14,8 +14,9 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.property_scope import noted, scoped
 from apps.common.viewsets import OrganizationScopedModelViewSet
-from apps.organizations.models import OrganizationMembership
+from apps.organizations.models import OrganizationMembership, PropertyAssignment
 
 from .files import MAX_SOURCE_BYTES, inspect_pdf, source_preview
 from .models import DocumentSignature, DocumentVersion, SignedLeaseOriginal
@@ -162,16 +163,45 @@ class DocumentViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         data = dict(serializer.validated_data)
-        lease = data.pop("lease")
+        lease = noted(request, data.pop("lease"))
         document = create_lease_document(request, lease, data)
         return Response(self.get_serializer(document).data, status=status.HTTP_201_CREATED)
 
+    def lease_for_signers(self, request):
+        from apps.leases.models import Lease
+
+        try:
+            public_id = UUID(request.query_params.get("lease", ""))
+        except ValueError:
+            return None
+        return (
+            scoped(request, Lease.objects.all())
+            .filter(public_id=public_id)
+            .select_related("unit")
+            .first()
+        )
+
     @action(detail=False, methods=["get"])
     def signers(self, request):
+        # Admins may sign any lease. A manager may sign for a property assigned
+        # to them, so a manager is offered themselves; preparing the document
+        # checks the assignment against the chosen lease.
+        who = Q(role=OrganizationMembership.Role.LANDLORD)
+        if not self.get_property_scope().everything:
+            who |= Q(role=OrganizationMembership.Role.MANAGER, user=request.user)
+        elif lease := self.lease_for_signers(request):
+            # An admin preparing this lease may also pick a manager assigned to
+            # its property.
+            who |= Q(
+                role=OrganizationMembership.Role.MANAGER,
+                pk__in=PropertyAssignment.objects.filter(
+                    property_id=lease.unit.property_id
+                ).values("membership_id"),
+            )
         members = OrganizationMembership.objects.filter(
+            who,
             organization=self.get_organization(),
             is_active=True,
-            role="landlord",
             user__is_active=True,
             user__is_staff=False,
             user__is_superuser=False,
@@ -264,13 +294,14 @@ class OriginalViewSet(PrivateDocumentMixin, OrganizationScopedModelViewSet):
         data = AttachOriginalSerializer(
             data=request.data,
             context={
+                "request": request,
                 "organization": self.get_organization(),
             },
         )
         data.is_valid(raise_exception=True)
         attachment = attach_original(
             request,
-            data.validated_data["lease"],
+            noted(request, data.validated_data["lease"]),
             data.validated_data["file"],
             data.validated_data["note"],
         )

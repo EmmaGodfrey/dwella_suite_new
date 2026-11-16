@@ -219,7 +219,7 @@ def add_signature(request, document, data, *, invite=None):
         else:
             user = request.user
             if user.pk != document.landlord_signer_id or not active_signer(
-                user, document.organization
+                user, document.organization, document.lease
             ):
                 raise PermissionDenied(
                     "Only the designated property manager can sign for the landlord."

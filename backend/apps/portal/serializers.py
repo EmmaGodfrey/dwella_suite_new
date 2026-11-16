@@ -326,12 +326,72 @@ class MaintenanceDetailSerializer(MaintenanceSerializer):
 
 
 class ProfileSerializer(PublicIdModelSerializer):
+    """The tenant's own contact and document details.
+
+    TPIN and billing address change over time, so tenants may always edit
+    them. Identity and company details are filled in by the tenant only while
+    blank; once recorded, the property manager owns corrections.
+    """
+
+    # Fields a tenant may set only while they are empty.
+    FILL_ONCE = (
+        "national_id",
+        "identity_type",
+        "identity_country",
+        "company_registration",
+        "representative_name",
+        "representative_phone",
+    )
+
     phone_number = serializers.CharField(max_length=40)
+    tpin = serializers.CharField(max_length=10, required=False, allow_blank=True)
+    billing_address = serializers.CharField(max_length=1000, required=False, allow_blank=True)
+    national_id = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    company_registration = serializers.CharField(max_length=80, required=False, allow_blank=True)
+    representative_name = serializers.CharField(max_length=180, required=False, allow_blank=True)
+    representative_phone = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    missing_details = serializers.SerializerMethodField()
+    locked_fields = serializers.SerializerMethodField()
 
     class Meta:
         model = Tenant
-        fields = ["id", "full_name", "phone_number", "email", "status"]
-        read_only_fields = ["full_name", "email", "status"]
+        fields = [
+            "id",
+            "full_name",
+            "phone_number",
+            "email",
+            "status",
+            "tenant_type",
+            "tpin",
+            "billing_address",
+            "national_id",
+            "identity_type",
+            "identity_country",
+            "company_registration",
+            "representative_name",
+            "representative_phone",
+            "missing_details",
+            "locked_fields",
+        ]
+        read_only_fields = ["full_name", "email", "status", "tenant_type"]
+
+    def get_missing_details(self, obj):
+        from apps.tenants.details import missing_details
+
+        return missing_details(obj)
+
+    def get_locked_fields(self, obj):
+        # Type and country always have defaults; they describe the recorded
+        # number, so they lock together with it.
+        number_fields = ("identity_type", "identity_country")
+        locked = [
+            key
+            for key in self.FILL_ONCE
+            if key not in number_fields and str(getattr(obj, key) or "").strip()
+        ]
+        if "national_id" in locked:
+            locked += number_fields
+        return sorted(locked)
 
     def validate_phone_number(self, value):
         phone = normalize_phone_number(value)
@@ -345,3 +405,45 @@ class ProfileSerializer(PublicIdModelSerializer):
                 "This number cannot be used. Ask your property manager to update it."
             )
         return phone
+
+    def validate_tpin(self, value):
+        value = value.strip()
+        if value and not (len(value) == 10 and value.isascii() and value.isdigit()):
+            raise serializers.ValidationError("A TPIN is 10 digits.")
+        return value
+
+    def validate_billing_address(self, value):
+        return value.strip()
+
+    def validate_national_id(self, value):
+        return " ".join(value.split())
+
+    def validate_identity_country(self, value):
+        if len(value) != 2 or not value.isascii() or not value.isalpha():
+            raise serializers.ValidationError("Use a two-letter country code, for example ZM.")
+        return value.upper()
+
+    def validate_representative_phone(self, value):
+        if not value.strip():
+            return ""
+        phone = normalize_phone_number(value)
+        if not phone:
+            raise serializers.ValidationError("Enter a valid representative phone number.")
+        return phone
+
+    def validate(self, attrs):
+        locked = set(self.get_locked_fields(self.instance))
+        errors = {
+            key: ["Already recorded. Ask your property manager to correct it."]
+            for key in attrs
+            if key in locked and attrs[key] != getattr(self.instance, key)
+        }
+        if errors:
+            raise serializers.ValidationError(errors)
+        # Clearing a document detail would block receipts; never allow it here.
+        for key in ("tpin", "billing_address"):
+            if key in attrs and not attrs[key] and getattr(self.instance, key):
+                errors[key] = ["This detail is needed for your receipts and cannot be removed."]
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs

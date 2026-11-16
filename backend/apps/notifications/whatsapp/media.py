@@ -1,4 +1,5 @@
 """Fetch files for a linked sender's draft, outside any row lock, and validate them."""
+
 import hashlib
 import io
 import logging
@@ -17,6 +18,7 @@ from django.utils import timezone
 from PIL import Image
 from rest_framework.exceptions import ValidationError
 
+from apps.audit.provider_credentials import credential
 from apps.billing.proofs import clean_file
 from apps.common.provider_http import ProviderRejected, get_bytes, get_json
 from apps.documents.files import MAX_PHOTO_BYTES, clean_image
@@ -61,7 +63,7 @@ def wanted(row):
 
 
 def download(row):
-    auth = {'Authorization': f'Bearer {settings.WHATSAPP_ACCESS_TOKEN}'}
+    auth = {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"}
     meta = get_json(
         f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/{row.media_id}', auth,
     )
@@ -93,7 +95,7 @@ def download(row):
 
 
 def fetch_media(limit=10, seconds=20):
-    if not settings.WHATSAPP_SELF_SERVICE_ENABLED or not settings.WHATSAPP_ACCESS_TOKEN:
+    if not settings.WHATSAPP_SELF_SERVICE_ENABLED or not credential('WHATSAPP_ACCESS_TOKEN'):
         return 0
     now = timezone.now()
     WhatsAppMedia.objects.filter(

@@ -691,20 +691,24 @@ body.dark-only .dwella-brand-mark {
   box-shadow: none;
 }
 
-.dwella-app-shell.is-collapsed .dwella-sidebar-footer {
-  display: flex;
-  justify-content: center;
-}
-
-.dwella-app-shell.is-collapsed .dwella-account {
-  width: auto;
-}
-
 .dwella-app-shell.is-collapsed .dwella-sidebar-toggle {
   left: calc(var(--dwella-sidebar-collapsed) - 16px);
 }
 
 @media (min-width: 901px) {
+  .dwella-app-shell.is-collapsed .dwella-sidebar-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .dwella-app-shell.is-collapsed .dwella-account {
+    width: 42px;
+    min-height: 42px;
+    padding: 5px;
+    justify-content: center;
+  }
+
   .dwella-app-shell.is-collapsed .dwella-sidebar-nav {
     align-items: center !important;
   }

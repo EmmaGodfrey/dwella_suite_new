@@ -35,3 +35,19 @@ export function withdrawalFee(row, formatMoney) {
   if (["queued", "submitting", "pending", "review"].includes(row.status)) return `${formatMoney(row.fee_reserved)} held`;
   return "—";
 }
+
+export const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const ordinal = (day) => {
+  const tens = day % 100;
+  const suffix = tens > 10 && tens < 14 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[day % 10] || "th");
+  return `${day}${suffix}`;
+};
+
+/** "Weekly · Monday at 08:00", "Monthly · last day at 08:00", "Hold until I request". */
+export function timingLabel(plan) {
+  if (!plan || plan.timing === "manual") return "Hold until I request";
+  if (plan.timing === "settled") return "As funds settle";
+  if (plan.timing === "weekly") return `Weekly · ${weekdays[plan.weekday]} at 08:00`;
+  return `Monthly · ${plan.month_day ? `${ordinal(plan.month_day)} of the month` : "last day"} at 08:00`;
+}

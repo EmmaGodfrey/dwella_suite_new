@@ -28,6 +28,8 @@ from .models import (
     ReminderPreferences,
 )
 
+SEND = "apps.common.email_design.EmailMultiAlternatives.send"
+
 pytestmark = pytest.mark.django_db
 BASE = "/api/v1/notifications/"
 
@@ -287,7 +289,7 @@ def test_dispatch_rechecks_authority(home, settings, mailoutbox, change, reason)
 
 def test_uncertain_send_never_retries(home, settings):
     row = queued_email(home, settings)
-    with patch("apps.notifications.messaging.EmailMessage.send", side_effect=TimeoutError) as send:
+    with patch(SEND, side_effect=TimeoutError) as send:
         dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
         dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1))
     row.refresh_from_db()
@@ -544,7 +546,7 @@ def test_real_dispatch_boundary_has_no_database_transaction(home, settings):
         assert not connection.in_atomic_block
         return 1
 
-    with patch("apps.notifications.messaging.EmailMessage.send", side_effect=send):
+    with patch(SEND, side_effect=send):
         assert dispatch_messages(now=timezone.now().replace(hour=12) + timedelta(days=1)) == 1
 
 

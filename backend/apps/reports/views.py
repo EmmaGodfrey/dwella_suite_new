@@ -15,6 +15,7 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 
 from apps.billing.models import Invoice
+from apps.common.property_scope import property_scope
 from apps.common.workspaces import resolve_workspace
 from apps.leases.models import Lease
 from apps.properties.models import Unit
@@ -40,7 +41,8 @@ class PortfolioReportView(ReportView):
         data = params.validated_data
         org = resolve_workspace(request)
         property_id = data.get("property")
-        validate_scope(org, data)
+        self.scope = property_scope(request)
+        validate_scope(org, data, self.scope)
         today = organization_today(org)
         report = self.arrears if self.report == "arrears" else self.rent_roll
         queryset, totals = report(org, property_id, today)
@@ -71,8 +73,10 @@ class PortfolioReportView(ReportView):
 
     def rent_roll(self, org, property_id, today):
         """Units with their unpaid balance; totals are added up by the database."""
-        unpaid = Invoice.objects.for_organization(org).filter(status__in=Invoice.UNPAID_STATUSES)
-        units = Unit.objects.for_organization(org)
+        unpaid = self.scope.filter(Invoice.objects.for_organization(org)).filter(
+            status__in=Invoice.UNPAID_STATUSES
+        )
+        units = self.scope.filter(Unit.objects.for_organization(org))
         if property_id:
             units = units.filter(property__public_id=property_id)
         owed = (
@@ -111,7 +115,7 @@ class PortfolioReportView(ReportView):
 
     def arrears(self, org, property_id, today):
         """Overdue invoices, oldest first; each age band is summed by the database."""
-        invoices = Invoice.objects.for_organization(org).filter(
+        invoices = self.scope.filter(Invoice.objects.for_organization(org)).filter(
             status__in=Invoice.UNPAID_STATUSES, due_date__lt=today
         )
         if property_id:

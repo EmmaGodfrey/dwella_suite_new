@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { routes } from './Routes';
 import AppLayout from '../Layout/Layout';
+import NotFound from '../Components/NotFound';
 
 const LayoutRoutes = () => {
   return (
@@ -14,6 +15,10 @@ const LayoutRoutes = () => {
             key={path}
           />
         ))}
+      </Route>
+      {/* Unknown addresses keep the app shell so people can navigate away. */}
+      <Route element={<AppLayout notFound />}>
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

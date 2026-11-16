@@ -12,6 +12,7 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.access_state import require_verified_access
+from apps.audit.provider_credentials import credential
 from apps.audit.runtime_settings import runtime_settings
 from apps.audit.services import record_event
 from apps.common.permissions import CanManageOrganization, IsPlatformSuperuser
@@ -241,7 +242,7 @@ class PlatformMessagingView(PreferenceView):
                     "routing_enabled": settings.EMAIL_ROUTING_ENABLED,
                     "google_limit": config["email_daily_limit"],
                     "resend_configured": bool(
-                        settings.RESEND_API_KEY and settings.RESEND_FROM_EMAIL
+                        credential('RESEND_API_KEY') and settings.RESEND_FROM_EMAIL
                     ),
                     "resend_daily_limit": settings.RESEND_DAILY_LIMIT,
                     "resend_monthly_limit": settings.RESEND_MONTHLY_LIMIT,
