@@ -30,6 +30,11 @@ class Organization(UUIDModel, TimeStampedModel, ActiveModel):
     # Property managers may cover a teammate's properties for a limited time.
     # Every covered change is recorded; an admin can switch this off.
     allow_teammate_cover = models.BooleanField(default=True)
+    # Explicit onboarding choices; readiness also checks the current saved data.
+    setup_business_reviewed = models.BooleanField(default=False)
+    setup_payment_methods = models.JSONField(default=list, blank=True)
+    setup_billing_reviewed = models.BooleanField(default=False)
+    setup_confirmed = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["name"]
