@@ -836,19 +836,26 @@ def test_notices_and_signing_reach_the_right_managers(team):
     assert sorted(row["name"] for row in signers) == ["Admin", "Anna"]
 
 
-def test_assistant_and_whatsapp_stay_closed_to_assigned_managers(team, settings):
+def test_assistant_stays_closed_and_whatsapp_uses_assigned_scope(team):
     from rest_framework.exceptions import PermissionDenied
 
     from apps.accounts.access_state import mark_email_verified
     from apps.accounts.handy_agent import token_access
-    from apps.notifications.whatsapp.access import memberships
+    from apps.notifications.whatsapp.access import actor_context, bind, memberships
 
     with pytest.raises(PermissionDenied):
         token_access(team["a"].user, None)
     mark_email_verified(team["a"].user)
     mark_email_verified(team["admin"].user)
-    assert not memberships(team["a"].user).exists()
+    assert memberships(team["a"].user).exists()
     assert memberships(team["admin"].user).exists()
+    binding = bind(team["a"].user, "+260971234560")
+    ctx = actor_context(binding, team["org"].pk)
+    assert set(ctx.scope(Invoice.objects.all()).values_list("unit__property_id", flat=True)) == {
+        team["alpha"].pk,
+    }
+    assert not ctx.scope(Invoice.objects.all()).filter(unit__property=team["beta"]).exists()
+    assert not ctx.scope(Invoice.objects.all()).filter(organization=team["other"]).exists()
 
 
 def test_scope_adds_a_fixed_number_of_queries_not_one_per_row(team, django_assert_max_num_queries):
