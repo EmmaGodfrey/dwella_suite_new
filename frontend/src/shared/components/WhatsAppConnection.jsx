@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Checkbox, Field, Input } from "@fluentui/react-components";
+import { QRCodeSVG } from "qrcode.react";
 import { useConnectNotificationPhone, useDisconnectWhatsApp, useNotificationPhone } from "../../Services/settings";
 import { useFormErrors } from "../useFormErrors";
 import "./whatsappConnection.scss";
@@ -101,7 +102,16 @@ export default function WhatsAppConnection({ onboarding = false }) {
         <p>WhatsApp is not connected yet. You can finish setup and connect later from Settings → Notifications.</p>
       ) : challenge ? (
         <form onSubmit={confirmConnection} noValidate>
-          <p>Open WhatsApp and send the prefilled message from <strong>{challenge.phone}</strong>. Then return here to finish connecting. The message expires in 10 minutes.</p>
+          <p>Scan the QR code with your phone, or open WhatsApp on this device. Send the prefilled message from <strong>{challenge.phone}</strong>, then return here to finish connecting. The message expires in 10 minutes.</p>
+          {chatLink && !expired && <div className="dwella-whatsapp-pairing">
+            <QRCodeSVG value={chatLink} size={208} marginSize={4} level="M"
+              bgColor="#ffffff" fgColor="#000000" role="img"
+              title="Scan to open WhatsApp with your connection message" />
+            <div>
+              <h3>Scan with your phone</h3>
+              <p>Your connection message will already be filled in. Tap Send in WhatsApp, then choose “I've sent the message” here.</p>
+            </div>
+          </div>}
           <Field label="Connection message">
             <Input name="connection-message" value={challenge.message} readOnly autoComplete="off" />
           </Field>
