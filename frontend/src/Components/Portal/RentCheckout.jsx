@@ -38,12 +38,15 @@ export default function RentCheckout({ invoice }) {
   const waiting = feedback?.kind === "waiting";
   const confirmingCompletedCheckout = waiting && (["success", "pending"].includes(returnedKind) || latest?.channel === "mobile-money");
 
+  // "Delayed" belongs to one payment attempt. Leaving the waiting state (for
+  // example to "Card verification not finished") must not reset it, or the
+  // feedback would flip back to waiting and loop every 20 seconds.
+  useEffect(() => { setDelayed(false); }, [latest?.id]);
   useEffect(() => {
-    setDelayed(false);
-    if (!waiting) return;
+    if (!waiting || delayed) return;
     const timer = setTimeout(() => setDelayed(true), 20_000);
     return () => clearTimeout(timer);
-  }, [waiting, latest?.id]);
+  }, [waiting, delayed, latest?.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,7 +79,7 @@ export default function RentCheckout({ invoice }) {
       operator: () => channel === "mobile-money" && !["mtn", "airtel", "zamtel"].includes(operator)
         ? "Choose the network for this number." : "",
     }, event.currentTarget)) return;
-    setBusy(true); setError(""); setStage("opening"); setReturnedKind(null);
+    setBusy(true); setError(""); setStage("opening"); setReturnedKind(null); setDelayed(false);
     try {
       const result = await start.mutateAsync({ invoiceId: invoice.id, amount: Number(amount).toFixed(2), idempotencyKey: key.current,
         channel, phone, operator });
@@ -89,7 +92,11 @@ export default function RentCheckout({ invoice }) {
           setReturnedKind(event);
           setStage("checking");
           setBusy(false);
-          check.mutate(result.collection.id);
+          // A closed checkout shows as resumable once the server check settles;
+          // a reported completion keeps waiting for the server's receipt.
+          check.mutate(result.collection.id, event === "close" ? {
+            onSettled: () => { if (!lifetime.current?.signal.aborted) setStage((current) => current === "checking" ? "idle" : current); },
+          } : undefined);
         }
       }, lifetime.current?.signal);
       if (!lifetime.current?.signal.aborted) setStage((current) => current === "opening" ? "provider" : current);
@@ -110,10 +117,10 @@ export default function RentCheckout({ invoice }) {
         {feedback.working ? <Spinner size="small" aria-hidden="true" /> : feedback.kind === "confirmed" ? <CheckmarkCircle24Regular aria-hidden="true" /> : <Info24Regular aria-hidden="true" />}
         <div><strong>{feedback.title}</strong><p>{feedback.message}</p>
           {feedback.kind === "confirmed" && <Button as={Link} to={`/billing/receipts/${latest.payment_id}`} size="small">View receipt {latest.receipt_number}</Button>}
-          {waiting && <Button size="small" disabled={check.isPending || !checkId} onClick={() => check.mutate(checkId)}>
+          {(waiting || feedback.resumable) && <Button size="small" disabled={check.isPending || !checkId} onClick={() => check.mutate(checkId)}>
             {check.isPending ? "Checking…" : "Check status"}
           </Button>}
-          {check.isError && waiting && <p>We couldn’t request a fresh check. Automatic confirmation is still running; you can try checking again.</p>}
+          {check.isError && (waiting || feedback.resumable) &&<p>We couldn’t request a fresh check. Automatic confirmation is still running; you can try checking again.</p>}
         </div>
       </div>}
       {options.isLoading ? <p role="status">Checking payment options…</p> : null}

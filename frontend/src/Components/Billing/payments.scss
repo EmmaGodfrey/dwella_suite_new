@@ -16,7 +16,7 @@
   strong { display: block; font-size: 0.875rem; }
   p { margin: 0.375rem 0 0.75rem; font-size: 0.8125rem; line-height: 1.6; color: var(--dwella-muted); }
   &[data-kind="confirmed"] { background: var(--dwella-success-soft); }
-  &[data-kind="failed"], &[data-kind="review"] { background: var(--dwella-warning-soft); }
+  &[data-kind="failed"], &[data-kind="review"], &[data-kind="authentication"] { background: var(--dwella-warning-soft); }
 }
 
 .dwella-online-checkout p,

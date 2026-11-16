@@ -24,6 +24,35 @@ test("provider return and elapsed time cannot create a success state", () => {
   assert.notEqual(paymentFeedback({ stage: "checking", collection: { status: "successful" } }).kind, "confirmed");
 });
 
+test("unfinished card checkout is resumable and never shown as success", () => {
+  const card = { channel: "card", status: "pending" };
+  // Reload or return without a callback: open checkout, no spinner.
+  for (const stage of ["idle", undefined]) {
+    const state = paymentFeedback({ stage, collection: card });
+    assert.equal(state.kind, "open");
+    assert.equal(state.resumable, true);
+    assert.notEqual(state.working, true);
+  }
+  // Closed popup after the server check settles.
+  assert.equal(paymentFeedback({ stage: "idle", returnedKind: "close", collection: card }).kind, "open");
+  // Bank verification outstanding.
+  const auth = { ...card, provider_status: "3ds-auth-required" };
+  for (const returnedKind of [null, "close"]) {
+    for (const stage of ["idle", "checking"]) {
+      const state = paymentFeedback({ stage, returnedKind, collection: auth });
+      assert.equal(state.kind, "authentication");
+      assert.notEqual(state.working, true);
+    }
+  }
+  // A reported completion keeps waiting briefly for the server, then explains.
+  assert.equal(paymentFeedback({ stage: "checking", returnedKind: "success", collection: auth }).kind, "waiting");
+  assert.equal(paymentFeedback({ stage: "checking", returnedKind: "success", delayed: true, collection: auth }).kind, "authentication");
+  // Popup still open, and server outcomes, take precedence.
+  assert.equal(paymentFeedback({ stage: "provider", collection: auth }).kind, "provider");
+  assert.equal(paymentFeedback({ stage: "idle", collection: { ...auth, status: "successful", payment_id: "r" } }).kind, "confirmed");
+  assert.equal(paymentFeedback({ stage: "idle", collection: { ...auth, status: "expired" } }).kind, "expired");
+});
+
 test("confirmed server receipt wins over a waiting state", () => {
   assert.equal(paymentFeedback({ stage: "checking", delayed: true,
     collection: { status: "successful", payment_id: "server-receipt" } }).kind, "confirmed");

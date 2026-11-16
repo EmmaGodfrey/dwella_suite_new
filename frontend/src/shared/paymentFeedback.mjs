@@ -19,6 +19,17 @@ export function paymentFeedback({ stage, collection, delayed = false, returnedKi
       ? "Still awaiting confirmation. If your phone shows a payment prompt, approve it there. Please don’t start another payment."
       : "Authorize the payment on your mobile-money phone. Your balance and receipt update after confirmation. Never share your PIN here." };
   if (stage === "error") return null;
+  // An unfinished card checkout is still open, not awaiting confirmation of a
+  // completed payment. Say so plainly and offer to resume the same checkout;
+  // the server record (polled in the background) still decides the outcome.
+  const reportedDone = ["success", "pending"].includes(returnedKind);
+  if (collection?.status === "pending" && collection.provider_status === "3ds-auth-required" && (!reportedDone || delayed))
+    return { kind: "authentication", resumable: true,
+      title: "Card verification not finished",
+      message: "Your bank asked to verify this card payment and no payment has been confirmed. Resume the same checkout below to finish verifying. Please don’t pay another way yet—if your bank completes it, your receipt appears here automatically." };
+  if (collection?.status === "pending" && !reportedDone && stage !== "checking") return { kind: "open", resumable: true,
+    title: "Checkout not finished",
+    message: "No payment has been confirmed for this checkout yet. If you closed Lenco before paying, resume the same checkout below. If you did pay, your receipt will appear here automatically." };
   if (stage === "checking" || collection?.status === "pending") return { kind: "waiting", working: true,
     title: delayed ? "Still waiting for Lenco" : "Confirming payment with Lenco",
     message: returnedKind === "close"
