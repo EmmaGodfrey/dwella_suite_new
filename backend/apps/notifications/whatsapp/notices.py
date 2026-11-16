@@ -96,7 +96,14 @@ def block(row, config):
     # Unlike a reply inside a chat, this message is proactive and needs the opt-in.
     if not consent or not consent.allowed or consent.revoked_at:
         return 'recipient_opted_out'
-    if f"{template}:{config['whatsapp_language']}" not in approved_whatsapp_templates():
+    documents = row.purpose == 'received' and settings.NOTIFICATION_DOCUMENTS_ENABLED
+    active_chat = bool(consent.last_inbound_at and
+                       consent.last_inbound_at > timezone.now() - timedelta(hours=24))
+    approved = approved_whatsapp_templates()
+    if documents and f"dwella_receipt_document:{config['whatsapp_language']}" in approved:
+        template = 'dwella_receipt_document'
+    if (not (documents and active_chat)
+            and f"{template}:{config['whatsapp_language']}" not in approved):
         return 'template_required'
     ctx = actor_context(binding, row.organization_id)
     if ctx.role != row.role or (row.role == 'tenant' and row.proof.tenant_id not in ctx.tenant_ids):
@@ -120,11 +127,25 @@ def _parameters(row):
     return [' '.join(str(value).split()) for value in values]
 
 
-def payload(row, config, token=''):
+def payload(row, config, token='', document=None, *, direct_document=False):
+    if document and direct_document:
+        media, filename = document
+        return {
+            'messaging_product': 'whatsapp', 'to': row.binding.phone[1:],
+            'biz_opaque_callback_data': str(row.public_id), 'type': 'document',
+            'document': {'id': media, 'filename': filename,
+                         'caption': 'Your receipt for the payment recorded in Dwella.'},
+        }
     template, _ = PURPOSES[row.purpose]
     components = [{'type': 'body', 'parameters': [
         {'type': 'text', 'text': value} for value in _parameters(row)
     ]}]
+    if document:
+        template = 'dwella_receipt_document'
+        media, filename = document
+        components.insert(0, {'type': 'header', 'parameters': [{
+            'type': 'document', 'document': {'id': media, 'filename': filename},
+        }]})
     if token:
         components += [{
             'type': 'button', 'sub_type': 'quick_reply', 'index': str(index),
@@ -175,10 +196,45 @@ def dispatch_proof_notices(limit=20, seconds=20):
             row.save(update_fields=['status', 'claim_token', 'claimed_at', 'token_hash'])
         current = WhatsAppProofNotice.objects.filter(pk=pk, claim_token=claim, status='sending')
         try:
+            document = None
+            direct = False
+            if row.purpose == 'received' and settings.NOTIFICATION_DOCUMENTS_ENABLED:
+                consent = PhoneMessagingConsent.objects.filter(
+                    channel='whatsapp', phone=row.binding.phone,
+                ).first()
+                direct = bool(consent and consent.last_inbound_at and
+                              consent.last_inbound_at > timezone.now() - timedelta(hours=24))
+                approved_document = (
+                    f"dwella_receipt_document:{config['whatsapp_language']}"
+                    in approved_whatsapp_templates()
+                )
+                if direct or approved_document:
+                    from apps.notifications.notice_documents import upload
+
+                    from . import documents
+
+                    ctx = actor_context(row.binding, row.organization_id)
+                    descriptor = documents.descriptor('receipt', row.proof.payment.public_id,
+                                                      row.proof.organization)
+                    item, expected = documents.prepare(ctx, descriptor)
+                    media = upload(item)
+                    fresh = WhatsAppProofNotice.objects.select_related(*related).get(pk=pk)
+                    fresh_ctx = actor_context(fresh.binding, fresh.organization_id)
+                    if (block(fresh, runtime_settings()) or not whatsapp_ready()
+                            or not documents.current(fresh_ctx, descriptor, expected)):
+                        current.update(status='cancelled', reason='document_or_access_changed')
+                        continue
+                    document = media, item.name
+                    consent.refresh_from_db()
+                    direct = bool(consent.last_inbound_at and
+                                  consent.last_inbound_at > timezone.now() - timedelta(hours=24))
+                    if not direct and not approved_document:
+                        document = None
             result = post_json(
                 f'https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/'
                 f'{settings.WHATSAPP_PHONE_NUMBER_ID}/messages',
-                payload(row, config, token if row.purpose == 'review' else ''),
+                payload(row, config, token if row.purpose == 'review' else '', document,
+                        direct_document=direct),
                 {'Authorization': f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
             )
             provider_id = result['messages'][0]['id']
