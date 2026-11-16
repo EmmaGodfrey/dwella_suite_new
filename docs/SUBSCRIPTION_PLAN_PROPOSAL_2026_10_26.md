@@ -6,6 +6,22 @@ Drafted 2026-10-26 by Claude for the user and Codex to review. **Nothing is impl
 - [SUBSCRIPTION_READINESS.md](SUBSCRIPTION_READINESS.md) for the access foundation that already exists;
 - [LENCO_PAYMENTS_SETUP.md](LENCO_PAYMENTS_SETUP.md) for payments.
 
+## Current billing direction - 2026-11-14
+
+Subscription billing is post-beta work; it is not a beta release requirement. Keep current beta access unchanged while preparing the billing implementation.
+
+Portfolio uses a default graduated price, with the option for Dwella and an individual workspace to agree different commercial terms. The latest draft default is K1,250/month for the first 50 purchased unit slots, then K18 per slot for 51-200, K12 for 201-500, and K7 above 500. These supersede the older Portfolio figures elsewhere in this historical proposal; billing remains unimplemented.
+
+The post-beta implementation must support:
+
+- A versioned default pricing schedule for ordinary quotes and subscriptions.
+- A platform-admin-managed pricing agreement for a specific workspace: agreed purchased capacity, currency, billing period, and either a fixed subscription amount or custom base amount and graduated band rates. Record which terms are overridden and which use the default.
+- Agreement reference/notes, effective date, optional end date, and an audit trail of who changed the terms. Workspace users cannot edit their own commercial agreement.
+- An explicit effective price shown in quotes and billing, so checkout, invoices and renewals all use the same applicable agreement. Do not silently stack standard discounts with negotiated pricing; record their applicability in the agreement.
+- Preservation of issued invoice amounts and historical agreement versions. Changes to the default schedule must not silently overwrite an active negotiated agreement. Agreement expiry must follow an explicit renewal/fallback policy rather than unexpectedly changing the customer's charge.
+
+This records the pricing capability, not a specific customer agreement or authorization to charge anyone. Trial/grace rules, proration, discount combinations and expiry/fallback behavior still need final decisions before billing activation.
+
 ## What is already decided
 
 - Three paid tiers, plus a fourth tier priced per unit above a threshold.

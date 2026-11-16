@@ -4,6 +4,8 @@ User direction, 24 October 2026: selected features will require a subscription. 
 
 ## Boundaries
 
+Post-beta direction (2026-11-14): implement subscription billing after beta. Use the default graduated Portfolio schedule, with platform-admin-managed negotiated pricing agreements per workspace. The billing layer must resolve the applicable default or agreement, preserve historical prices, and publish the resulting capacity/features into the existing access policy. Commercial terms belong in billing records, not in `WorkspaceAccessPolicy`. See [the current billing direction](SUBSCRIPTION_PLAN_PROPOSAL_2026_10_26.md#current-billing-direction---2026-11-14) for the planned agreement fields and safeguards. This does not activate paid restrictions or charges.
+
 - Account roles answer **who may perform an action**. Workspace entitlements answer **whether that workspace has a capability**. Both checks are required. Subscription access must never turn a tenant into a manager or give support staff unrestricted customer access.
 - `subscriptions.WorkspaceAccessPolicy` stores only feature overrides and capacity limits for one organization. A future plan catalogue, trial/renewal lifecycle, billing meter and verified subscription webhook can translate their decisions into this policy. No provider, price, plan label or billing interval is embedded in feature code.
 - All registered capabilities default to available during the current beta, with unlimited record capacity. No paid boundary is activated by this migration. Explicit superuser changes can disable a feature, set an expiry or restrict capacity. Register new paid-only features with deliberate defaults once commercial policy is chosen; do not assume a missing grant implies payment.
