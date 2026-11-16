@@ -12,6 +12,7 @@ from django.conf import settings
 from django.db import connection, transaction
 from django.db.models import F
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from apps.accounts.access_state import email_status
 from apps.audit.provider_credentials import credential
@@ -392,6 +393,77 @@ def _finish(pk, token, **values):
     ).update(**values)
 
 
+def send_document(row, target, consent, subject, body, now, config):
+    """One media message, with an approved document template outside a chat window."""
+    from . import notice_documents
+
+    active_chat = bool(
+        consent.last_inbound_at and consent.last_inbound_at > now - timedelta(hours=24)
+    )
+    template, values = notice_documents.template(row, target)
+    if not active_chat and f"{template}:{config['whatsapp_language']}" not in approved_templates():
+        # Keep the existing approved notice working while Meta reviews the new
+        # document template. Never send untemplated media outside the chat window.
+        return None
+    try:
+        item, document, expected = notice_documents.prepare(row, target)
+    except ValidationError:
+        # Missing document facts must not fabricate a PDF or suppress the notice.
+        return None
+    if not notice_documents.current(row, document, expected, phone=consent.phone):
+        return "cancelled", "document_or_access_changed", ""
+    media = notice_documents.upload(item)
+    # An opt-out, reassignment, correction or global pause during rendering/upload
+    # must prevent the provider message that would disclose the uploaded document.
+    if (not notice_documents.current(row, document, expected, phone=consent.phone)
+            or not whatsapp_ready() or not phone_allowed(consent.phone)):
+        return "cancelled", "document_or_access_changed", ""
+    consent.refresh_from_db()
+    active_chat = bool(consent.last_inbound_at and
+                       consent.last_inbound_at > max(now, timezone.now()) - timedelta(hours=24))
+    if not active_chat and f"{template}:{config['whatsapp_language']}" not in approved_templates():
+        return None
+    payload = {
+        "messaging_product": "whatsapp", "to": consent.phone.lstrip("+"),
+        "biz_opaque_callback_data": str(row.public_id),
+    }
+    if active_chat:
+        payload.update(type="document", document={
+            "id": media, "filename": item.name, "caption": f"{subject}\n\n{body}"[:1024],
+        })
+    else:
+        payload.update(type="template", template={
+            "name": template, "language": {"code": config["whatsapp_language"]},
+            "components": [
+                {"type": "header", "parameters": [{"type": "document", "document": {
+                    "id": media, "filename": item.name,
+                }}]},
+                {"type": "body", "parameters": [
+                    {"type": "text", "text": value} for value in values
+                ]},
+            ],
+        })
+    OperationalDelivery.objects.filter(pk=row.pk, claim_token=row.claim_token).update(
+        attempts=F("attempts") + 1,
+    )
+    result = post_json(
+        f"https://graph.facebook.com/{settings.WHATSAPP_GRAPH_VERSION}/"
+        f"{settings.WHATSAPP_PHONE_NUMBER_ID}/messages", payload,
+        {"Authorization": f"Bearer {credential('WHATSAPP_ACCESS_TOKEN')}"},
+    )
+    provider_id = result["messages"][0]["id"]
+    if not isinstance(provider_id, str) or not provider_id or len(provider_id) > 160:
+        raise ValueError("Invalid provider response.")
+    OperationalDelivery.objects.filter(pk=row.pk).update(recipient=consent.phone)
+    return "sent", "provider_accepted_with_document", provider_id
+
+
+def approved_templates():
+    from apps.audit.runtime_settings import approved_whatsapp_templates
+
+    return approved_whatsapp_templates()
+
+
 def send_phone(row, subject, body, url, now, target=None):
     from apps.audit.runtime_settings import approved_whatsapp_templates, runtime_settings
 
@@ -437,6 +509,14 @@ def send_phone(row, subject, body, url, now, target=None):
             return "held", "channel_unavailable", ""
         if covered_by_proof_notice(row):
             return "cancelled", "covered_by_proof_notice", ""
+        from . import notice_documents
+
+        if notice_documents.kind(row):
+            result = send_document(row, target, consent, subject, body, now, config)
+            if result is not None:
+                return result
+            consent.refresh_from_db()
+            now = max(now, timezone.now())
         payload = {"messaging_product": "whatsapp", "to": consent.phone.lstrip("+")}
         if consent.last_inbound_at and consent.last_inbound_at > now - timedelta(hours=24):
             payload.update(type="text", text={"body": f"{subject}\n\n{body}"})
@@ -564,13 +644,25 @@ def dispatch_operational(*, limit=50, now=None):
                 OperationalDelivery.objects.filter(pk=pk, claim_token=token).update(
                     attempts=F("attempts") + 1,
                 )
+                from . import notice_documents
+
+                attachment = None
+                paragraphs = body.split("\n\n")[1:2]
+                if notice_documents.kind(row):
+                    try:
+                        attachment = notice_documents.prepare(row, target)
+                    except ValidationError:
+                        note = "The PDF could not be attached. Open Dwella to view the document " \
+                            "or complete the required document details."
+                        body += "\n\n" + note
+                        paragraphs.append(note)
                 message = branded_email(
                     subject,
                     body,
                     [address],
                     heading=TITLES[row.event],
                     eyebrow=str(row.organization),
-                    paragraphs=body.split("\n\n")[1:2],
+                    paragraphs=paragraphs,
                     action_url=url,
                     action_label=ACTION_LABELS.get(row.event.split(".")[0], "Open Dwella"),
                     footer="You get this notice because of your Dwella account. "
@@ -580,6 +672,12 @@ def dispatch_operational(*, limit=50, now=None):
                 message.extra_headers["Message-ID"] = (
                     f"<dwella-notice-{row.public_id}@{settings.EMAIL_MESSAGE_ID_DOMAIN}>"
                 )
+                if attachment:
+                    item, document, expected = attachment
+                    if not notice_documents.current(row, document, expected):
+                        _finish(pk, token, status="cancelled", reason="document_or_access_changed")
+                        continue
+                    message.attach(item.name, item.content, item.content_type)
                 accepted = message.send(fail_silently=False)
                 status, reason, provider_id = (
                     ("sent", "transport_accepted", "")

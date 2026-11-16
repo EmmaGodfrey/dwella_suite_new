@@ -53,6 +53,34 @@ def report(house):
     )
 
 
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize('change', ['none', 'stop', 'reversed'])
+def test_confirmed_proof_sends_one_receipt_document_and_rechecks_after_upload(
+        house, settings, change):
+    settings.NOTIFICATION_DOCUMENTS_ENABLED = True
+    connect(house['tenant'], TENANT_PHONE)
+    proof = proofs.confirm(report(house), user=house['manager'])
+
+    def upload(item):
+        assert bytes(item.content).startswith(b'%PDF-')
+        if change == 'stop':
+            PhoneMessagingConsent.objects.update(allowed=False, revoked_at=timezone.now())
+        elif change == 'reversed':
+            type(proof.payment).objects.filter(pk=proof.payment_id).update(
+                reversed_at=timezone.now(),
+            )
+        return 'private-receipt'
+
+    with patch('apps.notifications.notice_documents.upload', side_effect=upload), sent() as post:
+        assert dispatch_proof_notices() == (change == 'none')
+        assert dispatch_proof_notices() == 0
+    if change == 'none':
+        assert post.call_args.args[1]['type'] == 'document'
+        assert post.call_args.args[1]['document']['id'] == 'private-receipt'
+    else:
+        post.assert_not_called()
+
+
 def sent(response='wamid.sent'):
     return patch(POST, return_value={'messages': [{'id': response}]})
 
