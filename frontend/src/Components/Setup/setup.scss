@@ -110,3 +110,12 @@
     margin-left: 2.5rem;
   }
 }
+
+.dwella-setup-account-section { display: grid; gap: 1.25rem; min-width: 0; }
+.dwella-setup-account-section h3 { font-size: var(--fs-h3); margin: 0; }
+.dwella-setup-account-section > p { margin: 0; }
+.dwella-setup-methods { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+.dwella-setup-payment-choice { border: 0; padding: 0; margin: 0; min-width: 0; }
+.dwella-setup-payment-choice legend { font-size: var(--fs-body); font-weight: 600; margin-bottom: .5rem; }
+.dwella-setup-optional { padding: 1.5rem; margin-top: 1.5rem; background: var(--dwella-paper); border-radius: var(--radius-lg); }
+.dwella-setup-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin: 1.5rem 0; }

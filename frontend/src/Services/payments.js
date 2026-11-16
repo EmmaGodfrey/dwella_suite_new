@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "./apiClient";
 import { queryClient } from "./queryClient";
+import { queryKeys } from "./queryKeys";
 import { toSearchParams } from "./queries";
 import { checkoutRefresh } from "../shared/paymentFeedback.mjs";
 
@@ -144,10 +145,11 @@ export function refreshPaymentRecords() {
 // Ways tenants pay the workspace directly; printed on every invoice.
 const instructionKey = ["billing", "payment-instructions"];
 
-export const usePaymentInstructions = () => useQuery({
+export const usePaymentInstructions = (options = {}) => useQuery({
   queryKey: instructionKey,
   queryFn: ({ signal }) => api.get("/billing/payment-instructions/", { signal }),
   retry: false,
+  ...options,
 });
 
 export const useSavePaymentInstruction = () => useMutation({
@@ -155,13 +157,19 @@ export const useSavePaymentInstruction = () => useMutation({
     ? api.patch(`/billing/payment-instructions/${id}/`, data)
     : api.post("/billing/payment-instructions/", data),
   retry: false,
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: instructionKey }),
+  onSuccess: () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: instructionKey }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.onboarding }),
+  ]),
 });
 
 export const useRemovePaymentInstruction = () => useMutation({
   mutationFn: (id) => api.delete(`/billing/payment-instructions/${id}/`),
   retry: false,
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: instructionKey }),
+  onSuccess: () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: instructionKey }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.onboarding }),
+  ]),
 });
 
 // Security deposits (held for the tenant, separate from rent).

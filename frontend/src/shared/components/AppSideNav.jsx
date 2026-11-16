@@ -25,6 +25,7 @@ import { appHref } from "../storage";
 import { BrandMark } from "./BrandMark";
 import { UserMenu } from "./UserMenu";
 import { useSupportAccess } from "../../Components/Platform/SupportAccess";
+import { useSetupQuery } from "../../Services/queries";
 import "./appSideNav.scss";
 
 // Ctrl/cmd/shift/alt-click and non-primary buttons must fall through to the
@@ -46,7 +47,13 @@ const workspaceFor = (user) => {
 export const AppSideNav = ({ collapsed, mobileOpen, selectedValue, onCollapseToggle, onMobileClose, onLogout, user }) => {
   const navigate = useNavigate();
   const showLabels = !collapsed || mobileOpen;
-  const navigationItems = getNavigationItems(user);
+  const availableItems = getNavigationItems(user);
+  const setup = useSetupQuery({ enabled: availableItems.some(item => item.to === "/setup") });
+  const requiredSteps = setup.data?.steps?.filter(item => item.required !== false);
+  const setupComplete = setup.isSuccess && !setup.isError && !setup.data.needs_setup &&
+    requiredSteps?.length > 0 && requiredSteps.every(item => item.done === true);
+  // Visibility only: keep /setup accessible for reviewing saved details.
+  const navigationItems = availableItems.filter(item => item.to !== "/setup" || !setupComplete);
   const activeModule = navigationItems.find(item => item.children?.some(child => child.value === selectedValue))?.value;
   const [openCategories, setOpenCategories] = useState(activeModule ? [activeModule] : []);
   useEffect(() => {

@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
 import { useSaveSettings, useSettingsResource } from "../../Services/settings";
 import { getUserAccess, isWorkspaceAdmin } from "../../shared/access";
+import { canAccessPath } from "../../shared/navigation";
 import { useFormErrors } from "../../shared/useFormErrors";
 import { StatusBadge } from "../../shared/components";
 import { AdminHeader, AdminState, when } from "../Platform/AdminUI";
@@ -717,6 +718,11 @@ export default function Settings() {
         {tab === "account" && (
           <>
             <Profile />
+            {canAccessPath("/setup", user.data) && (
+              <SettingsSection title="Workspace setup" note="Review your setup checklist and continue any unfinished tasks.">
+                <Button as={Link} to="/setup">Review setup</Button>
+              </SettingsSection>
+            )}
             {admin && <Notifications persona={persona} />}
           </>
         )}

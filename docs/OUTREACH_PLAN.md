@@ -165,7 +165,7 @@ has placeholders until the user confirms it (see Decisions).
   > short demo video first if that's easier. {signature_short}
 - *Day 10*: "Re: …"
   > Hi {first_name}, I'll leave it here so I don't crowd your inbox. If a partnership
-  > around the 18 December launch is interesting later, just reply and we'll pick it up.
+  > around the 20 December launch is interesting later, just reply and we'll pick it up.
   > {signature_short}
 
 **Agent / property manager beta invite** (segments `agent`, `property_manager`,
@@ -268,5 +268,5 @@ Small, focused commits within each phase (see the shared memory feedback). Work 
    sends it.
 2. **The influencer offer** to fill `{offer}`. For example: free Dwella for their own
    rentals, a referral commission per paying landlord, a paid launch-post fee, or
-   co-created content around the 18 December launch.
+   co-created content around the 20 December launch.
 3. **Daily cap** to start with. Recommended: 10 a day in week one, then 25.

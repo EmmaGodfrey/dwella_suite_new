@@ -12,3 +12,13 @@
 .dwella-whatsapp-actions, .dwella-whatsapp-connected { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
 .dwella-whatsapp-connected { justify-content: space-between; }
 .dwella-whatsapp-connected p { color: var(--dwella-muted); margin: 0.25rem 0 0; }
+.dwella-whatsapp-pairing {
+  display: grid; grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  align-items: center; gap: 1.5rem; width: 100%; max-width: 36rem;
+  svg { display: block; max-width: 100%; height: auto; background: white; }
+  h3 { font-size: var(--fs-body); margin: 0 0 .5rem; }
+  p { margin: 0; color: var(--dwella-muted); }
+}
+@media (max-width: 36rem) {
+  .dwella-whatsapp-pairing { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+}
