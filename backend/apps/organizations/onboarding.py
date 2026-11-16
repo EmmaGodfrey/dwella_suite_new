@@ -3,10 +3,12 @@ from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from apps.billing.models import Invoice
@@ -19,6 +21,7 @@ from apps.subscriptions.services import capacity_guard
 from apps.tenants.models import Tenant
 
 from .models import Organization, OrganizationMembership
+from .setup_account import account_status, save_account_stage
 
 
 class SetupSerializer(serializers.Serializer):
@@ -45,54 +48,63 @@ def setup_status(user, request=None):
         if user.is_staff or user.is_superuser
         else (not membership or membership.role == OrganizationMembership.Role.LANDLORD)
     )
-    models = [Property, Unit, Tenant, Lease, Invoice]
-    counts = [model.objects.for_organization(org).count() if org else 0 for model in models]
-    active_leases = (
-        Lease.objects.for_organization(org).filter(status="active").count() if org else 0
-    )
+    def active(model):
+        queryset = (
+            model.objects.for_request(request) if request
+            else model.objects.for_organization(org)
+        )
+        return queryset.filter(is_active=True)
+
+    property_done = active(Unit).filter(
+        property__is_active=True, property__management_status="managed",
+    ).exists() if org else False
+    tenant_done = active(Tenant).exclude(status="past").exists() if org else False
+    lease_done = active(Lease).filter(
+        status="active", unit__is_active=True, unit__property__is_active=True,
+        tenant__is_active=True, unit__property__management_status="managed",
+    ).exists() if org else False
+    invoice_done = active(Invoice).exclude(status=Invoice.Status.VOID).filter(
+        tenant__is_active=True, is_opening_balance=False,
+    ).filter(
+        Q(unit__isnull=True) | Q(unit__is_active=True, unit__property__is_active=True,
+                               unit__property__management_status="managed"),
+    ).exists() if org else False
+    account = account_status(org) if editable else {"account_ready": True, "account_steps": []}
+    portfolio = [
+        {"key": "property", "label": "Add your first property and unit",
+         "done": property_done, "path": "/properties"},
+        {"key": "tenant", "label": "Add your first tenant",
+         "done": tenant_done, "path": "/tenants"},
+        {"key": "lease", "label": "Activate a lease", "done": lease_done, "path": "/leases"},
+        {"key": "invoice", "label": "Generate your first rent invoice",
+         "done": invoice_done, "path": "/billing"},
+    ]
+    for item in portfolio:
+        item.update(group="portfolio", required=True)
+    steps = account["account_steps"] + portfolio
     return {
-        "needs_setup": editable and not counts[0],
+        "needs_setup": editable and not org,
         "can_setup": editable,
         "business_name": str(org) if org else "",
         "email": org.email if org else user.email,
         "phone_number": org.phone_number if org else "",
-        "steps": [
-            {
-                "key": "workspace",
-                "label": "Set up your workspace",
-                "done": bool(org),
-                "path": "/setup",
-            },
-            {
-                "key": "property",
-                "label": "Add your first property and unit",
-                "done": bool(counts[0] and counts[1]),
-                "path": "/properties",
-            },
-            {
-                "key": "tenant",
-                "label": "Add your first tenant",
-                "done": bool(counts[2]),
-                "path": "/tenants",
-            },
-            {
-                "key": "lease",
-                "label": "Activate a lease",
-                "done": bool(active_leases),
-                "path": "/leases",
-            },
-            {
-                "key": "invoice",
-                "label": "Generate your first rent invoice",
-                "done": bool(counts[4]),
-                "path": "/billing",
-            },
-        ],
+        **account,
+        "steps": steps,
+        "complete": all(item["done"] for item in steps),
     }
+
+
+class SetupWriteThrottle(UserRateThrottle):
+    scope = "onboarding_write"
+    rate = "120/hour"
+
 
 
 class OnboardingView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        return [SetupWriteThrottle()] if self.request.method == "POST" else super().get_throttles()
 
     def check_access(self, request):
         resolve_workspace(request)
@@ -125,9 +137,19 @@ class OnboardingView(APIView):
     def post(self, request):
         # Serialize repeat submissions and prevent two workspaces for a new account.
         get_user_model().objects.select_for_update().get(pk=request.user.pk)
-        self.check_access(request)
-        if not setup_status(request.user, request)["can_setup"]:
+        if not isinstance(request.data, dict):
+            raise ValidationError({"detail": "Send a setup object."})
+        membership = self.check_access(request)
+        if (
+            membership and membership.role != OrganizationMembership.Role.LANDLORD
+            and not (request.user.is_staff or request.user.is_superuser)
+        ):
             raise PermissionDenied("Only a landlord can complete setup.")
+        if "stage" in request.data:
+            resolved = resolve_workspace(request)
+            org = Organization.objects.select_for_update().get(pk=resolved.pk) if resolved else None
+            save_account_stage(request, request.data["stage"], org)
+            return Response(setup_status(request.user, request))
         serializer = SetupSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
@@ -154,9 +176,12 @@ class OnboardingView(APIView):
                 email=data["email"],
                 phone_number=data["phone_number"],
             )
-            OrganizationMembership.objects.create(
+            membership = OrganizationMembership.objects.create(
                 organization=org, user=request.user, role=OrganizationMembership.Role.LANDLORD
             )
+            request._workspace_membership = (request.user.pk, membership)
+            if hasattr(request._request, "_property_scope"):
+                del request._request._property_scope
             request.organization = org
             request._request.organization = org
         with capacity_guard(org, Resource.PROPERTIES), capacity_guard(org, Resource.UNITS):

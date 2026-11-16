@@ -42,7 +42,9 @@ def test_new_user_creates_own_workspace_property_and_unit_once():
     assert Unit.objects.get().rent_amount == 3900
     data = response.json()["response_data"]
     assert not data["needs_setup"]
-    assert [step["done"] for step in data["steps"]] == [True, True, False, False, False]
+    assert [step["done"] for step in data["steps"]] == [
+        False, False, False, False, True, False, False, False,
+    ]
     assert client.post(URL, PAYLOAD, format="json").status_code == 400
     assert Organization.objects.count() == 1
     assert Property.objects.count() == Unit.objects.count() == 1
