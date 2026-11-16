@@ -89,7 +89,11 @@ export default function RentCheckout({ invoice }) {
           setReturnedKind(event);
           setStage("checking");
           setBusy(false);
-          check.mutate(result.collection.id);
+          // A closed checkout shows as resumable once the server check settles;
+          // a reported completion keeps waiting for the server's receipt.
+          check.mutate(result.collection.id, event === "close" ? {
+            onSettled: () => { if (!lifetime.current?.signal.aborted) setStage((current) => current === "checking" ? "idle" : current); },
+          } : undefined);
         }
       }, lifetime.current?.signal);
       if (!lifetime.current?.signal.aborted) setStage((current) => current === "opening" ? "provider" : current);
@@ -110,10 +114,10 @@ export default function RentCheckout({ invoice }) {
         {feedback.working ? <Spinner size="small" aria-hidden="true" /> : feedback.kind === "confirmed" ? <CheckmarkCircle24Regular aria-hidden="true" /> : <Info24Regular aria-hidden="true" />}
         <div><strong>{feedback.title}</strong><p>{feedback.message}</p>
           {feedback.kind === "confirmed" && <Button as={Link} to={`/billing/receipts/${latest.payment_id}`} size="small">View receipt {latest.receipt_number}</Button>}
-          {waiting && <Button size="small" disabled={check.isPending || !checkId} onClick={() => check.mutate(checkId)}>
+          {(waiting || feedback.resumable) && <Button size="small" disabled={check.isPending || !checkId} onClick={() => check.mutate(checkId)}>
             {check.isPending ? "Checking…" : "Check status"}
           </Button>}
-          {check.isError && waiting && <p>We couldn’t request a fresh check. Automatic confirmation is still running; you can try checking again.</p>}
+          {check.isError && (waiting || feedback.resumable) &&<p>We couldn’t request a fresh check. Automatic confirmation is still running; you can try checking again.</p>}
         </div>
       </div>}
       {options.isLoading ? <p role="status">Checking payment options…</p> : null}
