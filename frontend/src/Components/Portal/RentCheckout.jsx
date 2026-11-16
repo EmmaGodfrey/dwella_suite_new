@@ -38,12 +38,15 @@ export default function RentCheckout({ invoice }) {
   const waiting = feedback?.kind === "waiting";
   const confirmingCompletedCheckout = waiting && (["success", "pending"].includes(returnedKind) || latest?.channel === "mobile-money");
 
+  // "Delayed" belongs to one payment attempt. Leaving the waiting state (for
+  // example to "Card verification not finished") must not reset it, or the
+  // feedback would flip back to waiting and loop every 20 seconds.
+  useEffect(() => { setDelayed(false); }, [latest?.id]);
   useEffect(() => {
-    setDelayed(false);
-    if (!waiting) return;
+    if (!waiting || delayed) return;
     const timer = setTimeout(() => setDelayed(true), 20_000);
     return () => clearTimeout(timer);
-  }, [waiting, latest?.id]);
+  }, [waiting, delayed, latest?.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,7 +79,7 @@ export default function RentCheckout({ invoice }) {
       operator: () => channel === "mobile-money" && !["mtn", "airtel", "zamtel"].includes(operator)
         ? "Choose the network for this number." : "",
     }, event.currentTarget)) return;
-    setBusy(true); setError(""); setStage("opening"); setReturnedKind(null);
+    setBusy(true); setError(""); setStage("opening"); setReturnedKind(null); setDelayed(false);
     try {
       const result = await start.mutateAsync({ invoiceId: invoice.id, amount: Number(amount).toFixed(2), idempotencyKey: key.current,
         channel, phone, operator });
