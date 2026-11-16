@@ -118,6 +118,15 @@ def menu(ctx, conversation, note=''):
                 ('Create invoice in Dwella', 'create_invoice'),
                 ('Review payment proof', 'review_proof'),
                 ('Repairs', 'repairs'), ('Send rent reminder', 'reminders')])
+    if ctx.role == 'manager':
+        # Money actions keep their existing owner/tenant adapters. Assigned
+        # managers use the scoped website flow for writes.
+        entries = [('Who owes me?', 'balance'), ('Invoices', 'invoices'),
+                   ('Receipts', 'receipts'), ('Create invoice in Dwella', 'create_invoice'),
+                   ('Repairs', 'repairs')]
+        note = note or ('Assigned properties only.' if ctx.assigned_scope.ids else
+                        'No properties are assigned to you yet. Ask your property admin '
+                        'to assign them in Team.')
     options = [choice(conversation, title, action, member=ctx.membership)
                for title, action in entries]
     options.append(choice(conversation, 'Switch workspace', 'workspaces'))
@@ -161,9 +170,14 @@ def listing(ctx, conversation, action, page):
 
 
 def run_action(ctx, conversation, action, target='', page=0):
-    if action == 'create_invoice' and ctx.role == 'landlord':
+    if action == 'create_invoice' and ctx.role in {'landlord', 'manager'}:
         return response('Create and review invoices in Dwella:\n' + website('billing') +
                         '\nSend MENU to return to WhatsApp options.')
+    if ctx.role == 'manager' and action in (
+        MONEY_INTENTS | {'reminders', 'reminder', 'reminder_confirm'}
+    ):
+        return menu(ctx, conversation,
+                    'Manage payments and reminders in Dwella: ' + website('billing'))
     if action in {'invoice_pdf', 'receipt_pdf', 'statement_pdf'}:
         from .documents import request
 
@@ -215,7 +229,9 @@ def run_action(ctx, conversation, action, target='', page=0):
         return menu(ctx, conversation)
     if action == 'balance':
         snapshot = balance_snapshot(ctx)
-        caption = 'Your open invoices' if ctx.role == 'tenant' else 'Workspace open invoices'
+        caption = ('Your open invoices' if ctx.role == 'tenant' else
+                   'Assigned-property open invoices' if ctx.role == 'manager' else
+                   'Workspace open invoices')
         return response(f'{ctx.organization}\n{caption}: {snapshot["count"]}\n'
                         f'Outstanding: {ctx.organization.currency} '
                         f'{Decimal(snapshot["balance"]):,.2f}', [

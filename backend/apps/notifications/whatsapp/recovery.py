@@ -1,28 +1,18 @@
 """Recoverable conversation failures and a narrowly scoped opt-out acknowledgement."""
 from datetime import timedelta
 
-from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from apps.notifications.models import PhoneMessagingConsent
 from apps.subscriptions.models import WorkspaceAccessPolicy
 from apps.subscriptions.services import feature_state
-from apps.tenants.models import Tenant
 
-from .access import actor_context, memberships
+from .access import actor_context, eligible_memberships
 from .models import WhatsAppBinding, WhatsAppReply
 
 STOP_ACK = ('WhatsApp notices and account access are now off. '
             'You can reconnect from your signed-in Dwella account when you are ready.')
-
-
-def eligible_memberships(user):
-    linked = Tenant.objects.filter(user=user, organization_id=OuterRef('organization_id'),
-                                   is_active=True)
-    return memberships(user).annotate(linked=Exists(linked)).filter(
-        Q(role='landlord') | Q(linked=True),
-    )
 
 
 def single_workspace(binding):

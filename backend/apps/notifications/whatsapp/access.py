@@ -9,6 +9,7 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from apps.accounts.access_state import email_status
+from apps.common.property_scope import PropertyScope, scope_for_membership
 from apps.organizations.models import OrganizationMembership
 from apps.subscriptions.catalog import Feature
 from apps.subscriptions.services import require_feature
@@ -44,7 +45,7 @@ def memberships(user):
     require_actor(user)
     return OrganizationMembership.objects.filter(
         user=user, is_active=True, organization__is_active=True,
-        role__in=['landlord', 'tenant'],
+        role__in=[*OrganizationMembership.MANAGEMENT_ROLES, 'tenant'],
     ).select_related('organization').order_by('organization_id')
 
 
@@ -53,6 +54,7 @@ class ActorContext:
     binding: WhatsAppBinding
     membership: OrganizationMembership
     tenant_ids: list
+    _property_scope: PropertyScope | None = None
 
     @property
     def user(self):
@@ -66,8 +68,18 @@ class ActorContext:
     def role(self):
         return self.membership.role
 
+    @property
+    def assigned_scope(self):
+        # Reused only within this actor context. Workers create a fresh context
+        # before dispatch/upload, so assignment/cover changes remain authoritative.
+        if self._property_scope is None:
+            self._property_scope = scope_for_membership(self.membership)
+        return self._property_scope
+
     def scope(self, queryset):
         query = queryset.filter(organization=self.organization, is_active=True)
+        if self.role == OrganizationMembership.Role.MANAGER:
+            return self.assigned_scope.filter(query)
         return query.filter(tenant_id__in=self.tenant_ids) if self.role == 'tenant' else query
 
 
@@ -108,15 +120,21 @@ def revoke(phone=None, user=None):
     )
 
 
+def eligible_memberships(user):
+    linked = Tenant.objects.filter(user=user, organization_id=OuterRef('organization_id'),
+                                   is_active=True)
+    return memberships(user).annotate(linked=Exists(linked)).filter(
+        Q(role__in=OrganizationMembership.MANAGEMENT_ROLES) | Q(linked=True),
+    )
+
+
 @transaction.atomic
 def bind(user, phone):
     require_actor(user)
-    linked = Tenant.objects.filter(user=user, organization_id=OuterRef('organization_id'),
-                                   is_active=True)
-    if not memberships(user).annotate(linked=Exists(linked)).filter(
-        Q(role='landlord') | Q(linked=True),
-    ).exists():
-        raise PermissionDenied('This account is not linked to a tenancy.')
+    if not eligible_memberships(user).exists():
+        if memberships(user).filter(role='tenant').exists():
+            raise PermissionDenied('This account is not linked to a tenancy.')
+        raise PermissionDenied('Finish your workspace setup in Dwella before connecting WhatsApp.')
     if WhatsAppBinding.objects.filter(phone=phone, revoked_at__isnull=True).exclude(
         user=user,
     ).exists():
