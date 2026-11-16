@@ -106,7 +106,7 @@ export default function PaymentInstructions() {
   const items = query.data || [];
   return <section className="settings-section">
     <header>
-      <div><h2>How tenants pay you</h2><p>Bank or mobile money details printed on every invoice, next to the Dwella online payment option.</p></div>
+      <div><h2>How tenants pay you</h2><p>Bank or mobile money details printed under “How to pay” on your invoices.</p></div>
       {items.length < MAX && !query.isPending && !query.isError &&
         <Button appearance="primary" onClick={() => setEditing({})}>Add payment details</Button>}
     </header>
