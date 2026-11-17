@@ -19,13 +19,24 @@ LABELS = {
 }
 
 
+def tpin_required(get):
+    """A TPIN is a Zambian tax number: foreign passport holders may not have one."""
+    if get("tenant_type", "individual") == "company":
+        return True
+    country = str(get("identity_country") or "").strip().upper()
+    foreign_passport = get("identity_type", "nrc") == "passport" and country not in ("", "ZM")
+    return not foreign_passport
+
+
 def missing_details(tenant):
     get = (
         tenant.get
         if isinstance(tenant, dict)
         else lambda key, default="": getattr(tenant, key, default)
     )
-    fields = ["full_name", "phone_number", "tpin", "billing_address"]
+    fields = ["full_name", "phone_number", "billing_address"]
+    if tpin_required(get):
+        fields.insert(2, "tpin")
     fields += (
         ["company_registration", "representative_name", "representative_phone"]
         if get("tenant_type", "individual") == "company"

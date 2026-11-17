@@ -44,6 +44,44 @@ def test_individual_company_and_foreign_checklists():
     assert missing_details(company) == []
 
 
+def test_tpin_is_optional_only_for_foreign_passport_holders():
+    foreign = {
+        "full_name": "James Whitfield",
+        "phone_number": "+447700900123",
+        "tpin": "",
+        "national_id": "GBR123456789",
+        "identity_type": "passport",
+        "identity_country": "GB",
+        "billing_address": "14 Cheval Place, London",
+    }
+    assert missing_details(foreign) == []
+    changes = (
+        {"identity_country": "ZM"},
+        {"identity_type": "nrc"},
+        {"tenant_type": "company"},
+        {"identity_country": ""},
+    )
+    for change in changes:
+        fields = {item["field"] for item in missing_details({**foreign, **change})}
+        assert "tpin" in fields
+
+
+def test_missing_filter_skips_foreign_passport_without_tpin(setup):
+    org, client, lease = setup
+    lease.tenant.tpin = ""
+    lease.tenant.identity_type = "passport"
+    lease.tenant.identity_country = "GB"
+    lease.tenant.save()
+    rows = client.get("/api/v1/tenants/?details=missing").json()["response_data"]
+    rows = rows["results"] if isinstance(rows, dict) else rows
+    assert lease.tenant.public_id not in {str(row.get("public_id", row.get("id"))) for row in rows}
+    lease.tenant.identity_country = "ZM"
+    lease.tenant.save()
+    rows = client.get("/api/v1/tenants/?details=missing").json()["response_data"]
+    rows = rows["results"] if isinstance(rows, dict) else rows
+    assert any(row["full_name"] == lease.tenant.full_name for row in rows)
+
+
 def test_list_masks_identifiers_detail_edits_and_missing_filter(setup):
     _, client, lease = setup
     listed = client.get("/api/v1/tenants/").json()["response_data"][0]
