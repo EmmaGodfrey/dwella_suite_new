@@ -72,3 +72,19 @@ export function useGuidedTour(user, enabled = true) {
   });
   return { ...query, mutation };
 }
+
+export function usePageGuides(user, enabled = true) {
+  const client = useQueryClient();
+  const key = ["accounts", "page-guides", user?.id, user?.access?.organization_id];
+  const query = useQuery({
+    queryKey: key,
+    queryFn: () => api.get("/accounts/page-guides/"),
+    enabled: enabled && Boolean(user?.id),
+    staleTime: 5 * 60_000,
+  });
+  const markSeen = useMutation({
+    mutationFn: (module) => api.post("/accounts/page-guides/", { module, action: "seen" }),
+    onSuccess: (data) => client.setQueryData(key, data),
+  });
+  return { ...query, markSeen };
+}

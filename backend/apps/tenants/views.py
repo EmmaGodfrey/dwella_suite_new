@@ -107,8 +107,13 @@ class TenantViewSet(ImportActionsMixin, OrganizationScopedModelViewSet):
                 unit__property__organization_id=OuterRef("organization_id"),
             )))
         if self.action == "list" and self.request.query_params.get("details") == "missing":
+            foreign_passport = (
+                Q(tenant_type="individual", identity_type="passport")
+                & ~Q(identity_country="ZM")
+                & ~Q(identity_country="")
+            )
             queryset = queryset.filter(
-                Q(tpin="")
+                (Q(tpin="") & ~foreign_passport)
                 | Q(billing_address="")
                 | (Q(tenant_type="individual") & (Q(national_id="") | Q(identity_country="")))
                 | (

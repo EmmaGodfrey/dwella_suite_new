@@ -7,6 +7,7 @@ from apps.organizations.team_invitations import (
 
 from .email_verification import EmailVerificationConfirmView, EmailVerificationView
 from .invitations import InvitationAcceptView, InvitationPreviewView
+from .page_guides import PageGuidesView
 from .registration import RegistrationView
 from .tours import GuidedTourView
 from .uat import UatChecklistView, UatExportView, UatResultView
@@ -33,6 +34,7 @@ urlpatterns = [
     path("uat/export/", UatExportView.as_view()),
     path("uat/results/<str:case_id>/", UatResultView.as_view()),
     path("guided-tour/", GuidedTourView.as_view(), name="guided-tour"),
+    path("page-guides/", PageGuidesView.as_view(), name="page-guides"),
     path("invitations/preview/", InvitationPreviewView.as_view(), name="invitation-preview"),
     path("invitations/accept/", InvitationAcceptView.as_view(), name="invitation-accept"),
     path(

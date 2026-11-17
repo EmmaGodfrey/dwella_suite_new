@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { USER_STORAGE_KEY } from "../shared/storage";
 import AccessRemoved from "../Components/Portal/AccessRemoved";
 import CoverBanner from "../Components/Team/CoverBanner";
+import PageGuide from "../Components/PageGuide";
 
 const getCachedUser = () => {
   try {
@@ -95,6 +96,7 @@ const AppLayout = ({ notFound = false }) => {
         <main className="dwella-content" data-tour="dashboard-overview">
           <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
             {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} /> : null}
+            {!notFound ? <PageGuide user={user} /> : null}
             {getUserAccess(user).workspace_suspended ? <div role="status" className="admin-card"><h1>Workspace suspended</h1><p>Contact Dwella support to restore access to your workspace.</p></div> : <Outlet />}
           </PageActionsSlot.Provider>
         </main>

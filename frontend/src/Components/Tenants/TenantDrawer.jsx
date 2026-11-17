@@ -15,7 +15,7 @@ import LeaseFields from "../Leases/LeaseFields";
 import { FormDrawer, FormReview } from "../../shared/components/FormFlow";
 import { firstErrorStep, ruleErrors } from "../../shared/formFlow";
 import { formatDate, formatMoney } from "../../shared/format";
-import { tenantFields as TENANT_FIELDS, missingTenantDetails, detailLabel } from "../../shared/tenantDetails.mjs";
+import { tenantFields as TENANT_FIELDS, missingTenantDetails, tpinRequired, detailLabel } from "../../shared/tenantDetails.mjs";
 
 const SERVER_FIELDS = [...TENANT_FIELDS, ...LEASE_FIELDS.map((name) => `lease.${name}`)];
 
@@ -139,7 +139,7 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
         <Field label="Email" {...fieldProps("email")}>
           <Input type="email" value={form.email} placeholder="Optional" onChange={(_, d) => update("email", d.value)} />
         </Field>
-        <Field label="TPIN" hint="10 digits; format checked only." {...fieldProps("tpin")}><Input maxLength={10} inputMode="numeric" value={form.tpin} onChange={(_, d) => update("tpin", d.value)} /></Field>
+        <Field label="TPIN" hint={tpinRequired(form) ? "10 digits; format checked only." : "Optional for foreign passport holders. 10 digits if they have one."} {...fieldProps("tpin")}><Input maxLength={10} inputMode="numeric" value={form.tpin} onChange={(_, d) => update("tpin", d.value)} /></Field>
         {form.tenant_type === "individual" ? <>
           <Field label="Identity document"><Select value={form.identity_type} onChange={(_, d) => update("identity_type", d.value)}><option value="nrc">NRC</option><option value="passport">Passport</option><option value="other">Other identity document</option></Select></Field>
           <Field label="Identity document number" hint="Kept off invoices and notices." {...fieldProps("national_id")}><Input maxLength={40} value={form.national_id} onChange={(_, d) => update("national_id", d.value)} /></Field>
@@ -210,7 +210,7 @@ export default function TenantDrawer({ open, tenant, onClose, onSaved }) {
               { label: "Tenant", value: form.full_name, step: 0 },
               { label: "Phone", value: form.phone_number, step: 0 },
               { label: "Email", value: form.email, step: 0 },
-              { label: "NRC or passport", value: form.national_id, step: 0 },
+              { label: form.identity_type === "passport" ? "Passport number" : form.identity_type === "other" ? "Identity document number" : "NRC number", value: form.national_id, step: 0 },
               { label: "TPIN", value: form.tpin, step: 0 },
               { label: "Billing address", value: form.billing_address, step: 0 },
               ...(missing.length ? [{ label: "Details still needed", value: missing.map(detailLabel).join(", "), step: 0 }] : []),
