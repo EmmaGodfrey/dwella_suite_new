@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Checkbox, Field, Input, Switch } from "@fluentui/react-components";
 import { useSaveSetupMutation } from "../../Services/mutations";
@@ -26,6 +26,8 @@ export default function AccountSetup({ status, onComplete, onClose }) {
   const reminderQuery = useSettingsResource("reminders", { enabled: step === 2 && !status.needs_setup });
   const { errors, validate, fieldProps, clearError, clearAll, showServerErrors } = useFormErrors();
   const save = useSaveSetupMutation();
+  // Saved details arriving can resolve a payment-method error that was raised a moment earlier.
+  useEffect(() => { if (instructions.data) clearError("payment_methods"); }, [instructions.data]);
   const changeBusiness = (key, value) => {
     setBusiness(current => ({ ...current, [key]: value })); clearError(key); setMessage("");
   };

@@ -34,6 +34,8 @@ function InstructionDrawer({ item, kind, onClose, onSaved }) {
   };
   const submit = async (event) => {
     event.preventDefault();
+    // The drawer renders inside Setup's form in the React tree; its submit must not reach that form.
+    event.stopPropagation();
     if (save.isPending) return;
     const rules = {
       account_name: () => form.account_name.trim().length < 2 ? "Enter the name on the account." : "",
