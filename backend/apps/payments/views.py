@@ -122,7 +122,13 @@ class TenantPaymentOptionsView(PrivateView):
             and org.currency == "ZMW"
             and Destination.objects.filter(organization=org, enabled=True).exists()
         )
-        return Response({"enabled": enabled, "currency": "ZMW"})
+        from .services import method_enabled
+
+        methods = {
+            "card": enabled and method_enabled("card"),
+            "mobile_money": enabled and method_enabled("mobile-money"),
+        }
+        return Response({"enabled": any(methods.values()), "methods": methods, "currency": "ZMW"})
 
 
 class TenantCollectionList(PrivateView, generics.ListAPIView):

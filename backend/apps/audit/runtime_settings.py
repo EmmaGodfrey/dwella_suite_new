@@ -40,6 +40,9 @@ def defaults():
         "whatsapp_enabled": settings.WHATSAPP_ENABLED,
         "whatsapp_template": settings.WHATSAPP_RENT_TEMPLATE,
         "whatsapp_language": settings.WHATSAPP_TEMPLATE_LANGUAGE,
+        # Money switches: changed only through the step-up endpoint, never the ordinary PATCH.
+        "payments_card_enabled": settings.LENCO_CARD_ENABLED,
+        "payments_mobile_money_enabled": settings.LENCO_MOBILE_MONEY_ENABLED,
         "beta_registration_open": settings.BETA_REGISTRATION_OPEN,
         "beta_emails_enabled": settings.BETA_EMAILS_ENABLED,
         "beta_open_date": settings.BETA_OPEN_DATE,

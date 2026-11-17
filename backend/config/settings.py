@@ -358,6 +358,9 @@ ZRA_VSDC_CLIENT = __import__("os").getenv(
 LENCO_ENVIRONMENT = __import__("os").getenv("LENCO_ENVIRONMENT", "sandbox")
 LENCO_PAYMENTS_ENABLED = env_bool("LENCO_PAYMENTS_ENABLED", False)
 LENCO_PAYOUTS_ENABLED = env_bool("LENCO_PAYOUTS_ENABLED", False)
+# Defaults for the Super Admin card / mobile-money switches (runtime settings override these).
+LENCO_CARD_ENABLED = env_bool("LENCO_CARD_ENABLED", True)
+LENCO_MOBILE_MONEY_ENABLED = env_bool("LENCO_MOBILE_MONEY_ENABLED", True)
 LENCO_ALLOW_UNVERIFIED_DESTINATIONS = env_bool("LENCO_ALLOW_UNVERIFIED_DESTINATIONS", False)
 # Legacy: pay each settled collection out on its own. Landlords now withdraw.
 LENCO_AUTOMATIC_PAYOUTS = env_bool("LENCO_AUTOMATIC_PAYOUTS", False)

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, Checkbox, Field, Input, Switch } from "@fluentui/react-components";
 import { useSaveSetupMutation } from "../../Services/mutations";
@@ -26,6 +26,8 @@ export default function AccountSetup({ status, onComplete, onClose }) {
   const reminderQuery = useSettingsResource("reminders", { enabled: step === 2 && !status.needs_setup });
   const { errors, validate, fieldProps, clearError, clearAll, showServerErrors } = useFormErrors();
   const save = useSaveSetupMutation();
+  // Saved details arriving can resolve a payment-method error that was raised a moment earlier.
+  useEffect(() => { if (instructions.data) clearError("payment_methods"); }, [instructions.data]);
   const changeBusiness = (key, value) => {
     setBusiness(current => ({ ...current, [key]: value })); clearError(key); setMessage("");
   };
@@ -84,7 +86,7 @@ export default function AccountSetup({ status, onComplete, onClose }) {
           <div className="dwella-setup-methods">{Object.entries(methodLabels).map(([key, label]) => <Checkbox key={key} label={label} checked={methods.includes(key)} onChange={(_, data) => { setMethods(current => data.checked ? [...current, key] : current.filter(value => value !== key)); clearError("payment_methods"); }} />)}</div>
           {errors.payment_methods && <p id="setup-payment-error" role="alert" className="dwella-alert danger">{errors.payment_methods}</p>}
         </fieldset>
-        <PaymentInstructions />
+        <PaymentInstructions required={methods.filter((kind) => kind !== "cash")} />
         {methods.includes("cash") && <p className="dwella-muted-copy">Record cash received in Dwella. A tenant can also report a cash payment through WhatsApp; a manager must confirm receipt before it changes the balance.</p>}
         <p className="dwella-muted-copy">These details tell tenants how to pay you directly. A Dwella withdrawal receiving account is separate and is not required for manual payments.</p>
       </div>}

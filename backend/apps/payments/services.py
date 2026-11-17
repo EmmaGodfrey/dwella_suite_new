@@ -81,6 +81,17 @@ def approve_destination(
     )
 
 
+METHOD_LABELS = {"card": "Card payments", "mobile-money": "Mobile-money payments"}
+
+
+def method_enabled(channel):
+    """Super Admin switch for one online method; the env flag is only the default."""
+    from apps.audit.runtime_settings import runtime_settings
+
+    key = "payments_mobile_money_enabled" if channel == "mobile-money" else "payments_card_enabled"
+    return bool(runtime_settings()[key])
+
+
 @transaction.atomic
 def start_checkout(
     *, invoice, user, idempotency_key, amount, channel="checkout", phone="", operator=""
@@ -95,6 +106,12 @@ def start_checkout(
         raise ValidationError("Mobile-money details require the mobile-money payment method.")
     if not settings.LENCO_PAYMENTS_ENABLED:
         raise ValidationError("Online payments are not enabled yet.")
+    method = "mobile-money" if channel == "mobile-money" else "card"
+    if not method_enabled(method):
+        raise ValidationError(
+            f"{METHOD_LABELS[method]} are switched off for now. Choose another way to pay "
+            "or contact your property manager. Nothing was charged."
+        )
     require_feature(invoice.organization, Feature.ONLINE_PAYMENTS)
     if settings.LENCO_ENVIRONMENT not in {"live", "sandbox"} or not settings.LENCO_PUBLIC_KEY:
         raise ValidationError("Online payment configuration is incomplete.")

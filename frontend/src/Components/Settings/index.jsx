@@ -25,6 +25,7 @@ import OutreachSettings from "../Outreach/Settings";
 import AssistantSettings from "../Platform/Settings";
 import RuntimeConfiguration from "./RuntimeConfiguration";
 import ProviderCredentials from "./ProviderCredentials";
+import PaymentMethodSwitches from "./PaymentMethodSwitches";
 import SupportContacts from "../../shared/components/SupportContacts";
 import NotificationPhone from "./NotificationPhone";
 import "./settings.scss";
@@ -646,6 +647,7 @@ function PaymentSettings() {
                 {data.payouts_enabled ? "Enabled" : "Disabled"}
               </StatusBadge>
             </SettingsRow>
+            <PaymentMethodSwitches data={data} />
             <SettingsRow label="Balance comparison">
               {balance.isError
                 ? "Could not load"
