@@ -4,6 +4,7 @@ from . import views
 from .platform_views import (
     PlatformCollectionDetail,
     PlatformPaymentConfiguration,
+    PlatformPaymentSwitches,
     PlatformTransactionsView,
     PlatformWithdrawalDetail,
 )
@@ -11,6 +12,7 @@ from .platform_views import (
 urlpatterns = [
     path("platform/transactions/", PlatformTransactionsView.as_view()),
     path("platform/configuration/", PlatformPaymentConfiguration.as_view()),
+    path("platform/switches/", PlatformPaymentSwitches.as_view()),
     path("platform/collections/<uuid:public_id>/", PlatformCollectionDetail.as_view()),
     path("platform/withdrawals/<uuid:public_id>/", PlatformWithdrawalDetail.as_view()),
     path("tenant/options/", views.TenantPaymentOptionsView.as_view()),

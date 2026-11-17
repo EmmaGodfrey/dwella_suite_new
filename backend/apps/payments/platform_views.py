@@ -1,11 +1,16 @@
 """Read-only platform transaction browsing. Never contacts a payment provider."""
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_post_parameters
 from rest_framework import generics, serializers
 from rest_framework.response import Response
+from rest_framework.throttling import UserRateThrottle
 
+from apps.audit.runtime_settings import runtime_settings
 from apps.common.permissions import IsPlatformSuperuser
 
 from .models import Collection, Exchange, Payout, ProviderTransaction, Withdrawal
@@ -249,10 +254,69 @@ class PlatformPaymentConfiguration(PrivateView):
                 "environment": settings.LENCO_ENVIRONMENT,
                 "collections_enabled": settings.LENCO_PAYMENTS_ENABLED,
                 "payouts_enabled": settings.LENCO_PAYOUTS_ENABLED,
+                "card_enabled": runtime_settings()["payments_card_enabled"],
+                "mobile_money_enabled": runtime_settings()["payments_mobile_money_enabled"],
                 "api_configured": bool(settings.LENCO_PUBLIC_KEY and settings.LENCO_SECRET_KEY),
                 "account_configured": bool(settings.LENCO_DEBIT_ACCOUNT_ID),
                 "last_webhook_at": latest.order_by("-id")
                 .values_list("created_at", flat=True)
                 .first(),
+            }
+        )
+
+
+class PaymentSwitchThrottle(UserRateThrottle):
+    scope = "payment_switch"
+    rate = "10/hour"
+
+
+class PaymentSwitchSerializer(serializers.Serializer):
+    card = serializers.BooleanField(required=False)
+    mobile_money = serializers.BooleanField(required=False)
+    password = serializers.CharField(max_length=128, write_only=True, trim_whitespace=False)
+    code = serializers.RegexField(r"^[0-9]{6}$", write_only=True)
+
+    def validate(self, attrs):
+        if set(self.initial_data) - set(self.fields):
+            raise serializers.ValidationError("Unsupported fields.")
+        if not {"card", "mobile_money"} & set(attrs):
+            raise serializers.ValidationError("Choose card or mobile money to change.")
+        return attrs
+
+
+@method_decorator(sensitive_post_parameters("password", "code"), name="dispatch")
+class PlatformPaymentSwitches(PrivateView):
+    """Turn online card / mobile-money collection on or off. Needs password + fresh code."""
+
+    permission_classes = [IsPlatformSuperuser]
+    throttle_classes = [PaymentSwitchThrottle]
+
+    def post(self, request):
+        from apps.audit.models import PlatformSettings
+        from apps.audit.provider_credentials import verify_step_up
+        from apps.audit.services import record_event
+
+        serializer = PaymentSwitchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        with transaction.atomic():
+            verify_step_up(request, password=data["password"], code=data["code"])
+            PlatformSettings.objects.get_or_create(pk=1)
+            instance = PlatformSettings.objects.select_for_update().get(pk=1)
+            changes = {}
+            if "card" in data:
+                changes["payments_card_enabled"] = data["card"]
+            if "mobile_money" in data:
+                changes["payments_mobile_money_enabled"] = data["mobile_money"]
+            instance.runtime_config = {**instance.runtime_config, **changes}
+            instance.save(update_fields=["runtime_config"])
+            record_event(
+                request, "platform.payment_methods_switched", instance, fields=sorted(changes)
+            )
+        config = runtime_settings(instance=instance)
+        return Response(
+            {
+                "card": config["payments_card_enabled"],
+                "mobile_money": config["payments_mobile_money_enabled"],
             }
         )

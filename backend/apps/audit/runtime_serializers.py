@@ -43,6 +43,9 @@ class RuntimeSettingsSerializer(serializers.Serializer):
         r"^[a-z0-9_]{1,120}$", allow_blank=True, required=False
     )
     whatsapp_language = serializers.RegexField(r"^[a-z]{2,3}(?:_[A-Z]{2})?$", required=False)
+    # Read-only here: money switches change only via the password + authenticator endpoint.
+    payments_card_enabled = serializers.BooleanField(read_only=True)
+    payments_mobile_money_enabled = serializers.BooleanField(read_only=True)
     beta_registration_open = serializers.BooleanField(required=False)
     beta_emails_enabled = serializers.BooleanField(required=False)
     beta_open_date = serializers.DateField(required=False)
@@ -58,6 +61,11 @@ class RuntimeSettingsSerializer(serializers.Serializer):
     def to_internal_value(self, data):
         if not isinstance(data, dict):
             raise serializers.ValidationError("Expected an object of settings.")
+        protected = {"payments_card_enabled", "payments_mobile_money_enabled"} & set(data)
+        if protected:
+            raise serializers.ValidationError(
+                {key: "Change this with your password and authenticator code." for key in protected}
+            )
         unknown = set(data) - set(self.fields)
         if unknown:
             raise serializers.ValidationError({key: "Unknown setting." for key in unknown})
