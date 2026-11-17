@@ -110,7 +110,7 @@ def test_issues_scoped_short_lived_token_for_supported_roles(
 
 
 @pytest.mark.django_db
-@override_settings(HANDY_AGENT_SIGNING_SECRET=SECRET)
+@override_settings(HANDY_AGENT_SIGNING_SECRET=SECRET, REQUIRE_ADMIN_MFA=True)
 def test_platform_admin_handy_token_requires_two_factor_setup():
     from apps.accounts.access_state import mark_email_verified
 
