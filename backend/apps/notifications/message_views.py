@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import generics, serializers
 from rest_framework.response import Response
 from rest_framework.throttling import UserRateThrottle
@@ -177,6 +177,18 @@ class RecipientsView(PrivateMessagesMixin, generics.ListAPIView):
             .order_by("full_name")
             .only("public_id", "full_name", "email", "phone_number")
         )
+
+
+class ChannelsView(PrivateMessagesMixin, APIView):
+    """Which delivery channels Dwella currently has switched on, for the channel pickers."""
+
+    permission_classes = [CanManagePortfolio]
+
+    @extend_schema(responses=inline_serializer(
+        "MessageChannels", {"channels": serializers.DictField(child=serializers.BooleanField())}
+    ))
+    def get(self, request):
+        return Response({"channels": channel_readiness()})
 
 
 class DeliverySerializer(serializers.ModelSerializer):

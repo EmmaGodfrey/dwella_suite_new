@@ -20,7 +20,7 @@ from apps.audit.services import record_event
 from apps.common.workspaces import resolve_workspace
 
 from .models import NotificationPhoneLink, NotificationPreferences, PhoneMessagingConsent
-from .phone_messaging import normalize_phone
+from .phone_messaging import normalize_phone, sms_ready
 
 
 def digest(token):
@@ -195,6 +195,8 @@ class PhoneLinkView(APIView):
                 "whatsapp_binding": self.binding_state(request.user),
                 "whatsapp_destination": normalize_phone(settings.WHATSAPP_PUBLIC_NUMBER),
                 "whatsapp_verification_available": self.verification_available(),
+                # False while Dwella has SMS switched off, whatever the person chose.
+                "sms_available": sms_ready(),
             }
         )
 

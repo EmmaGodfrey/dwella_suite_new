@@ -79,8 +79,8 @@ def test_lists_require_authentication(path):
     assert APIClient().get(BASE + path).status_code in {401, 403}
 
 
-@pytest.mark.parametrize("channel", ["email", "sms", "whatsapp"])
-def test_preview_confirm_once_unconnected_is_held(home, channel, mailoutbox):
+def test_preview_confirm_once_unconnected_is_held(home, mailoutbox):
+    channel = "email"
     value = make_preview(home, channel)
     assert not MessageDelivery.objects.exists()
     assert confirm_preview(home, value).status_code == 200
@@ -88,6 +88,40 @@ def test_preview_confirm_once_unconnected_is_held(home, channel, mailoutbox):
     row = MessageDelivery.objects.get()
     assert row.status == "held" and row.reason == "delivery_not_connected"
     assert dispatch_messages() == 0 and not mailoutbox
+
+
+@pytest.mark.parametrize("channel", ["sms", "whatsapp"])
+def test_switched_off_channel_cannot_be_used_whatever_was_chosen(home, channel):
+    response = client_for(home["manager"]).post(
+        BASE + "message-previews/", compose_data(home, channel), format="json"
+    )
+    assert response.status_code == 400
+    assert "switched off by Dwella" in response.content.decode()
+    assert not MessageDelivery.objects.exists()
+
+
+def test_preview_cannot_be_confirmed_after_the_channel_is_switched_off(home, monkeypatch):
+    ready = {"email": False, "sms": True, "whatsapp": False}
+    monkeypatch.setattr("apps.notifications.messaging.channel_readiness", lambda config=None: ready)
+    value = make_preview(home, "sms")
+    ready["sms"] = False
+    response = confirm_preview(home, value)
+    assert response.status_code == 400
+    assert "SMS is switched off by Dwella" in response.content.decode()
+    assert not MessageDelivery.objects.exists()
+
+
+def test_channel_availability_is_reported_for_the_pickers(home, monkeypatch):
+    monkeypatch.setattr(
+        "apps.notifications.message_views.channel_readiness",
+        lambda config=None: {"email": False, "sms": True, "whatsapp": False},
+    )
+    response = client_for(home["manager"]).get(BASE + "message-channels/")
+    assert response.status_code == 200
+    assert response.json()["response_data"]["channels"] == {
+        "email": False, "sms": True, "whatsapp": False,
+    }
+    assert APIClient().get(BASE + "message-channels/").status_code in {401, 403}
 
 
 @pytest.mark.parametrize(
