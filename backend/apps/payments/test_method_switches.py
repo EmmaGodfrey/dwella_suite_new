@@ -50,7 +50,8 @@ def test_switch_needs_password_and_fresh_authenticator_code(admin):
         "payments_card_enabled" not in PlatformSettings.objects.get(pk=1).runtime_config
     )
     ok = client.post(URL, proof(device, card=False), format="json")
-    assert ok.status_code == 200 and ok.json()["response_data"] == {"card": False, "mobile_money": True}
+    assert ok.status_code == 200
+    assert ok.json()["response_data"] == {"card": False, "mobile_money": True}
     # The same code cannot be replayed for another change.
     replay = client.post(URL, proof(device, mobile_money=False), format="json")
     assert replay.status_code == 403
@@ -70,13 +71,58 @@ def test_only_superusers_can_use_switches(admin):
     anonymous = APIClient().post(URL, proof(device, card=False), format="json")
     assert anonymous.status_code in (401, 403)
 
+    ordinary_user = get_user_model().objects.create_user(
+        username="ordinary-user", password=PASSWORD
+    )
+    ordinary_client = APIClient()
+    ordinary_client.force_authenticate(ordinary_user)
+    forbidden = ordinary_client.post(URL, proof(device, card=False), format="json")
+    assert forbidden.status_code == 403
+    assert not PlatformSettings.objects.filter(pk=1).exists()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"card": False, "password": PASSWORD, "code": "123"},
+        {"mobile_money": False, "password": PASSWORD, "code": "123456", "extra": True},
+        {"password": PASSWORD, "code": "123456"},
+    ],
+)
+def test_malformed_or_unsupported_switch_requests_are_rejected(admin, payload):
+    client, _ = admin
+    response = client.post(URL, payload, format="json")
+    assert response.status_code == 400
+    assert not PlatformSettings.objects.filter(pk=1).exists()
+
+
+def test_invalid_authenticator_code_is_rejected_without_changing_switches(admin):
+    client, device = admin
+    stale_code = _hotp(device.secret, int(time.time() // 30) + 10)
+    response = client.post(URL, proof(device, card=False, code=stale_code), format="json")
+    assert response.status_code == 403
+    assert not PlatformSettings.objects.filter(pk=1).exists()
+
+
+def test_switch_endpoint_is_throttled(admin):
+    client, device = admin
+    payload = proof(device, card=False, password="wrong-password")
+    responses = [client.post(URL, payload, format="json") for _ in range(11)]
+    assert all(response.status_code == 403 for response in responses[:10])
+    assert responses[-1].status_code == 429
+    assert not PlatformSettings.objects.filter(pk=1).exists()
+
 
 def test_card_off_blocks_card_checkout_but_not_mobile_money(admin, home):  # noqa: F811
     client, device = admin
     client.post(URL, proof(device, card=False), format="json")
     with pytest.raises(Exception, match="Card payments are switched off"):
         start_checkout(invoice=home["invoice"], user=home["tenant"], **card_details())
-    options = client_for(home["tenant"]).get("/api/v1/payments/tenant/options/").json()["response_data"]
+    options = (
+        client_for(home["tenant"])
+        .get("/api/v1/payments/tenant/options/")
+        .json()["response_data"]
+    )
     assert options["methods"] == {"card": False, "mobile_money": True}
     assert options["enabled"] is True
     row = start_checkout(
