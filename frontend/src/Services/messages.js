@@ -9,6 +9,9 @@ export function useMessageHistory(filters, platform = false, operational = false
 export function useMessageRecipients(search, page = 1) {
   return useQuery({ queryKey: ["message-recipients", search, page], queryFn: () => api.get(`${base}message-recipients/?${new URLSearchParams({ search, page, page_size: 50 })}`) });
 }
+export function useMessageChannels() {
+  return useQuery({ queryKey: ["message-channels"], queryFn: () => api.get(`${base}message-channels/`), staleTime: 30_000 });
+}
 export function useMessageAction(action) {
   const client = useQueryClient();
   return useMutation({ mutationFn: ({ id, ...data }) => api.post(action === "preview" ? `${base}message-previews/` : action === "confirm" ? `${base}message-previews/${id}/confirm/` : `${base}messages/${id}/`, data), onSuccess: () => client.invalidateQueries({ queryKey: ["messages"] }) });

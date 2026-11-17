@@ -4,6 +4,9 @@ import pytest
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 
+from apps.accounts.models import TwoFactorDevice
+from apps.accounts.security import make_totp_secret
+
 from .models import AuditEvent, SupportSession
 from .support_test_utils import URL, start
 
@@ -13,6 +16,7 @@ pytestmark = pytest.mark.django_db
 @pytest.mark.parametrize("state", ["expired", "ended", "malformed", "unknown", "blank"])
 def test_stale_context_allows_recovery_but_never_portfolio_access(context, state):
     client, user, org, other = context
+    TwoFactorDevice.objects.create(user=user, secret=make_totp_secret(), is_confirmed=True)
     session = start(client, org)
     if state == "expired":
         session.expires_at = timezone.now() - timedelta(seconds=1)
@@ -30,7 +34,8 @@ def test_stale_context_allows_recovery_but_never_portfolio_access(context, state
     assert me.json()["response_data"]["access"]["acting_workspace"] is None
     assert client.get("/api/v1/properties/").status_code == 403
     assert client.get("/api/v1/properties/dashboard/").status_code == 403
-    assert client.get(URL + "?active=true").status_code == 200
+    sessions = client.get(URL + "?active=true")
+    assert sessions.status_code == 200, sessions.content
     created = client.post(
         URL, {"organization": str(org.public_id), "reason": "Recover support access"},
         format="json",
@@ -46,6 +51,7 @@ def test_stale_context_allows_recovery_but_never_portfolio_access(context, state
 
 def test_recovery_still_requires_authentication_and_staff(context):
     client, user, org, _ = context
+    TwoFactorDevice.objects.create(user=user, secret=make_totp_secret(), is_confirmed=True)
     client.force_authenticate(None)
     client.credentials(HTTP_X_DWELLA_WORKSPACE="bad")
     assert client.get("/api/v1/accounts/me/").status_code == 403

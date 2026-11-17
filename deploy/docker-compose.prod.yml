@@ -38,11 +38,42 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - dwella_postgres_data:/var/lib/postgresql/data
+      - ../data/postgres-tls:/run/postgres-tls:ro
+    ports:
+      - "127.0.0.1:55433:5432"
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/run/postgres-tls/server.crt
+      - -c
+      - ssl_key_file=/run/postgres-tls/server.key
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Handy reaches production through this source-IP-restricted TCP gateway.
+  # PostgreSQL itself stays bound to loopback on the host.
+  db-gateway:
+    <<: *runtime
+    mem_limit: ${DB_GATEWAY_MEMORY_LIMIT:-128m}
+    cap_drop: [ALL]
+    image: haproxy:3.0-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./postgres-gateway-prod.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   redis:
     <<: *runtime

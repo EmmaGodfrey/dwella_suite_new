@@ -23,9 +23,12 @@ GROUPS_BY_ROLE = {
         "portfolio_manager",
         "portfolio_viewer",
     ],
+    # The provider's portfolio_manager row rules restrict this role to
+    # assigned/covered properties. The action API rechecks the live scope.
+    OrganizationMembership.Role.MANAGER: ["portfolio_manager", "portfolio_viewer"],
 }
 
-ACTOR_ROLES = {OrganizationMembership.Role.LANDLORD}
+ACTOR_ROLES = set(OrganizationMembership.MANAGEMENT_ROLES)
 
 
 def handy_agent_enabled():
@@ -66,6 +69,13 @@ def issue_handy_agent_token(user, request):
     groups, organization = token_access(user, request)
     membership = get_active_membership(user) if organization and not user.is_staff else None
     can_act = bool(membership and membership.role in ACTOR_ROLES)
+    property_ids = []
+    if membership and membership.role == OrganizationMembership.Role.MANAGER:
+        # Reuse Dwella's authoritative assignment and active-cover rules. The
+        # Handy read policy applies these IDs to every property-linked table.
+        from apps.common.property_scope import scope_for_membership
+
+        property_ids = sorted(scope_for_membership(membership).ids)
     issued_at = timezone.now()
     expires_at = issued_at + timedelta(seconds=settings.HANDY_AGENT_TOKEN_TTL_SECONDS)
     display_name = user.get_full_name().strip() or user.email or user.get_username()
@@ -74,7 +84,10 @@ def issue_handy_agent_token(user, request):
         "name": display_name,
         "groups": groups,
         "agent": {"thinker": True, "actor": can_act, "ledger": False},
-        "attrs": {"organization_ids": [organization.pk] if organization else []},
+        "attrs": {
+            "organization_ids": [organization.pk] if organization else [],
+            "property_ids": property_ids,
+        },
         "aud": settings.HANDY_AGENT_AUDIENCE,
         "iss": settings.HANDY_AGENT_ISSUER,
         "iat": issued_at,

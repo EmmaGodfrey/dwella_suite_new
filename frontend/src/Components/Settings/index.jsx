@@ -125,35 +125,41 @@ function SavedForm({
 
 const channelNames = { email: "Email", sms: "SMS", whatsapp: "WhatsApp" };
 function ChannelRows({ draft, change, channels }) {
-  return Object.entries(channelNames).map(([key, label]) => (
-    <SettingsRow
-      key={key}
-      label={label}
-      note={
-        key === "email" ? "Required for invoices, payments, leases and repair updates."
-        : key === "whatsapp"
-          ? "Requires recipient opt-in and approved reminder templates."
+  return Object.entries(channelNames).map(([key, label]) => {
+    // Dwella's own switch beats this preference: while it is off the channel
+    // shows as off and cannot be turned on, but the saved choice is kept.
+    const off = key !== "email" && !channels?.[key];
+    return (
+      <SettingsRow
+        key={key}
+        label={label}
+        note={
+          off ? undefined
+          : key === "email" ? "Required for invoices, payments, leases and repair updates."
+          : key === "whatsapp" ? "Requires recipient opt-in and approved reminder templates."
           : undefined
-      }
-    >
-      <>
-        <Switch
-          aria-label={`${label} reminders`}
-          checked={key === "email" || draft[`${key}_enabled`]}
-          disabled={key === "email"}
-          onChange={(_, d) => change(`${key}_enabled`, d.checked)}
-        />
-      {!channels[key] && key !== "email" && (
+        }
+      >
         <>
-          <StatusBadge color="subtle">Awaiting connection</StatusBadge>
-          <span className="settings-inline-note">
-            Preference saved. Reminders start once this channel is connected.
-          </span>
+          <Switch
+            aria-label={`${label} reminders`}
+            checked={key === "email" || (!off && Boolean(draft[`${key}_enabled`]))}
+            disabled={key === "email" || off}
+            onChange={(_, d) => change(`${key}_enabled`, d.checked)}
+          />
+          {off && (
+            <>
+              <StatusBadge color="subtle">Not available</StatusBadge>
+              <span className="settings-inline-note">
+                {label} is switched off by Dwella for now, so nothing is sent by {label} whatever
+                you choose here. Your saved choice is kept for when it is back on.
+              </span>
+            </>
+          )}
         </>
-      )}
-      </>
-    </SettingsRow>
-  ));
+      </SettingsRow>
+    );
+  });
 }
 
 function Notifications({ persona, reminderSettings = false }) {

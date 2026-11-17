@@ -836,15 +836,14 @@ def test_notices_and_signing_reach_the_right_managers(team):
     assert sorted(row["name"] for row in signers) == ["Admin", "Anna"]
 
 
-def test_assistant_stays_closed_and_whatsapp_uses_assigned_scope(team):
-    from rest_framework.exceptions import PermissionDenied
-
+def test_manager_handy_and_whatsapp_use_assigned_scope(team):
     from apps.accounts.access_state import mark_email_verified
     from apps.accounts.handy_agent import token_access
     from apps.notifications.whatsapp.access import actor_context, bind, memberships
 
-    with pytest.raises(PermissionDenied):
-        token_access(team["a"].user, None)
+    groups, organization = token_access(team["a"].user, None)
+    assert groups == ["portfolio_manager", "portfolio_viewer"]
+    assert organization == team["org"]
     mark_email_verified(team["a"].user)
     mark_email_verified(team["admin"].user)
     assert memberships(team["a"].user).exists()

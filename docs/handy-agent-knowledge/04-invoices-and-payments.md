@@ -44,6 +44,10 @@ A valid payment:
 
 The assistant may create an invoice and record a payment only after explicit approval. It may not void invoices, reverse payments, generate monthly invoices in bulk, or submit fiscal records to ZRA.
 
+Property managers may create invoices and record manual payments only for
+tenants/invoices in their current assigned or actively covered properties. The
+Dwella API checks that scope again when each action is submitted.
+
 ## Online collections and payouts
 
 An initiated, pending, failed or expired checkout is not a recorded payment.

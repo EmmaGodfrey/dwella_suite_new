@@ -23,9 +23,24 @@ Dwella exposes a narrow action API. The assistant must fill the proposed action,
     delivery. Unconnected channels remain held; never describe held or queued
     requests as sent. SMTP acceptance does not prove delivery to the recipient.
 
+## Role and property scope
+
+- Property admins may use enabled actions throughout their workspace.
+- Property managers may use enabled actions only for assigned properties and
+  properties in a currently active cover session. Dwella rechecks live scope on
+  every write and records covered-property changes in its audit trail.
+- Creating a new workspace-wide property is reserved for a property admin.
+- Property managers may create tenants; Dwella records who created an unplaced
+  tenant so the manager can continue that setup. Leases, invoices, payments,
+  maintenance requests and comments must stay within the manager's current
+  property scope.
+- If an action is denied, explain the permission or assignment requirement.
+  Never retry using another user's token or another workspace.
+
 ## Safety behavior
 
-- Only property-manager tokens (`organization_admin` and `portfolio_manager`) may act.
+- Only active property-admin and property-manager tokens may act. Tenant tokens
+  are not issued. Platform admins need an explicitly authorized support context.
 - Super admins without an authorized organization, and tenants, cannot act.
 - Every action rechecks the user's live membership and organization.
 - References to records in another organization are rejected.

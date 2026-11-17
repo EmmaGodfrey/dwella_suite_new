@@ -17,7 +17,7 @@ from apps.billing.models import Invoice, Payment
 from apps.billing.services import create_invoice
 from apps.leases.models import Lease
 from apps.maintenance.models import MaintenanceRequest, MaintenanceUpdate, Vendor
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.organizations.models import Organization, OrganizationMembership, PropertyAssignment
 from apps.properties.models import Property, Unit
 from apps.tenants.models import Tenant
 
@@ -206,6 +206,77 @@ def test_landlord_can_create_each_approved_resource_end_to_end():
     assert AuditEvent.objects.filter(
         organization=organization, action__startswith="assistant."
     ).count() == 9
+
+
+@pytest.mark.django_db
+@JWT_SETTINGS
+def test_property_manager_can_write_assigned_records_but_not_workspace_wide_or_other_property():
+    user, organization, membership = workspace_user("manager")
+    assigned = Property.objects.create(
+        organization=organization,
+        name="Assigned House",
+        property_type="house",
+        address="1 Assigned Road",
+    )
+    unassigned = Property.objects.create(
+        organization=organization,
+        name="Unassigned House",
+        property_type="house",
+        address="2 Unassigned Road",
+    )
+    PropertyAssignment.objects.create(
+        organization=organization, membership=membership, property=assigned
+    )
+    from apps.common.property_scope import scope_for_membership
+
+    manager_scope = scope_for_membership(membership)
+    assert manager_scope.ids == {assigned.pk}
+    client = client_for(user, organization)
+    invoices = []
+    for index, prop in enumerate((assigned, unassigned), start=1):
+        unit = Unit.objects.create(
+            organization=organization,
+            property=prop,
+            name=f"A{index}",
+            rent_amount="500.00",
+        )
+        tenant = Tenant.objects.create(
+            organization=organization,
+            full_name=f"Tenant {index}",
+            phone_number=f"+26097123456{index}",
+        )
+        invoices.append(
+            create_invoice(
+                organization=organization,
+                tenant=tenant,
+                unit=unit,
+                issue_date="2026-10-20",
+                due_date="2026-10-30",
+                lines=[{"kind": "other", "description": "Rent", "amount": "500.00"}],
+            )
+        )
+
+    allowed = client.post(
+        f"/api/v1/assistant/invoices/{invoices[0].public_id}/payments/",
+        {"amount": "200.00", "method": "cash", "paid_on": "2026-10-23"},
+        format="json",
+    )
+    denied = client.post(
+        f"/api/v1/assistant/invoices/{invoices[1].public_id}/payments/",
+        {"amount": "200.00", "method": "cash", "paid_on": "2026-10-23"},
+        format="json",
+    )
+    property_creation = client.post(
+        "/api/v1/assistant/properties/",
+        {"name": "Workspace-wide", "property_type": "house", "address": "3 New Road"},
+        format="json",
+    )
+
+    assert allowed.status_code == 201
+    assert denied.status_code == 404
+    assert property_creation.status_code == 403
+    assert Payment.objects.filter(organization=organization).count() == 1
+    assert Property.objects.filter(organization=organization).count() == 2
 
 
 @pytest.mark.django_db

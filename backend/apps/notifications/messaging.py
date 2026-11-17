@@ -56,12 +56,32 @@ def channel_readiness(config=None):
     }
 
 
+CHANNEL_LABELS = {"email": "Email", "sms": "SMS", "whatsapp": "WhatsApp"}
+
+
+def require_channel_available(channel):
+    """Platform switches override any workspace, manager or tenant preference.
+
+    SMS and WhatsApp are optional extras: while Dwella has one switched off (or
+    not connected) it cannot be chosen, so nothing is queued that would never
+    be sent. Email keeps its held-until-connected behaviour.
+    """
+    if channel in {"sms", "whatsapp"} and not channel_readiness()[channel]:
+        raise ValidationError(
+            {
+                "channel": f"{CHANNEL_LABELS[channel]} is switched off by Dwella for now, "
+                "so it can't be used yet. Choose another channel; nothing was sent."
+            }
+        )
+
+
 def address(tenant, channel):
     return tenant.email if channel == "email" else tenant.phone_number
 
 
 def preview(*, organization, actor, data, source="manager", scope=EVERYTHING):
     require_feature(organization, f"{data['channel']}_messages")
+    require_channel_available(data["channel"])
     # A manager writes to tenants of their own properties; "all tenants" means those.
     active = scope.filter(
         Tenant.objects.filter(organization=organization, is_active=True)
@@ -118,6 +138,7 @@ def confirm(*, message, actor, scope=EVERYTHING):
         return message
     if message.expires_at <= timezone.now():
         raise ValidationError("This preview expired. Preview the message again.")
+    require_channel_available(message.channel)
     tenants = {
         str(t.public_id): t
         for t in scope.filter(

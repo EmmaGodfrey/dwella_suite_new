@@ -57,6 +57,7 @@ services:
 
   db-gateway:
     <<: *runtime
+    profiles: [handy]
     mem_limit: ${DB_GATEWAY_MEMORY_LIMIT:-128m}
     cap_drop: [ALL]
     image: haproxy:3.0-alpine

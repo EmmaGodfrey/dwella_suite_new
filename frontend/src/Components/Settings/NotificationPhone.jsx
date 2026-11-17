@@ -18,6 +18,8 @@ function SMSNotificationPhone() {
   const [challenge, setChallenge] = useState(null);
   const [notice, setNotice] = useState("");
   const errors = useFormErrors();
+  // Dwella's SMS switch beats the person's choice. Treated as available until the first answer.
+  const unavailable = query.data?.sms_available === false;
 
   async function submit(event) {
     event.preventDefault();
@@ -48,13 +50,17 @@ function SMSNotificationPhone() {
     <SettingsSection title="SMS notifications"
       note="Verify a number you control for optional SMS notices; your payment wallet stays separate.">
       {query.isLoading && <p role="status">Loading connected numbers…</p>}
+      {unavailable && <p role="status" className="dwella-alert">
+        SMS is switched off by Dwella for now, so no SMS will be sent to any number, even a verified one.
+        You can connect a number once it is back on.
+      </p>}
       {query.data?.links?.filter(link => link.channel === "sms").map((link) => (
         <SettingsRow key={`${link.channel}:${link.phone}`} label={link.phone}
-          note={`SMS · ${link.allowed ? "Optional notices enabled" : "Optional notices off"}`} />
+          note={`SMS · ${unavailable ? "Paused while SMS is switched off" : link.allowed ? "Optional notices enabled" : "Optional notices off"}`} />
       ))}
       {query.isError && <p role="alert">Could not load connected numbers. <Button onClick={() => query.refetch()}>Retry</Button></p>}
       <form onSubmit={submit}>
-        <fieldset disabled={connect.isPending} className="settings-fields">
+        <fieldset disabled={connect.isPending || unavailable} className="settings-fields">
           <Field label="Your phone number" validationMessage={errors.errors.phone}>
             <Input name="phone" type="tel" autoComplete="tel" value={phone}
               onChange={(_, data) => { setPhone(data.value); errors.clearError("phone"); }} />
@@ -63,7 +69,7 @@ function SMSNotificationPhone() {
             <Checkbox label="I agree to optional Dwella notifications on this number."
               checked={consent} onChange={(_, data) => setConsent(Boolean(data.checked))} />
           </Field>
-          <Button type="submit" disabled={connect.isPending}>Verify number</Button>
+          <Button type="submit" disabled={connect.isPending || unavailable}>Verify number</Button>
         </fieldset>
       </form>
       {challenge && <div role="status">

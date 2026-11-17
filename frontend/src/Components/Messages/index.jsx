@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button, Checkbox, Field, Input, Select, Textarea } from "@fluentui/react-components";
 import { toast } from "react-toastify";
 import { useCurrentUserQuery } from "../../Services/queries";
-import { useMessageAction, useMessageDetail, useMessageHistory, useMessageRecipients } from "../../Services/messages";
+import { useMessageAction, useMessageChannels, useMessageDetail, useMessageHistory, useMessageRecipients } from "../../Services/messages";
 import { getUserAccess } from "../../shared/access";
 import { EmptyState, StatusBadge } from "../../shared/components";
 import { FormDrawer } from "../../shared/components/FormFlow";
@@ -72,6 +72,11 @@ function Compose({ onClose }) {
   const [review, setReview] = useState(null);
   const [error, setError] = useState("");
   const recipients = useMessageRecipients(search, page);
+  const availability = useMessageChannels();
+  // Dwella's own switches decide which channels exist. Until they load, only email is offered.
+  const available = { email: true, sms: Boolean(availability.data?.channels?.sms), whatsapp: Boolean(availability.data?.channels?.whatsapp) };
+  const unavailable = ["sms", "whatsapp"].filter((key) => !available[key]);
+  const channel = available[draft.channel] ? draft.channel : "email";
   const preview = useMessageAction("preview");
   const confirm = useMessageAction("confirm");
   const busy = preview.isPending || confirm.isPending;
@@ -97,7 +102,7 @@ function Compose({ onClose }) {
     }
     try {
       if (!review) {
-        setReview(await preview.mutateAsync({ ...draft, tenants: everyone ? [] : ids, all_tenants: everyone }));
+        setReview(await preview.mutateAsync({ ...draft, channel, tenants: everyone ? [] : ids, all_tenants: everyone }));
       } else {
         const result = await confirm.mutateAsync({ id: review.id, confirmed: true });
         toast.info(result.delivery_note);
@@ -107,7 +112,7 @@ function Compose({ onClose }) {
       setError(e.message || "Could not save this request. Please try again.");
     }
   };
-  const contact = (r) => (draft.channel === "email" ? r.email || "No email" : r.phone_number);
+  const contact = (r) => (channel === "email" ? r.email || "No email" : r.phone_number);
   return (
     <FormDrawer
       title={review ? "Review message" : "New message"}
@@ -145,9 +150,15 @@ function Compose({ onClose }) {
         </>
       ) : (
         <>
-          <Field label="Channel">
-            <Select value={draft.channel} onChange={(_, d) => change("channel", d.value)}>
-              {Object.entries(channelNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+          <Field label="Channel"
+            hint={unavailable.length > 0 && !availability.isError
+              ? `${unavailable.map((key) => channelNames[key]).join(" and ")} ${unavailable.length > 1 ? "are" : "is"} switched off by Dwella for now and can't be selected.`
+              : undefined}
+            validationMessage={availability.isError ? "Couldn't check which channels are available. Email is still available." : undefined}
+            validationState={availability.isError ? "warning" : undefined}>
+            <Select value={channel} onChange={(_, d) => change("channel", d.value)}>
+              {Object.entries(channelNames).map(([key, label]) =>
+                <option key={key} value={key} disabled={!available[key]}>{available[key] ? label : `${label} (not available)`}</option>)}
             </Select>
           </Field>
           <Checkbox
