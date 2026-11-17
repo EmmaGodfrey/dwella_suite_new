@@ -6,10 +6,10 @@ import { createPortal } from "react-dom";
 // they sit beside the title the way the Figma pages show them.
 export const PageActionsSlot = createContext(null);
 
-export const PageHeader = ({ title, description, onSlot }) => (
+export const PageHeader = ({ title, description, onSlot, titleAddon }) => (
   <header className="dwella-page-header">
     <div className="dwella-page-header-copy">
-      <h1>{title}</h1>
+      <h1>{title}{titleAddon}</h1>
       {description ? <p>{description}</p> : null}
     </div>
     <div className="dwella-page-actions" ref={onSlot} />

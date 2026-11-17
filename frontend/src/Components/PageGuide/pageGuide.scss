@@ -1,0 +1,13 @@
+.dwella-page-guide {
+  max-width: min(26rem, calc(100vw - 2rem));
+  p { color: var(--dwella-muted); line-height: 1.6; margin-top: 0; }
+  .dwella-page-guide-count { font-size: .75rem; color: var(--dwella-primary); }
+  .fui-DialogActions { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+}
+.dwella-page-guide-bulb {
+  vertical-align: middle;
+  margin-left: .25rem;
+  color: var(--dwella-primary);
+  &.is-floating { position: absolute; top: .5rem; right: 1rem; z-index: 2; margin: 0; }
+}
+.dwella-content { position: relative; }
