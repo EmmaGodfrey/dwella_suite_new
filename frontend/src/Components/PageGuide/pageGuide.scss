@@ -1,28 +1,35 @@
 .dwella-page-guide-host { display: inline-block; margin-left: .25rem; vertical-align: middle; font-size: 1rem; line-height: 1; }
 .dwella-page-guide-bulb { color: var(--dwella-primary); min-width: 0; }
 
-// Small speech bubble beside the control it explains. No backdrop: the page stays fully visible.
+// Small speech bubble beside the control it explains, in Dwella's card style
+// (ring-shadow, no border). No backdrop: the page stays fully visible.
 .dwella-page-guide {
   position: fixed; z-index: 1000; box-sizing: border-box;
-  padding: .625rem .75rem .5rem; border-radius: .625rem;
+  padding: .75rem .875rem .625rem; border-radius: var(--radius-lg);
   background: var(--dwella-paper); color: var(--dwella-ink);
-  border: 1px solid var(--dwella-primary); box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+  box-shadow: var(--dwella-shadow-card), var(--dwella-shadow-overlay);
   font-size: .8125rem; line-height: 1.45; outline: none;
-  p { margin: .25rem 0 .5rem; color: var(--dwella-muted); }
-  .dwella-page-guide-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; strong { font-size: .875rem; } }
+  p { margin: .25rem 0 .625rem; color: var(--dwella-muted); }
+  .dwella-page-guide-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; strong { font-size: .875rem; font-weight: 600; } }
   .dwella-page-guide-foot { display: flex; align-items: center; justify-content: space-between; margin-top: .25rem; }
-  .dwella-page-guide-count { font-size: .75rem; color: var(--dwella-muted); }
+  .dwella-page-guide-count { font-size: .75rem; color: var(--dwella-subtle); }
   // Pointer: a rotated square on the edge facing the highlighted control.
   &::before {
-    content: ""; position: absolute; left: calc(var(--arrow, 24px) - 8px); width: 14px; height: 14px;
-    background: var(--dwella-paper); transform: rotate(45deg);
+    content: ""; position: absolute; left: calc(var(--arrow, 24px) - 7px); width: 14px; height: 14px;
+    background: var(--dwella-paper); transform: rotate(45deg); border-radius: 2px;
   }
-  &.is-below::before { top: -8px; border-left: 1px solid var(--dwella-primary); border-top: 1px solid var(--dwella-primary); }
-  &.is-above::before { bottom: -8px; border-right: 1px solid var(--dwella-primary); border-bottom: 1px solid var(--dwella-primary); }
+  &.is-below::before { top: -7px; box-shadow: -1px -1px 0 rgba(29, 65, 126, 0.1); }
+  &.is-above::before { bottom: -7px; box-shadow: 1px 1px 0 rgba(29, 65, 126, 0.1); }
 }
+// Target: a clean two-tone ring (paper gap, then primary), like a focus ring.
 [data-guide-active="true"] {
-  outline: 2px solid var(--dwella-primary) !important; outline-offset: 3px !important; border-radius: .375rem;
-  box-shadow: 0 0 0 7px color-mix(in srgb, var(--dwella-primary) 22%, transparent) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--dwella-paper), 0 0 0 4px var(--dwella-primary) !important;
+  border-radius: var(--radius-md);
+}
+tr[data-guide-active="true"] {
+  box-shadow: none !important; border-radius: 0;
+  outline: 2px solid var(--dwella-primary) !important; outline-offset: -2px !important;
 }
 @media (prefers-reduced-motion: no-preference) { .dwella-page-guide { animation: dwella-guide-in .15s ease-out; } }
 @keyframes dwella-guide-in { from { opacity: 0; transform: translateY(4px); } }
