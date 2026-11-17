@@ -435,8 +435,126 @@ def test_openapi_marks_only_post_operations_in_assistant_namespace():
         if path.startswith("/api/v1/assistant/")
     }
 
-    assert len(assistant_paths) == 11
+    assert len(assistant_paths) == 17
     for operations in assistant_paths.values():
         assert set(operations) == {"post"}
         assert operations["post"]["x-agent"] == {"enabled": True}
         assert operations["post"]["security"] == [{"HandyAgentBearer": []}]
+
+
+@pytest.mark.django_db
+@JWT_SETTINGS
+def test_bulk_property_import_requires_preview_then_confirmation():
+    user, organization, _ = workspace_user()
+    client = client_for(user, organization)
+    csv = "name,property_type,address\nKabulonga Heights,apartment,Plot 1 Kabulonga\n"
+    preview = client.post(
+        "/api/v1/assistant/imports/properties/preview/", {"csv": csv}, format="json"
+    )
+    assert preview.status_code == 200
+    body = preview.json()["response_data"]
+    assert body["counts"] == {"ready": 1, "duplicate": 0, "invalid": 0}
+    assert "Kabulonga Heights" not in str(body)
+    assert Property.objects.count() == 0
+
+    confirmed = client.post(
+        "/api/v1/assistant/imports/properties/confirm/",
+        {"preview_token": body["preview_token"]},
+        format="json",
+    )
+    assert confirmed.status_code == 201
+    assert confirmed.json()["response_data"]["created"] == 1
+    assert Property.objects.get(organization=organization).name == "Kabulonga Heights"
+    replay = client.post(
+        "/api/v1/assistant/imports/properties/confirm/",
+        {"preview_token": body["preview_token"]},
+        format="json",
+    )
+    assert replay.status_code == 201
+    assert Property.objects.filter(organization=organization).count() == 1
+
+
+@pytest.mark.django_db
+@JWT_SETTINGS
+def test_assistant_tenant_import_is_actor_bound_and_does_not_activate_lease():
+    user, organization, _ = workspace_user()
+    client = client_for(user, organization)
+    preview = client.post(
+        "/api/v1/assistant/imports/tenants/preview/",
+        {"csv": "full_name,phone_number\nMwila Banda,0971234567\n"},
+        format="json",
+    )
+    body = preview.json()["response_data"]
+    assert body["counts"]["ready"] == 1
+    confirmed = client.post(
+        "/api/v1/assistant/imports/tenants/confirm/",
+        {"preview_token": body["preview_token"]},
+        format="json",
+    )
+    assert confirmed.status_code == 201
+    tenant = Tenant.objects.get(organization=organization)
+    assert tenant.created_by == user
+    assert tenant.status == "applicant"
+    assert not tenant.leases.exists()
+
+
+@pytest.mark.django_db
+@JWT_SETTINGS
+def test_bulk_property_import_is_not_available_to_property_managers():
+    from apps.organizations.models import OrganizationMembership
+
+    user, organization, _ = workspace_user(role=OrganizationMembership.Role.MANAGER)
+    client = client_for(user, organization)
+    response = client.post(
+        "/api/v1/assistant/imports/properties/preview/",
+        {"csv": "name,property_type,address\nBlocked,house,Nowhere\n"},
+        format="json",
+    )
+    assert response.status_code == 403
+    assert not Property.objects.filter(organization=organization).exists()
+
+
+@pytest.mark.django_db
+@JWT_SETTINGS
+def test_bulk_unit_import_for_manager_only_matches_assigned_properties():
+    from apps.organizations.models import PropertyAssignment
+
+    user, organization, membership = workspace_user(role="manager")
+    assigned = Property.objects.create(
+        organization=organization,
+        name="Assigned Court",
+        property_type="apartment",
+        address="Plot 1",
+    )
+    Property.objects.create(
+        organization=organization,
+        name="Private Court",
+        property_type="apartment",
+        address="Plot 2",
+    )
+    PropertyAssignment.objects.create(
+        organization=organization, membership=membership, property=assigned
+    )
+    client = client_for(user, organization)
+    response = client.post(
+        "/api/v1/assistant/imports/units/preview/",
+        {
+            "csv": (
+                "property,unit,rent_amount\n"
+                "Assigned Court,A1,3500\nPrivate Court,P1,4000\n"
+            )
+        },
+        format="json",
+    )
+    body = response.json()["response_data"]
+    assert body["counts"] == {"ready": 1, "duplicate": 0, "invalid": 1}
+    assert "Private Court" not in str(body)
+    confirmed = client.post(
+        "/api/v1/assistant/imports/units/confirm/",
+        {"preview_token": body["preview_token"]},
+        format="json",
+    )
+    assert confirmed.status_code == 201
+    assert list(Unit.objects.filter(organization=organization).values_list("name", flat=True)) == [
+        "A1"
+    ]

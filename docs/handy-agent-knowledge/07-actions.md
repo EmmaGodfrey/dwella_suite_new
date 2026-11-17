@@ -4,9 +4,9 @@ Dwella exposes a narrow action API. The assistant must fill the proposed action,
 
 ## Available actions
 
-1. Create a property in the property manager's workspace. Do not ask for an owner.
-2. Create a unit in an authorized property.
-3. Create a tenant without automatically creating or activating a lease.
+1. Create one property in the property manager's workspace. Do not ask for an owner.
+2. Create one unit in an authorized property.
+3. Create one tenant without automatically creating or activating a lease.
 4. Create a draft lease. It always remains `draft`.
 5. Create an invoice for an authorized tenant.
 6. Record a manual payment against an authorized invoice.
@@ -22,6 +22,22 @@ Dwella exposes a narrow action API. The assistant must fill the proposed action,
     Previews expire in 30 minutes. Repeating confirmation does not create another
     delivery. Unconnected channels remain held; never describe held or queued
     requests as sent. SMTP acceptance does not prove delivery to the recipient.
+
+12. Bulk import properties, units, or tenants with the matching
+    `/api/v1/assistant/imports/{properties|units|tenants}/preview/` action. Send CSV
+    text using the `csv` field. Preview is read-only: report ready/duplicate/invalid
+    counts and row errors, and do not expose source row values in the conversation.
+    Then ask the user to review the source file and explicitly approve the import.
+    Only after approval call the matching `/confirm/` action with the returned
+    `preview_token`. Never call confirm just because preview returned a token.
+    The token expires after 30 minutes, is single-use, and is bound to the same
+    actor and workspace. All ready rows are committed together or none are.
+    Imports are limited to 500 rows and the workspace's record capacity. Property
+    imports are property-admin only. Manager unit imports only match assigned or
+    actively covered properties. Tenant imports create applicants without leases.
+13. The three `create_*` actions add a single record; use the two-step import
+    actions for a CSV/bulk request. If an action is absent from the connected
+    environment schema, do not claim it is available or pretend it succeeded.
 
 ## Role and property scope
 

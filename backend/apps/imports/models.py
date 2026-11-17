@@ -8,6 +8,7 @@ class PortfolioImport(OrganizationScopedModel):
     """One confirmed bulk import. The digest stops a preview being applied twice."""
 
     class Kind(models.TextChoices):
+        PROPERTIES = "properties", "Properties"
         UNITS = "units", "Units"
         TENANTS = "tenants", "Tenants"
         TENANCIES = "tenancies", "Units, tenants and draft leases"

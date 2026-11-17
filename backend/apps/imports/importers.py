@@ -42,6 +42,10 @@ class UnitRow(serializers.Serializer):
     def validate_property(self, value):
         found = self.context["importer"].properties.get(value.casefold())
         if found is None:
+            if self.context["importer"].restricted_scope:
+                raise serializers.ValidationError(
+                    "No assigned property is available with that name."
+                )
             raise serializers.ValidationError(
                 f'No property is called "{value}". Add it first or fix the name.'
             )
@@ -71,9 +75,13 @@ class UnitImporter(Importer):
     }
     row_serializer = UnitRow
 
-    def __init__(self, organization):
+    def __init__(self, organization, *, allowed_property_ids=None):
         super().__init__(organization)
         self.properties = {}
+        self.allowed_property_ids = (
+            None if allowed_property_ids is None else set(allowed_property_ids)
+        )
+        self.restricted_scope = self.allowed_property_ids is not None
 
     def prepare(self, rows):
         self.properties = {}
@@ -82,12 +90,10 @@ class UnitImporter(Importer):
             for row in rows
             if len(row.get("property", "")) <= 180 and "\x00" not in row.get("property", "")
         }
-        for item in (
-            Property.objects.for_organization(self.organization)
-            .filter(is_active=True)
-            .annotate(lookup=Lower(Trim("name")))
-            .filter(lookup__in=names)
-        ):
+        properties = Property.objects.for_organization(self.organization).filter(is_active=True)
+        if self.allowed_property_ids is not None:
+            properties = properties.filter(pk__in=self.allowed_property_ids)
+        for item in properties.annotate(lookup=Lower(Trim("name"))).filter(lookup__in=names):
             key = item.name.strip().casefold()
             self.properties[key] = None if key in self.properties else item
 
@@ -135,6 +141,87 @@ class UnitImporter(Importer):
                 )
                 for item in results
             ],
+            batch_size=100,
+        )
+
+
+class PropertyRow(serializers.Serializer):
+    name = serializers.CharField(max_length=180)
+    property_type = serializers.ChoiceField(choices=Property.PropertyType.choices)
+    management_status = serializers.ChoiceField(
+        choices=(
+            (Property.ManagementStatus.MANAGED, "Managed"),
+            (Property.ManagementStatus.PROSPECT, "Prospect"),
+        ),
+        required=False,
+        default=Property.ManagementStatus.MANAGED,
+    )
+    address = serializers.CharField(max_length=2000)
+    town = serializers.CharField(max_length=120, required=False, default="")
+    province = serializers.CharField(max_length=120, required=False, default="")
+    description = serializers.CharField(max_length=2000, required=False, default="")
+
+    def validate_name(self, value):
+        value = " ".join(value.split())
+        if not value:
+            raise serializers.ValidationError("Enter a property name.")
+        return value
+
+
+class PropertyImporter(Importer):
+    kind = "properties"
+    resource = Resource.PROPERTIES
+    noun = "property"
+    columns = (
+        ("name", True, "Mutendere Court"),
+        ("property_type", True, "apartment"),
+        ("management_status", False, "managed"),
+        ("address", True, "Plot 1, Mutendere, Lusaka"),
+        ("town", False, "Lusaka"),
+        ("province", False, "Lusaka Province"),
+        ("description", False, "Two-storey apartment building"),
+    )
+    aliases = {
+        "property_name": "name",
+        "type": "property_type",
+        "status": "management_status",
+        "city": "town",
+    }
+    row_serializer = PropertyRow
+
+    def prepare(self, rows):
+        names = {
+            " ".join(row.get("name", "").split()).casefold()
+            for row in rows
+            if len(row.get("name", "")) <= 180 and "\x00" not in row.get("name", "")
+        }
+        self.known = set(
+            Property.objects.for_organization(self.organization)
+            .annotate(lookup=Lower(Trim("name")))
+            .filter(lookup__in=names)
+            .values_list("lookup", flat=True)
+        )
+
+    def key(self, data):
+        return data["name"].casefold()
+
+    def prime(self, rows):
+        pass
+
+    def existing(self, data):
+        if self.key(data) in self.known:
+            return "A property with this name is already on file."
+        return None
+
+    def label(self, data):
+        return data["name"]
+
+    def create(self, data):
+        return Property.objects.create(organization=self.organization, **data)
+
+    def create_many(self, results):
+        return Property.objects.bulk_create(
+            [Property(organization=self.organization, **item["data"]) for item in results],
             batch_size=100,
         )
 
@@ -215,6 +302,10 @@ class TenantImporter(Importer):
     }
     row_serializer = TenantRow
 
+    def __init__(self, organization, *, created_by=None):
+        super().__init__(organization)
+        self.created_by = created_by
+
     def key(self, data):
         return data["phone_number"]
 
@@ -242,10 +333,19 @@ class TenantImporter(Importer):
 
     def create(self, data):
         # Imported tenants start as applicants; a lease makes them active.
-        return Tenant.objects.create(organization=self.organization, **data)
+        return Tenant.objects.create(
+            organization=self.organization, created_by=self.created_by, **data
+        )
 
     def create_many(self, results):
         return Tenant.objects.bulk_create(
-            [Tenant(organization=self.organization, **item["data"]) for item in results],
+            [
+                Tenant(
+                    organization=self.organization,
+                    created_by=self.created_by,
+                    **item["data"],
+                )
+                for item in results
+            ],
             batch_size=100,
         )

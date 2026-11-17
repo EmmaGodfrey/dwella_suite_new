@@ -1,5 +1,13 @@
 from django.urls import path
 
+from .import_views import (
+    ConfirmPropertiesImportView,
+    ConfirmTenantsImportView,
+    ConfirmUnitsImportView,
+    PreviewPropertiesImportView,
+    PreviewTenantsImportView,
+    PreviewUnitsImportView,
+)
 from .message_views import ConfirmMessageAction, PreviewMessageAction
 from .views import (
     CreateDraftLeaseView,
@@ -21,6 +29,12 @@ urlpatterns = [
     path("properties/", CreatePropertyView.as_view(), name="create-property"),
     path("units/", CreateUnitView.as_view(), name="create-unit"),
     path("tenants/", CreateTenantView.as_view(), name="create-tenant"),
+    path("imports/properties/preview/", PreviewPropertiesImportView.as_view()),
+    path("imports/properties/confirm/", ConfirmPropertiesImportView.as_view()),
+    path("imports/units/preview/", PreviewUnitsImportView.as_view()),
+    path("imports/units/confirm/", ConfirmUnitsImportView.as_view()),
+    path("imports/tenants/preview/", PreviewTenantsImportView.as_view()),
+    path("imports/tenants/confirm/", ConfirmTenantsImportView.as_view()),
     path("draft-leases/", CreateDraftLeaseView.as_view(), name="create-draft-lease"),
     path("invoices/", CreateInvoiceView.as_view(), name="create-invoice"),
     path(
