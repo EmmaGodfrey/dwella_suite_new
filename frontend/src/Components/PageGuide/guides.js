@@ -107,32 +107,41 @@ export const GUIDES = {
   },
   tenant: {
     dashboard: { title: "Home", steps: [
-      { title: "Your tenancy at a glance", body: "What you owe, what is due next and any open repairs.", target: { sel: `${M}h1` } },
-      { title: "Pay online", body: "Pay an invoice by mobile money. Your balance and receipt update once the payment is confirmed.", target: btn("Pay online") },
-      { title: "Report a repair", body: "Tell your property manager about a problem and follow it to completion.", target: btn("Report a repair") },
+      { title: "Your home", body: "Your lease, rent and balance in one place.", target: { sel: `${M}h3`, text: "Your home" } },
+      { title: "Your balance", body: "See what you owe and when it is due. View invoice opens the invoice so you can pay it.", target: { sel: `${M}a`, text: "View invoice" } },
+      { title: "Report a repair", body: "Tell your property manager about a problem and follow it to completion.", target: { sel: `${M}a`, text: "Report a repair" } },
+      { title: "Recent payments", body: "Payments your property manager records show here with a receipt.", target: { sel: `${M}h3`, text: "Recent payments" } },
+      { title: "Your property manager", body: "Call or email them from here if you need help.", target: { sel: `${M}h3`, text: "Your property manager" } },
       { title: "Ask Handy", body: "Handy can answer questions about your invoices and payments.", target: HANDY },
     ] },
     billing: { title: "Payments", steps: [
-      { title: "Invoices and balance", body: "Open an invoice to see exactly what it covers. Partial payments are fine.", target: btn("View invoice") },
-      { title: "Pay online", body: "Pay by mobile money without leaving Dwella. Never share your PIN here.", target: btn("Pay online") },
-      { title: "Paid another way?", body: "If you paid your property manager directly, send proof so they can confirm it.", target: btn("I've already paid") },
-      { title: "Your statement", body: "Every charge and payment in one place.", target: btn("Statement") },
-      { title: "Receipts", body: "Each confirmed payment has a receipt.", to: "/billing/receipts", toLabel: "Open receipts" },
+      { title: "What you owe", body: "Unpaid shows invoices that still have a balance. Partial payments are fine.", target: btn("Unpaid") },
+      { title: "Every invoice", body: "All invoices includes ones you have already paid.", target: btn("All invoices") },
+      { title: "Pay an invoice", body: "Open an invoice to pay by mobile money without leaving Dwella. Never share your PIN here." },
+      { title: "Paid another way?", body: "If you paid your property manager directly, send proof from the invoice. Your balance changes once they confirm the money arrived." },
+      { title: "Your statement", body: "Every charge and payment in one list.", target: { sel: `${M}a`, text: "Statement" } },
+      { title: "Receipts", body: "Each confirmed payment has a receipt you can open or download.", target: { sel: `${M}h3`, text: "Payments and receipts" } },
     ] },
     leases: { title: "My lease", steps: [
-      { title: "Your agreement", body: "Read your lease terms, rent and dates.", target: btn("View agreement") },
-      { title: "Signing", body: "When your lease is ready you can sign it on your phone. Dwella keeps the signed copy." },
+      { title: "Your lease", body: "The rent, dates and terms of your tenancy.", target: { sel: `${M}h3`, text: "Lease" } },
+      { title: "Documents", body: "Open your agreement and any documents. When a lease is ready to sign, you can sign it on your phone.", target: { sel: `${M}h3`, text: "Documents" } },
+      { title: "Security deposit", body: "See the deposit held and any deductions.", target: { sel: `${M}h3`, text: "Security deposit" } },
+      { title: "History", body: "Past changes to your lease are listed here.", target: { sel: `${M}h3`, text: "History" } },
     ] },
     maintenance: { title: "Maintenance", steps: [
-      { title: "Report a repair", body: "Describe the problem and add photos.", target: btn("Report a repair") },
-      { title: "Follow progress", body: "Open a request to see updates and message your property manager." },
+      { title: "Report a repair", body: "Describe the problem and add photos. Your property manager is notified.", target: btn("Report a repair") },
+      { title: "Follow progress", body: "Open a request to see updates and message your property manager.", target: btn("Open") },
+      { title: "All your repairs", body: "Switch between open repairs and everything you have reported.", target: btn("All repairs") },
     ] },
-    profile: { title: "Profile", steps: [{ title: "Keep details current", body: "This is how your property manager and Dwella reach you." }] },
-    security: { title: "Security", steps: [{ title: "Protect your account", body: "Set up an authenticator app so only you can sign in." }] },
+    settings: { title: "Settings", steps: [
+      { title: "Your details", body: "Your name, photo and phone number. This is how your property manager and Dwella reach you.", target: tab("Account") },
+      { title: "Notifications", body: "Choose how you hear about invoices, payments and repairs.", target: tab("Notifications") },
+      { title: "Security", body: "Verify your email and set up an authenticator app so only you can sign in.", target: tab("Security") },
+    ] },
   },
 };
 
-const ALIASES = { "/workspace/dashboard": "dashboard", "/billing/payouts": "payouts", "/billing/payment-proofs": "payment-proofs", "/billing/receipts": "receipts" };
+const ALIASES = { "/profile": "settings", "/security": "settings", "/workspace/dashboard": "dashboard", "/billing/payouts": "payouts", "/billing/payment-proofs": "payment-proofs", "/billing/receipts": "receipts" };
 
 // Module id for a path: the first path segment, so detail pages share their section's guide.
 export function moduleForPath(pathname) {

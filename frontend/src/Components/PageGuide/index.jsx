@@ -11,12 +11,10 @@ import "./pageGuide.scss";
 const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
 
 // The first visible element matching the step's target, or null.
-// Handy's launcher belongs to an external widget, so find it by where it sits: the
-// top element at the bottom-right corner that is not part of the page chrome we own.
+// Handy's launcher belongs to an external widget (class ha-fab) and exists only when Handy is on.
 function findHandy() {
-  const hit = document.elementsFromPoint(window.innerWidth - 40, window.innerHeight - 40)
-    .find((el) => !el.closest(".dwella-page-guide, main, .dwella-app-shell") && el !== document.body && el !== document.documentElement);
-  return hit || null;
+  const el = document.querySelector(".ha-fab");
+  return el && visible(el) ? el : null;
 }
 
 export function findTarget(target) {
@@ -27,26 +25,30 @@ export function findTarget(target) {
 }
 
 // The bulb lives just to the right of the page's own title, wherever the page draws it.
+// Pages re-render their title as data arrives, so the slot is re-attached whenever it is lost.
 function useTitleHost(pathname) {
   const [host, setHost] = useState(null);
   useLayoutEffect(() => {
     let span = null;
-    const attach = () => {
-      const h1 = document.querySelector("main h1");
-      if (!h1) return false;
-      span = document.createElement("span");
-      span.className = "dwella-page-guide-host";
-      h1.appendChild(span);
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      const title = document.querySelector("main h1") || document.querySelector("main h3");
+      if (span && span.isConnected && span.parentElement === title) return;
+      span?.remove();
+      span = null;
+      if (title) {
+        span = document.createElement("span");
+        span.className = "dwella-page-guide-host";
+        title.appendChild(span);
+      }
       setHost(span);
-      return true;
     };
     setHost(null);
-    let observer;
-    if (!attach()) {
-      observer = new MutationObserver(() => { if (attach()) observer.disconnect(); });
-      observer.observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
-    }
-    return () => { observer?.disconnect(); span?.remove(); };
+    sync();
+    const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(sync); });
+    observer.observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); span?.remove(); };
   }, [pathname]);
   return host;
 }
@@ -71,7 +73,9 @@ export default function PageGuide({ user }) {
   const bulb = useRef(null);
   const card = useRef(null);
   const { markSeen } = guides;
-  const step = guide?.steps[index];
+  // Handy steps only appear when Handy is actually switched on for this person.
+  const steps = React.useMemo(() => (guide ? guide.steps.filter((item) => !item.target?.handy || findHandy()) : []), [guide, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const step = steps[index];
 
   useEffect(() => {
     if (!offered || !host || guides.data.seen.includes(module) || autoOpened.current.has(module)) return;
@@ -115,10 +119,21 @@ export default function PageGuide({ user }) {
     };
     place();
     const frame = requestAnimationFrame(place);
+    // Pages fill in after the guide opens: keep looking for the target until it appears.
+    let watching = null;
+    if (step.target && !findTarget(step.target)) {
+      let pending = 0;
+      watching = new MutationObserver(() => {
+        if (pending) return;
+        pending = requestAnimationFrame(() => { pending = 0; if (findTarget(step.target)) { watching.disconnect(); place(); } });
+      });
+      watching.observe(document.body, { childList: true, subtree: true });
+    }
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     return () => {
       cancelAnimationFrame(frame);
+      watching?.disconnect();
       window.removeEventListener("resize", place);
       window.removeEventListener("scroll", place, true);
       marked?.removeAttribute("data-guide-active");
@@ -129,7 +144,7 @@ export default function PageGuide({ user }) {
   useEffect(() => { if (open && placed) card.current?.focus({ preventScroll: true }); }, [open, index, placed]);
 
   if (!offered || !host) return null;
-  const last = index === guide.steps.length - 1;
+  const last = index === steps.length - 1;
   return <>
     {createPortal(
       <Tooltip content="Page tips" relationship="label">
@@ -146,7 +161,7 @@ export default function PageGuide({ user }) {
         <p>{step.body}</p>
         {step.to ? <Button appearance="outline" size="small" onClick={() => { close(); navigate(step.to); }}>{step.toLabel}</Button> : null}
         <div className="dwella-page-guide-foot">
-          <span className="dwella-page-guide-count">{index + 1} / {guide.steps.length}</span>
+          <span className="dwella-page-guide-count">{index + 1} / {steps.length}</span>
           <span>
             {!last ? <Button size="small" appearance="subtle" onClick={close}>Skip</Button> : null}
             {index > 0 ? <Button size="small" appearance="subtle" onClick={() => setIndex(index - 1)}>Back</Button> : null}

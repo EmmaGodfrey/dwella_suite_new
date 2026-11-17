@@ -30,7 +30,7 @@ MODULES = {
         "payment-proofs",
         "receipts",
     ],
-    "tenant": ["dashboard", "billing", "leases", "maintenance", "profile", "security"],
+    "tenant": ["dashboard", "billing", "leases", "maintenance", "settings"],
 }
 PREFIX = "page:"
 
