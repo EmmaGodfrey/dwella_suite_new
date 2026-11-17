@@ -26,6 +26,9 @@ MODULES = {
         "team",
         "settings",
         "messages",
+        "payouts",
+        "payment-proofs",
+        "receipts",
     ],
     "tenant": ["dashboard", "billing", "leases", "maintenance", "profile", "security"],
 }

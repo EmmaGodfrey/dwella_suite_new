@@ -95,8 +95,8 @@ const AppLayout = ({ notFound = false }) => {
 
         <main className="dwella-content" data-tour="dashboard-overview">
           <PageActionsSlot.Provider value={showHeader ? actionsSlot : null}>
-            {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} titleAddon={<PageGuide user={user} />} /> : null}
-            {!showHeader && !notFound ? <PageGuide user={user} floating /> : null}
+            {showHeader ? <PageHeader title={meta[0]} description={meta[1]} onSlot={setActionsSlot} /> : null}
+            {!notFound ? <PageGuide user={user} /> : null}
             {getUserAccess(user).workspace_suspended ? <div role="status" className="admin-card"><h1>Workspace suspended</h1><p>Contact Dwella support to restore access to your workspace.</p></div> : <Outlet />}
           </PageActionsSlot.Provider>
         </main>

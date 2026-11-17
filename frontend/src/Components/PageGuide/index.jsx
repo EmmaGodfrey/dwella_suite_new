@@ -1,16 +1,60 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, Tooltip } from "@fluentui/react-components";
-import { Dismiss20Regular, Lightbulb20Regular } from "@fluentui/react-icons";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Button, Tooltip } from "@fluentui/react-components";
+import { Dismiss16Regular, Lightbulb20Regular } from "@fluentui/react-icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import { usePageGuides } from "../../Services/accountSetup";
 import { getUserAccess } from "../../shared/access";
 import { GUIDES, moduleForPath } from "./guides";
 import "./pageGuide.scss";
 
-// A lightbulb that opens the current page's short guide. The guide opens by
-// itself once, the first time this person visits the page, and is always
-// replayable from the bulb. Guides only explain; they never act.
-export default function PageGuide({ user, floating = false }) {
+const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+
+// The first visible element matching the step's target, or null.
+// Handy's launcher belongs to an external widget, so find it by where it sits: the
+// top element at the bottom-right corner that is not part of the page chrome we own.
+function findHandy() {
+  const hit = document.elementsFromPoint(window.innerWidth - 40, window.innerHeight - 40)
+    .find((el) => !el.closest(".dwella-page-guide, main, .dwella-app-shell") && el !== document.body && el !== document.documentElement);
+  return hit || null;
+}
+
+export function findTarget(target) {
+  if (!target) return null;
+  if (target.handy) return findHandy();
+  const wanted = target.text?.toLowerCase();
+  return [...document.querySelectorAll(target.sel)].find((el) => visible(el) && (!wanted || `${el.textContent} ${el.getAttribute("aria-label") || ""}`.toLowerCase().includes(wanted))) || null;
+}
+
+// The bulb lives just to the right of the page's own title, wherever the page draws it.
+function useTitleHost(pathname) {
+  const [host, setHost] = useState(null);
+  useLayoutEffect(() => {
+    let span = null;
+    const attach = () => {
+      const h1 = document.querySelector("main h1");
+      if (!h1) return false;
+      span = document.createElement("span");
+      span.className = "dwella-page-guide-host";
+      h1.appendChild(span);
+      setHost(span);
+      return true;
+    };
+    setHost(null);
+    let observer;
+    if (!attach()) {
+      observer = new MutationObserver(() => { if (attach()) observer.disconnect(); });
+      observer.observe(document.querySelector("main") || document.body, { childList: true, subtree: true });
+    }
+    return () => { observer?.disconnect(); span?.remove(); };
+  }, [pathname]);
+  return host;
+}
+
+// A lightbulb beside the page title opens a small speech-bubble guide that points
+// at the real control it describes. It opens once on a person's first visit and is
+// always replayable from the bulb. It never dims the page and never acts for the user.
+export default function PageGuide({ user }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const persona = getUserAccess(user).persona;
@@ -18,50 +62,97 @@ export default function PageGuide({ user, floating = false }) {
   const guides = usePageGuides(user, Boolean(role));
   const module = moduleForPath(pathname);
   const guide = role ? GUIDES[role][module] : null;
-  const offered = guides.data?.available && guides.data.modules.includes(module);
+  const offered = Boolean(guide) && guides.data?.available && guides.data.modules.includes(module);
+  const host = useTitleHost(pathname);
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const [pos, setPos] = useState(null);
   const autoOpened = useRef(new Set());
-  const button = useRef(null);
+  const bulb = useRef(null);
+  const card = useRef(null);
   const { markSeen } = guides;
+  const step = guide?.steps[index];
 
   useEffect(() => {
-    if (!guide || !offered || guides.data.seen.includes(module) || autoOpened.current.has(module)) return;
+    if (!offered || !host || guides.data.seen.includes(module) || autoOpened.current.has(module)) return;
     autoOpened.current.add(module);
     setIndex(0);
     setOpen(true);
-  }, [guide, offered, guides.data, module]);
-
+  }, [offered, host, guides.data, module]);
   useEffect(() => { setOpen(false); }, [pathname]);
 
-  if (!guide || !offered) return null;
-  const step = guide.steps[index];
-  const last = index === guide.steps.length - 1;
-  const close = () => {
+  const close = useCallback(() => {
     setOpen(false);
-    if (!guides.data.seen.includes(module)) markSeen.mutate(module);
-    button.current?.focus();
-  };
+    if (guides.data && !guides.data.seen.includes(module)) markSeen.mutate(module);
+    bulb.current?.focus();
+  }, [guides.data, module, markSeen]);
+
+  // Highlight the target and keep the bubble beside it as the page scrolls or resizes.
+  useLayoutEffect(() => {
+    if (!open || !step) { setPos(null); return undefined; }
+    let marked = null;
+    let scrolled = null;
+    const place = () => {
+      const el = findTarget(step.target) || bulb.current;
+      if (!el) return;
+      if (el !== marked) {
+        marked?.removeAttribute("data-guide-active");
+        if (el !== bulb.current) el.setAttribute("data-guide-active", "true");
+        marked = el;
+      }
+      if (scrolled !== el) { scrolled = el; el.scrollIntoView?.({ block: "center", behavior: "auto" }); }
+      const r = el.getBoundingClientRect();
+      const w = Math.min(280, window.innerWidth - 24);
+      const h = card.current?.offsetHeight || 150;
+      const below = r.bottom + 16 + h <= window.innerHeight - 8;
+      const left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12));
+      const center = r.left + Math.min(r.width, 160) / 2;
+      setPos({
+        left, width: w, placement: below ? "below" : "above",
+        top: below ? r.bottom + 14 : Math.max(8, r.top - h - 14),
+        arrow: Math.max(16, Math.min(center - left, w - 16)),
+      });
+    };
+    place();
+    const frame = requestAnimationFrame(place);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+      marked?.removeAttribute("data-guide-active");
+    };
+  }, [open, step]);
+
+  const placed = Boolean(pos);
+  useEffect(() => { if (open && placed) card.current?.focus({ preventScroll: true }); }, [open, index, placed]);
+
+  if (!offered || !host) return null;
+  const last = index === guide.steps.length - 1;
   return <>
-    <Tooltip content="Page tips" relationship="label">
-      <Button ref={button} className={`dwella-page-guide-bulb ${floating ? "is-floating" : ""}`} appearance="subtle" size="small" icon={<Lightbulb20Regular />} aria-label="Page tips" onClick={() => { setIndex(0); setOpen(true); }} />
-    </Tooltip>
-    <Dialog open={open} modalType="modal" onOpenChange={(_, data) => { if (!data.open) close(); }}>
-      <DialogSurface className="dwella-page-guide">
-        <DialogBody>
-          <DialogTitle action={<Button appearance="subtle" aria-label="Close tips" icon={<Dismiss20Regular />} onClick={close} />}>{step.title}</DialogTitle>
-          <DialogContent>
-            <p className="dwella-page-guide-count">{guide.title} · {index + 1} of {guide.steps.length}</p>
-            <p>{step.body}</p>
-            {step.to ? <Button appearance="outline" size="small" onClick={() => { close(); navigate(step.to); }}>{step.toLabel}</Button> : null}
-          </DialogContent>
-          <DialogActions>
-            <Button appearance="subtle" onClick={close}>{last ? "Close" : "Skip"}</Button>
-            {index > 0 ? <Button onClick={() => setIndex(index - 1)}>Back</Button> : null}
-            {!last ? <Button appearance="primary" onClick={() => setIndex(index + 1)}>Next</Button> : <Button appearance="primary" onClick={close}>Got it</Button>}
-          </DialogActions>
-        </DialogBody>
-      </DialogSurface>
-    </Dialog>
+    {createPortal(
+      <Tooltip content="Page tips" relationship="label">
+        <Button ref={bulb} className="dwella-page-guide-bulb" appearance="subtle" size="small" icon={<Lightbulb20Regular />} aria-label="Page tips" aria-expanded={open} onClick={() => { if (open) close(); else { setIndex(0); setOpen(true); } }} />
+      </Tooltip>, host)}
+    {open && pos ? createPortal(
+      <div ref={card} className={`dwella-page-guide is-${pos.placement}`} role="dialog" aria-label={`${guide.title} tips`} tabIndex={-1}
+        style={{ left: pos.left, top: pos.top, width: pos.width, "--arrow": `${pos.arrow}px` }}
+        onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
+        <div className="dwella-page-guide-head">
+          <strong>{step.title}</strong>
+          <Button appearance="subtle" size="small" icon={<Dismiss16Regular />} aria-label="Close tips" onClick={close} />
+        </div>
+        <p>{step.body}</p>
+        {step.to ? <Button appearance="outline" size="small" onClick={() => { close(); navigate(step.to); }}>{step.toLabel}</Button> : null}
+        <div className="dwella-page-guide-foot">
+          <span className="dwella-page-guide-count">{index + 1} / {guide.steps.length}</span>
+          <span>
+            {!last ? <Button size="small" appearance="subtle" onClick={close}>Skip</Button> : null}
+            {index > 0 ? <Button size="small" appearance="subtle" onClick={() => setIndex(index - 1)}>Back</Button> : null}
+            <Button size="small" appearance="primary" onClick={() => (last ? close() : setIndex(index + 1))}>{last ? "Done" : "Next"}</Button>
+          </span>
+        </div>
+      </div>, document.body) : null}
   </>;
 }
