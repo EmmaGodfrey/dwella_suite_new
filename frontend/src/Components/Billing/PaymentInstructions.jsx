@@ -21,8 +21,8 @@ function summary(item) {
     : `${networks[item.network] || item.network} · ${item.phone} · ${item.account_name}`;
 }
 
-function InstructionDrawer({ item, onClose }) {
-  const [form, setForm] = useState({ ...blank, ...item });
+function InstructionDrawer({ item, kind, onClose, onSaved }) {
+  const [form, setForm] = useState({ ...blank, ...(kind ? { kind } : {}), ...item });
   const [message, setMessage] = useState("");
   const save = useSavePaymentInstruction();
   const { errors, validate, clearError, fieldProps, showServerErrors } = useFormErrors();
@@ -50,7 +50,7 @@ function InstructionDrawer({ item, onClose }) {
     try {
       await save.mutateAsync({ id: item?.id, ...data });
       toast.success("Payment details saved. New invoices will show them.");
-      onClose();
+      if (onSaved) onSaved(form.kind); else onClose();
     } catch (error) {
       if (!showServerErrors(error.data, fields)) setMessage(error.message || "Could not save these details.");
     }
@@ -99,7 +99,9 @@ function InstructionDrawer({ item, onClose }) {
   </FormDrawer>;
 }
 
-export default function PaymentInstructions() {
+// `required` lists the saved-detail kinds ("bank", "mobile_money") the user has ticked.
+// After each save the drawer moves on to the next ticked method that still has none.
+export default function PaymentInstructions({ required = [] }) {
   const query = usePaymentInstructions();
   const remove = useRemovePaymentInstruction();
   const [editing, setEditing] = useState(null); // null | {} (new) | item
@@ -129,6 +131,11 @@ export default function PaymentInstructions() {
                 }}>Remove</Button>
             </div>
           </div>)}
-    {editing && <InstructionDrawer item={editing.id ? editing : null} onClose={() => setEditing(null)} />}
+    {editing && <InstructionDrawer key={editing.id || editing.kind || "new"} item={editing.id ? editing : null} kind={editing.kind}
+      onClose={() => setEditing(null)}
+      onSaved={(saved) => {
+        const missing = required.find((kind) => kind !== saved && !items.some((entry) => entry.kind === kind));
+        setEditing(missing ? { kind: missing } : null);
+      }} />}
   </section>;
 }
