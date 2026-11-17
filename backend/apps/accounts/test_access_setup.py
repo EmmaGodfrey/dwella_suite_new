@@ -284,7 +284,9 @@ def test_invitation_password_delivery_and_replacement_failures_are_safe(person, 
 
 def test_invitation_rejects_email_too_long_for_a_login(person, workspace):
     tenant = Tenant.objects.create(
-        organization=workspace, full_name="Moses Demo", phone_number="+260971234567",
+        organization=workspace,
+        full_name="Moses Demo",
+        phone_number="+260971234567",
         email="a" * 64 + "@" + "b" * 63 + "." + "c" * 30 + ".com",
     )
     assert client_for(person).post(f"/api/v1/tenants/{tenant.public_id}/invite/").status_code == 400
@@ -513,3 +515,23 @@ def test_competing_account_link_consumption_is_single_use(person, operation):
     with ThreadPoolExecutor(max_workers=2) as pool:
         results = [pool.submit(consume) for _ in range(2)]
         assert sorted(f.result(timeout=20) for f in results) == [200, 400]
+
+
+def test_page_guides_record_first_visit_per_user_and_module(person, workspace):
+    url = "/api/v1/accounts/page-guides/"
+    client = client_for(person)
+    assert APIClient().get(url).status_code == 403
+    assert client.get(url).json()["response_data"]["seen"] == []
+    done = client.post(url, {"module": "billing", "action": "seen"}, format="json")
+    assert done.json()["response_data"]["seen"] == ["billing"]
+    client.post(url, {"module": "billing", "action": "seen"}, format="json")
+    assert client.get(url).json()["response_data"]["seen"] == ["billing"]
+    assert client.post(url, {"module": "nope", "action": "seen"}, format="json").status_code == 400
+    # Tenant-only modules are refused for a manager, and the product tour is untouched.
+    assert (
+        client.post(url, {"module": "security", "action": "seen"}, format="json").status_code == 400
+    )
+    assert client.get(TOUR).json()["response_data"]["status"] == "not_started"
+    other = get_user_model().objects.create_user(username="another@example.com")
+    OrganizationMembership.objects.create(user=other, organization=workspace, role="landlord")
+    assert client_for(other).get(url).json()["response_data"]["seen"] == []
