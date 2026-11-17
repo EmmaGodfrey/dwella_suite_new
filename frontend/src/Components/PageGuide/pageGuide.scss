@@ -14,15 +14,15 @@
   .dwella-page-guide-count { font-size: .75rem; color: var(--dwella-muted); }
   // Pointer: a rotated square on the edge facing the highlighted control.
   &::before {
-    content: ""; position: absolute; left: calc(var(--arrow, 24px) - 7px); width: 12px; height: 12px;
+    content: ""; position: absolute; left: calc(var(--arrow, 24px) - 8px); width: 14px; height: 14px;
     background: var(--dwella-paper); transform: rotate(45deg);
   }
-  &.is-below::before { top: -7px; border-left: 1px solid var(--dwella-primary); border-top: 1px solid var(--dwella-primary); }
-  &.is-above::before { bottom: -7px; border-right: 1px solid var(--dwella-primary); border-bottom: 1px solid var(--dwella-primary); }
+  &.is-below::before { top: -8px; border-left: 1px solid var(--dwella-primary); border-top: 1px solid var(--dwella-primary); }
+  &.is-above::before { bottom: -8px; border-right: 1px solid var(--dwella-primary); border-bottom: 1px solid var(--dwella-primary); }
 }
 [data-guide-active="true"] {
-  outline: 2px solid var(--dwella-primary); outline-offset: 3px; border-radius: .375rem;
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--dwella-primary) 18%, transparent);
+  outline: 2px solid var(--dwella-primary) !important; outline-offset: 3px !important; border-radius: .375rem;
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--dwella-primary) 22%, transparent) !important;
 }
 @media (prefers-reduced-motion: no-preference) { .dwella-page-guide { animation: dwella-guide-in .15s ease-out; } }
 @keyframes dwella-guide-in { from { opacity: 0; transform: translateY(4px); } }
