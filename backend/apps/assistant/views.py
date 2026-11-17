@@ -141,13 +141,22 @@ class HandyActionView(APIView):
                 }
                 return Response(public_response, status=previous.response_status)
 
-            response_data, resource = callback()
-            require_in_scope(self.request, resource)
+            result = callback()
+            response_data, resource = result[:2]
+            scope_property_ids = set(result[2]) if len(result) > 2 else property_ids_of(resource)
+            if not property_scope(self.request).everything and not scope_property_ids.issubset(
+                property_scope(self.request).ids
+            ):
+                raise PermissionDenied("This action is outside your current property scope.")
+            if len(result) <= 2:
+                require_in_scope(self.request, resource)
+            else:
+                from apps.common.property_scope import touch
+
+                touch(self.request, *scope_property_ids)
             response_data = json.loads(json.dumps(response_data, cls=DjangoJSONEncoder))
             execution.response_data = response_data
-            execution.response_data["_handy_scope_property_ids"] = sorted(
-                property_ids_of(resource)
-            )
+            execution.response_data["_handy_scope_property_ids"] = sorted(scope_property_ids)
             execution.response_status = 201
             execution.completed_at = timezone.now()
             execution.save(
@@ -179,7 +188,7 @@ class HandyActionView(APIView):
 class CreatePropertyView(HandyActionView):
     @extend_schema(
         operation_id="assistant_create_property",
-        summary="Create a property",
+        summary="Create one property",
         description="Creates a workspace-wide property; property-admin access is required.",
         request=AssistantPropertySerializer,
         responses={201: AssistantPropertySerializer},
@@ -197,7 +206,7 @@ class CreatePropertyView(HandyActionView):
 class CreateUnitView(HandyActionView):
     @extend_schema(
         operation_id="assistant_create_unit",
-        summary="Create a unit in a property",
+        summary="Create one unit in a property",
         request=AssistantUnitSerializer,
         responses={201: AssistantUnitSerializer},
         parameters=[IDEMPOTENCY_PARAMETER],
@@ -212,7 +221,7 @@ class CreateUnitView(HandyActionView):
 class CreateTenantView(HandyActionView):
     @extend_schema(
         operation_id="assistant_create_tenant",
-        summary="Create a tenant without activating a lease",
+        summary="Create one tenant without activating a lease",
         request=AssistantTenantSerializer,
         responses={201: AssistantTenantSerializer},
         parameters=[IDEMPOTENCY_PARAMETER],

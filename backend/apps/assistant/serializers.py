@@ -56,3 +56,11 @@ class AssistantMaintenanceRequestSerializer(MaintenanceRequestSerializer):
 
 class AssistantMaintenanceCommentSerializer(MaintenanceUpdateSerializer):
     pass
+
+
+class AssistantImportPreviewSerializer(serializers.Serializer):
+    csv = serializers.CharField(max_length=1_000_000, trim_whitespace=False)
+
+
+class AssistantImportConfirmSerializer(serializers.Serializer):
+    preview_token = serializers.RegexField(r"^[A-Za-z0-9_-]{43}$", max_length=43)

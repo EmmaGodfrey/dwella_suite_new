@@ -7,6 +7,9 @@ One row is one tenant or applicant within an organization. Phone numbers are nor
 Property managers may see tenants with a lease in their assigned/covered
 properties, plus unplaced tenants they personally created. Property admins may
 see tenant records across the workspace.
+For CSV tenant setup, use Handy's tenant import preview and confirmation
+actions. Confirmed rows create applicant records attributed to the current
+manager and do not create or activate leases.
 
 Tenant statuses:
 

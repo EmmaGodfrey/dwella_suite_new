@@ -258,7 +258,7 @@ def preview(importer, request, payload):
     }
 
 
-def confirm(importer, request, payload):
+def confirm(importer, request, payload, *, include_receipt=False):
     form = ConfirmSerializer(data=payload)
     form.is_valid(raise_exception=True)
     token = form.validated_data["preview_token"]
@@ -325,4 +325,4 @@ def confirm(importer, request, payload):
             count=len(created),
         )
         transaction.on_commit(lambda: cache.delete(f"portfolio-import-preview:{token}"))
-    return created
+    return (created, receipt) if include_receipt else created
