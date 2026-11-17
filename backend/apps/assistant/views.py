@@ -6,7 +6,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.exceptions import APIException, NotFound
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +16,14 @@ from apps.audit.services import record_event
 from apps.billing.models import Invoice
 from apps.billing.serializers import PaymentSerializer
 from apps.billing.services import record_payment
+from apps.common.property_scope import (
+    cover_event_details,
+    property_ids_of,
+    property_scope,
+    require_in_scope,
+    require_property_admin,
+    scoped_object,
+)
 from apps.maintenance.models import MaintenanceRequest, MaintenanceUpdate
 
 from .authentication import HandyAgentAuthentication
@@ -66,7 +74,11 @@ class HandyActionView(APIView):
 
     def execute(self, operation, callback):
         encoded = json.dumps(
-            self.request.data,
+            {
+                "method": self.request.method,
+                "path": self.request.path_info,
+                "data": self.request.data,
+            },
             cls=DjangoJSONEncoder,
             sort_keys=True,
             separators=(",", ":"),
@@ -112,16 +124,36 @@ class HandyActionView(APIView):
                     )
                 if previous.completed_at is None:
                     raise ActionConflict("That assistant action is still being processed.")
-                return Response(previous.response_data, status=previous.response_status)
+                if operation == "property.created":
+                    require_property_admin(self.request)
+                saved_scope_ids = previous.response_data.get("_handy_scope_property_ids")
+                current_scope = property_scope(self.request)
+                if not current_scope.everything:
+                    if saved_scope_ids is None:
+                        raise PermissionDenied(
+                            "The earlier action's property scope cannot be verified."
+                        )
+                    if not set(saved_scope_ids).issubset(current_scope.ids):
+                        raise NotFound("The earlier action is outside your current property scope.")
+                public_response = {
+                    key: value for key, value in previous.response_data.items()
+                    if key != "_handy_scope_property_ids"
+                }
+                return Response(public_response, status=previous.response_status)
 
             response_data, resource = callback()
+            require_in_scope(self.request, resource)
             response_data = json.loads(json.dumps(response_data, cls=DjangoJSONEncoder))
             execution.response_data = response_data
+            execution.response_data["_handy_scope_property_ids"] = sorted(
+                property_ids_of(resource)
+            )
             execution.response_status = 201
             execution.completed_at = timezone.now()
             execution.save(
                 update_fields=["response_data", "response_status", "completed_at"]
             )
+            cover_details = cover_event_details(self.request) or {}
             record_event(
                 self.request,
                 f"assistant.{operation}",
@@ -129,6 +161,7 @@ class HandyActionView(APIView):
                 organization=organization,
                 handy_jti=self.request.auth.jti,
                 idempotency_key=idempotency_key,
+                **cover_details,
             )
             return Response(response_data, status=201)
 
@@ -147,6 +180,7 @@ class CreatePropertyView(HandyActionView):
     @extend_schema(
         operation_id="assistant_create_property",
         summary="Create a property",
+        description="Creates a workspace-wide property; property-admin access is required.",
         request=AssistantPropertySerializer,
         responses={201: AssistantPropertySerializer},
         parameters=[IDEMPOTENCY_PARAMETER],
@@ -155,6 +189,8 @@ class CreatePropertyView(HandyActionView):
         auth=ACTION_AUTH,
     )
     def post(self, request):
+        # Creating a workspace-wide property is reserved for its property admin.
+        require_property_admin(request)
         return self.create_resource("property.created", AssistantPropertySerializer)
 
 
@@ -185,7 +221,9 @@ class CreateTenantView(HandyActionView):
         auth=ACTION_AUTH,
     )
     def post(self, request):
-        return self.create_resource("tenant.created", AssistantTenantSerializer)
+        return self.create_resource(
+            "tenant.created", AssistantTenantSerializer, created_by=request.user
+        )
 
 
 class CreateDraftLeaseView(HandyActionView):
@@ -236,13 +274,11 @@ class RecordInvoicePaymentView(HandyActionView):
         serializer = self.validated(AssistantRecordPaymentSerializer)
 
         def create():
-            invoice = (
-                Invoice.objects.for_organization(self.get_organization())
-                .filter(public_id=public_id)
-                .first()
+            invoice = scoped_object(
+                self.request,
+                Invoice.objects.for_organization(self.get_organization()),
+                public_id=public_id,
             )
-            if invoice is None:
-                raise NotFound("Invoice not found in this workspace.")
             data = serializer.validated_data
             payment = record_payment(
                 invoice=invoice,
@@ -307,13 +343,11 @@ class CreateMaintenanceCommentView(HandyActionView):
         serializer = self.validated(AssistantMaintenanceCommentSerializer)
 
         def create():
-            maintenance_request = (
-                MaintenanceRequest.objects.for_organization(self.get_organization())
-                .filter(public_id=public_id)
-                .first()
+            maintenance_request = scoped_object(
+                self.request,
+                MaintenanceRequest.objects.for_organization(self.get_organization()),
+                public_id=public_id,
             )
-            if maintenance_request is None:
-                raise NotFound("Maintenance request not found in this workspace.")
             comment = serializer.save(
                 request=maintenance_request,
                 author=request.user,

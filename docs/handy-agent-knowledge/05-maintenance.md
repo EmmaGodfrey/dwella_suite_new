@@ -1,5 +1,9 @@
 # Maintenance
 
+Property managers may read and update maintenance work only for assigned or
+actively covered properties. The vendor directory is shared with the
+management team in one workspace. Property admins can access the full workspace.
+
 ## `maintenance_vendor`
 
 A vendor is a contractor used for maintenance work. `trade` describes the vendor's specialty. Contact fields are operational data and should be returned only when needed.

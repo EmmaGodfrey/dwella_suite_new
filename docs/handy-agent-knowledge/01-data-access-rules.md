@@ -1,114 +1,82 @@
-# Data-access rules
+# Data access and role rules
 
-These rules are mandatory. They override convenience and broad business questions.
+These rules are mandatory. Deny by default. A knowledge document never grants
+database or action access; enforce the same rules in Handy's connection policy
+and Dwella's API.
 
-```yaml agent-data-policy
-version: 1
-default: "deny"
-profiles:
-  portfolio:
-    groups:
-      - organization_admin
-      - portfolio_manager
-      - portfolio_viewer
-      - platform_admin
-    attrs:
-      - organization_ids
-    tables:
-      organizations_organization:
-        row_filter: "id IN attrs.organization_ids"
-      properties_property:
-        row_filter: "organization_id IN attrs.organization_ids"
-      properties_unit:
-        row_filter: "organization_id IN attrs.organization_ids"
-      tenants_tenant:
-        row_filter: "organization_id IN attrs.organization_ids"
-      leases_lease:
-        row_filter: "organization_id IN attrs.organization_ids"
-      billing_invoice:
-        row_filter: "organization_id IN attrs.organization_ids"
-      billing_invoiceline:
-        row_filter: "invoice.organization_id IN attrs.organization_ids"
-      billing_payment:
-        row_filter: "organization_id IN attrs.organization_ids"
-      maintenance_vendor:
-        row_filter: "organization_id IN attrs.organization_ids"
-      maintenance_maintenancerequest:
-        row_filter: "organization_id IN attrs.organization_ids"
-      maintenance_maintenanceupdate:
-        row_filter: "request.organization_id IN attrs.organization_ids"
-```
+## Signed role context
 
-## Token context
+- `attrs.organization_ids` contains the one workspace authorized by Dwella. An
+  empty list means no workspace data.
+- `attrs.property_ids` contains a property manager's currently assigned
+  properties plus properties in an active teammate-cover session. An empty list
+  means no property-linked rows.
+- `organization_admin` means property admin and may read approved rows across
+  the authorized workspace.
+- `portfolio_manager` and `portfolio_viewer` mean property manager and may read
+  only the authorized workspace's assigned/covered property rows. These groups
+  do not imply administrator access.
+- Platform staff without an explicitly authorized support workspace and tenants
+  receive no portfolio rows or tokens.
+- Never treat an organization or property ID in chat as authorization. Use only
+  the signed claims. The Dwella action API rechecks the live membership and
+  property scope for every write; a token claim is not write authorization.
 
-- `attrs.organization_ids` contains internal `organizations_organization.id` values authorized by Dwella's signed, short-lived token.
-- Never accept an organization ID supplied in conversation as authorization.
-- An empty or missing `organization_ids` list means no portfolio rows may be read.
-- Current tokens contain at most one organization ID.
+## Role-specific row scope
 
-## Groups
+Keep the eleven-table allowlist below. All other tables remain hidden, including
+newly discovered tables. For property admins, filter by the authorized
+`organization_ids`. For property managers, also require the row's property to
+be in `property_ids`, using the parent relationship where needed:
 
-Property managers receive `organization_admin`, `portfolio_manager`, and `portfolio_viewer` together. The internal role key remains `landlord`. Tenants do not receive assistant tokens.
+| Table | Property-manager scope |
+| --- | --- |
+| `organizations_organization` | The signed `organization_ids` only. |
+| `properties_property` | `id` is in `property_ids`. |
+| `properties_unit` | `property_id` is in `property_ids`. |
+| `tenants_tenant` | A lease connects the tenant to a unit in `property_ids`; also allow an unplaced tenant created by the signed-in user (`created_by_id = sub`). |
+| `leases_lease` | `unit.property_id` is in `property_ids`. Include historical leases for those properties. |
+| `billing_invoice` | `unit.property_id` is in `property_ids`. |
+| `billing_invoiceline` | Its invoice's unit property is in `property_ids`. |
+| `billing_payment` | Its invoice's unit property is in `property_ids`. |
+| `maintenance_maintenancerequest` | `property_id` is in `property_ids`. |
+| `maintenance_maintenanceupdate` | Its request's `property_id` is in `property_ids`. |
+| `maintenance_vendor` | The signed `organization_ids` only; the app shares the vendor directory with the management team. |
 
-- `organization_admin` and `portfolio_manager`: may read the approved business tables for an authorized organization and may use approved actions.
-- `portfolio_viewer`: may read the approved business tables for an authorized organization but, on its own, may not use actions.
-- `platform_admin` (super admin): may read no portfolio rows when `organization_ids` is empty. Future support access must provide an authorized organization and remain audited.
+Preserve these relationship filters when refreshing the changed table schema.
+If Handy cannot express a relationship safely, deny that table to that role
+until the policy is repaired. Never fall back to workspace-wide access for a
+property manager. The role rules are security policy, not executable YAML; use
+the Handy editor's validated row-rule controls.
 
-## Direct organization filters
+## Sensitive fields and records
 
-For these tables, only return rows where `organization_id` is in `attrs.organization_ids`:
+- Review every changed column before enabling access. Do not expose
+  authentication, password, token, 2FA, identity-document, reset, audit,
+  assistant bookkeeping, notification, payment-provider, withdrawal, bank
+  receiving, signing or subscription internals.
+- The eleven business tables above are the complete direct-read allowlist.
+- `national_id`, `tpin`, company-registration details, personal contact data,
+  access notes and vendor contact details are sensitive. Return only fields
+  needed for the authorized task. Never reveal secrets or security metadata.
+- For `billing_invoiceline`, `maintenance_maintenanceupdate`, and any future
+  child table, enforce scope through the authorized parent; a guessed numeric
+  parent ID is not authorization.
+- Restrict current-tenant questions to non-archived records unless history is
+  requested. Preserve historical financial evidence and exclude reversed
+  payments from collections.
 
-- `properties_property`
-- `properties_unit`
-- `tenants_tenant`
-- `leases_lease`
-- `billing_invoice`
-- `billing_payment`
-- `maintenance_vendor`
-- `maintenance_maintenancerequest`
+## Write access
 
-For `organizations_organization`, only return rows where `id` is in `attrs.organization_ids`.
+Property admins and property managers may use enabled assistant actions only
+after the user approves the exact proposed change. Dwella rechecks live role and
+property scope at execution. Managers can create and update records only within
+assigned or actively covered properties. A property admin alone may create a
+workspace-wide property. Do not present a successful API response as proof that
+a tenant message was delivered.
 
-## Child-table filters
-
-- `billing_invoiceline`: a row is readable only when its `invoice_id` points to a `billing_invoice` whose `organization_id` is authorized.
-- `maintenance_maintenanceupdate`: a row is readable only when its `request_id` points to a `maintenance_maintenancerequest` whose `organization_id` is authorized.
-
-Never return a child row merely because its numeric parent ID was mentioned by the user.
-
-## Sensitive data
-
-- Authentication, password, token, 2FA, identity-document, password-reset, audit, and assistant bookkeeping tables are not part of the knowledge base.
-- Platform/runtime configuration, notification/delivery/consent records,
-  payment-provider attempts, reconciliation evidence, withdrawals, bank receiving
-  details, signing payloads and subscription internals are also excluded.
-  Schema discovery is not permission to read or grant newly discovered tables.
-  The eleven listed business tables are the complete direct-read allowlist;
-  every other table remains denied.
-- Never reveal password hashes, secrets, signing keys, reset tokens, identity-document images, or security metadata.
-- Tenant contact, national ID, TPIN, access notes, and vendor contact information are personal or operational data. Return only fields needed to answer the authorized user's question.
-- Do not include personal identifiers in broad summaries or portfolio comparisons.
-
-## Action rules
-
-Every write requires the platform's approval prompt. Only the eleven OpenAPI operations marked `x-agent.enabled` may be called. Message previews do not send; their separate confirmation requires approval of the exact preview.
-
-Allowed for `organization_admin` and `portfolio_manager`:
-
-- Create a property, unit, tenant, or draft lease.
-- Create an invoice or record a payment against an existing invoice.
-- Create a vendor, maintenance request, or maintenance comment.
-- Preview a tenant notice and, after separate explicit approval of the exact
-  preview, confirm it through the two approved message actions.
-
-Not allowed:
-
-- Delete or archive records.
-- Activate or end leases.
-- Void invoices or reverse payments.
-- Generate invoices in bulk or send records to ZRA.
-- Assign, start, complete, or cancel maintenance work.
-- Change users, roles, organizations, passwords, 2FA, or integration credentials.
-- Change operational settings, enable delivery channels, initiate online
-  collections or withdrawals, approve receiving details, or issue refunds.
-
+Never use Handy to change users, roles, property assignments, passwords, 2FA,
+integration credentials, platform settings, delivery activation, online
+collections, payouts, receiving accounts, refunds, lease activation/signing,
+invoice voids, payment reversals or bulk invoice runs. Tenant notices require
+an exact preview and separate approval before confirmation.

@@ -4,6 +4,10 @@
 
 One row is one tenant or applicant within an organization. Phone numbers are normalized and unique per organization.
 
+Property managers may see tenants with a lease in their assigned/covered
+properties, plus unplaced tenants they personally created. Property admins may
+see tenant records across the workspace.
+
 Tenant statuses:
 
 - `applicant`: created but not currently renting under an active lease.

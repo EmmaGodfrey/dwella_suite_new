@@ -1,5 +1,9 @@
 # Common questions and calculations
 
+Calculate every result only from rows the signed-in role may read. A property
+manager's totals cover assigned and actively covered properties, never the
+whole workspace unless those are all of the manager's current properties.
+
 ## Occupancy
 
 - Occupied units: units with `occupancy_status = occupied`.

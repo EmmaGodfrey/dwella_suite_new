@@ -9,7 +9,8 @@ from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from apps.organizations.models import Organization, OrganizationMembership
+from apps.organizations.models import Organization, OrganizationMembership, PropertyAssignment
+from apps.properties.models import Property
 
 User = get_user_model()
 URL = "/api/v1/accounts/handy-agent/token/"
@@ -52,15 +53,34 @@ def member(role):
     HANDY_AGENT_TOKEN_TTL_SECONDS=900,
 )
 @pytest.mark.parametrize(
-    ("role", "expected_groups", "expected_actor"),
+    ("role", "expected_groups", "expected_actor", "has_assignment"),
     [
-        ("landlord", ["organization_admin", "portfolio_manager", "portfolio_viewer"], True),
+        (
+            "landlord",
+            ["organization_admin", "portfolio_manager", "portfolio_viewer"],
+            True,
+            False,
+        ),
+        ("manager", ["portfolio_manager", "portfolio_viewer"], True, True),
     ],
 )
 def test_issues_scoped_short_lived_token_for_supported_roles(
-    role, expected_groups, expected_actor
+    role, expected_groups, expected_actor, has_assignment
 ):
     user, organization = member(role)
+    property_ids = []
+    if has_assignment:
+        membership = OrganizationMembership.objects.get(user=user, organization=organization)
+        prop = Property.objects.create(
+            organization=organization,
+            name="Assigned property",
+            property_type="house",
+            address="1 Main Road",
+        )
+        PropertyAssignment.objects.create(
+            organization=organization, membership=membership, property=prop
+        )
+        property_ids = [prop.pk]
 
     response = authenticated_client(user).post(URL)
 
@@ -74,7 +94,10 @@ def test_issues_scoped_short_lived_token_for_supported_roles(
     )
     assert claims["sub"] == str(user.pk)
     assert claims["groups"] == expected_groups
-    assert claims["attrs"] == {"organization_ids": [organization.pk]}
+    assert claims["attrs"] == {
+        "organization_ids": [organization.pk],
+        "property_ids": property_ids,
+    }
     assert claims["agent"] == {
         "thinker": True,
         "actor": expected_actor,
@@ -88,24 +111,19 @@ def test_issues_scoped_short_lived_token_for_supported_roles(
 
 @pytest.mark.django_db
 @override_settings(HANDY_AGENT_SIGNING_SECRET=SECRET)
-def test_platform_admin_token_has_no_workspace_data_without_support_session():
+def test_platform_admin_handy_token_requires_two_factor_setup():
+    from apps.accounts.access_state import mark_email_verified
+
     user = User.objects.create_superuser(
         username="platform@example.com",
         email="platform@example.com",
         password="StrongerPass123",
     )
+    mark_email_verified(user)
 
     response = authenticated_client(user).post(URL)
-    claims = jwt.decode(
-        response.data["token"],
-        SECRET,
-        algorithms=["HS256"],
-        audience="handy-agent",
-        issuer="https://api.dwella.properties",
-    )
-
-    assert claims["groups"] == ["platform_admin"]
-    assert claims["attrs"] == {"organization_ids": []}
+    assert response.status_code == 403
+    assert "two-factor" in str(response.data).lower()
 
 
 @pytest.mark.django_db

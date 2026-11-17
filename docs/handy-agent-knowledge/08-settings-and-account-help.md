@@ -2,15 +2,19 @@
 
 ## Roles and beta signup
 
-Dwella currently has system admins, property managers and tenants. There is no
-separate property-admin role or assignment of managers to individual properties.
-Public beta applications implicitly select Property manager. A beta application
-is not proof of an active workspace, verified mailbox or access to records.
+Dwella has platform admins, property admins, property managers and tenants.
+Property admins oversee the entire workspace. Property managers are assigned
+properties and can cover a teammate's properties temporarily when a live cover
+session is active. Public beta applications request property-manager access; an
+application alone does not create an active workspace, verify a mailbox or
+grant access to records.
 
-Property managers work within their authorized workspace. Tenants use their
-own tenancy portal and do not have Handy access. Changing tenant access must
-preserve historical financial records. For invitations, recovery or access
-removal, guide the user through the app; Handy has no corresponding write action.
+Property managers can use Handy for data and approved writes within their
+assigned/covered property scope. Creating a new property and workspace-level
+team/financial settings remain property-admin work. Tenants use their tenancy
+portal and do not have Handy access. Changing tenant access must preserve
+historical financial records. For invitations, recovery or access removal,
+guide the user through the app; Handy has no corresponding write action.
 
 ## System-admin settings
 
