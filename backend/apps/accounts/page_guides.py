@@ -29,8 +29,11 @@ MODULES = {
         "payouts",
         "payment-proofs",
         "receipts",
+        "lease-detail",
+        "invoice-detail",
+        "request-detail",
     ],
-    "tenant": ["dashboard", "billing", "leases", "maintenance", "settings"],
+    "tenant": ["dashboard", "billing", "leases", "maintenance", "settings", "request-detail"],
 }
 PREFIX = "page:"
 

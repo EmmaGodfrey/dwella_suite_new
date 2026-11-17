@@ -21,7 +21,8 @@ export function findTarget(target) {
   if (!target) return null;
   if (target.handy) return findHandy();
   const wanted = target.text?.toLowerCase();
-  return [...document.querySelectorAll(target.sel)].find((el) => visible(el) && (!wanted || `${el.textContent} ${el.getAttribute("aria-label") || ""}`.toLowerCase().includes(wanted))) || null;
+  const found = [...document.querySelectorAll(target.sel)].find((el) => visible(el) && (!wanted || `${el.textContent} ${el.getAttribute("aria-label") || ""}`.toLowerCase().includes(wanted))) || null;
+  return found || (target.fallback ? findTarget(target.fallback) : null);
 }
 
 // The bulb lives just to the right of the page's own title, wherever the page draws it.
@@ -74,14 +75,15 @@ export default function PageGuide({ user }) {
   const card = useRef(null);
   const { markSeen } = guides;
   // Handy steps only appear when Handy is actually switched on for this person.
-  const steps = React.useMemo(() => (guide ? guide.steps.filter((item) => !item.target?.handy || findHandy()) : []), [guide, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const steps = React.useMemo(() => (guide ? guide.steps.filter((item) => (!item.target?.handy || findHandy()) && (!item.optional || findTarget(item.target))) : []), [guide, open]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = steps[index];
 
   useEffect(() => {
     if (!offered || !host || guides.data.seen.includes(module) || autoOpened.current.has(module)) return;
     autoOpened.current.add(module);
-    setIndex(0);
-    setOpen(true);
+    // Give the page a moment to fill in so optional steps can find their controls.
+    const timer = window.setTimeout(() => { setIndex(0); setOpen(true); }, 600);
+    return () => { window.clearTimeout(timer); autoOpened.current.delete(module); };
   }, [offered, host, guides.data, module]);
   useEffect(() => { setOpen(false); }, [pathname]);
 

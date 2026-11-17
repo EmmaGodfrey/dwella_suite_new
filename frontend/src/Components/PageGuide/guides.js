@@ -5,7 +5,8 @@
 // explain; they never save, send, pay or sign anything for the person.
 const M = "main ";
 const btn = (text) => ({ sel: `${M}button`, text });
-const tab = (text) => ({ sel: `${M}[role=tab]`, text });
+// On phones the tab row becomes a "section" dropdown, so fall back to that.
+const tab = (text) => ({ sel: `${M}[role=tab]`, text, fallback: { sel: `${M}select` } });
 const HANDY = { handy: true };
 
 export const GUIDES = {
@@ -16,7 +17,7 @@ export const GUIDES = {
       { title: "Ask Handy", body: "Handy is your built-in assistant. Ask who has not paid, what is due, or to record a payment, and it answers from your own records.", target: HANDY },
       { title: "Go straight to billing", body: "Jump to invoices and payments from the recent payments panel.", target: btn("Go to billing") },
       { title: "Notifications", body: "Payments, proof of payment and repair requests show up here as they happen.", target: { sel: "header button[aria-label^='Notifications']" } },
-      { title: "Your setup checklist", body: "Get started stays in the menu until your account, payment details and billing are ready.", target: { sel: "nav a, aside a", text: "Get started" } },
+      { title: "Your setup checklist", body: "Get started stays in the menu until your account, payment details and billing are ready.", target: { sel: "nav a, aside a", text: "Get started" }, optional: true },
     ] },
     setup: { title: "Get started", steps: [
       { title: "Four short steps", body: "Business details, how tenants pay, billing and reminders, then a review. Each step saves as you go, so you can leave and return.", target: { sel: `${M}h1` } },
@@ -104,6 +105,31 @@ export const GUIDES = {
       { title: "Reminder settings", body: "Choose how and when tenants are reminded about rent.", target: { sel: "main a, main button", text: "Reminder settings" } },
       { title: "Stay current", body: "Refresh to check for new messages.", target: btn("Refresh") },
     ] },
+    "lease-detail": { title: "Lease", steps: [
+      { title: "This lease", body: "Its status, tenant and unit. A lease starts as a draft and becomes active once it is signed and started.", target: { sel: `${M}h1` } },
+      { title: "The tenant", body: "Open the tenant to see their contact details, balance and invoices.", target: { sel: `${M}a`, text: "Tenant" } },
+      { title: "Key terms", body: "Rent, dates, deposit and billing day. Rent invoices are generated from these.", target: { sel: `${M}h3`, text: "Key terms" } },
+      { title: "Documents and signatures", body: "Prepare the agreement, send it for signing and keep the signed copy here.", target: { sel: `${M}h3`, text: "Documents and signatures" } },
+      { title: "Prepare the agreement", body: "Preview the agreement and send it for signing. Nothing is sent until you confirm.", target: btn("Prepare agreement"), optional: true },
+      { title: "Signed on paper?", body: "Attach the scanned original so it is stored with the lease.", target: btn("Attach signed original"), optional: true },
+      { title: "Start the lease", body: "Once the lease is agreed, start it so rent invoices can be generated.", target: btn("Start lease"), optional: true },
+      { title: "History", body: "Every change to the lease is recorded here.", target: { sel: `${M}h3`, text: "History" } },
+    ] },
+    "invoice-detail": { title: "Invoice", steps: [
+      { title: "This invoice", body: "Its amount, due date, balance and status.", target: { sel: `${M}h1` } },
+      { title: "Record a payment", body: "Record money received by bank, cash or mobile money. Partial payments are fine and the balance updates. A receipt is sent automatically.", target: btn("Record payment"), optional: true },
+      { title: "Preview or download", body: "See exactly what the tenant receives, including the PDF.", target: btn("Preview invoice") },
+      { title: "Payments so far", body: "Every payment recorded against this invoice, with its receipt.", target: { sel: `${M}h3`, text: "Payments" } },
+      { title: "Void an invoice", body: "Void cancels an invoice raised by mistake. It cannot be undone, so you are asked to confirm.", target: btn("Void"), optional: true },
+    ] },
+    "request-detail": { title: "Repair request", steps: [
+      { title: "This request", body: "What the tenant reported, its priority and where it stands.", target: { sel: `${M}h1` } },
+      { title: "Move it forward", body: "Start work when the repair begins, and mark it done when it is finished. The tenant sees each change.", target: btn("Start work"), optional: true },
+      { title: "Finish the job", body: "Mark it done when the repair is complete.", target: btn("Mark as done"), optional: true },
+      { title: "Talk to the tenant", body: "Messages here go to the tenant and their replies appear below.", target: { sel: `${M}h3`, text: "Conversation" } },
+      { title: "Assign a vendor", body: "Choose who will do the work and when.", target: { sel: `${M}h3`, text: "Assign and schedule" } },
+      { title: "Progress and details", body: "A timeline of the request, with access notes and costs under Details.", target: { sel: `${M}h3`, text: "Progress" } },
+    ] },
   },
   tenant: {
     dashboard: { title: "Home", steps: [
@@ -138,6 +164,12 @@ export const GUIDES = {
       { title: "Notifications", body: "Choose how you hear about invoices, payments and repairs.", target: tab("Notifications") },
       { title: "Security", body: "Verify your email and set up an authenticator app so only you can sign in.", target: tab("Security") },
     ] },
+    "request-detail": { title: "Your repair", steps: [
+      { title: "Your request", body: "What you reported and where it stands.", target: { sel: `${M}h1` } },
+      { title: "Details", body: "The description, priority and any access notes.", target: { sel: `${M}h3`, text: "Details" } },
+      { title: "Updates", body: "Messages and progress from your property manager.", target: { sel: `${M}h3`, text: "Updates" } },
+      { title: "Add an update", body: "Send your property manager more information, such as when you are home.", target: btn("Send update") },
+    ] },
   },
 };
 
@@ -146,6 +178,9 @@ const ALIASES = { "/profile": "settings", "/security": "settings", "/workspace/d
 // Module id for a path: the first path segment, so detail pages share their section's guide.
 export function moduleForPath(pathname) {
   if (ALIASES[pathname]) return ALIASES[pathname];
+  if (/^\/leases\/[^/]+$/.test(pathname)) return "lease-detail";
+  if (/^\/billing\/invoices\/[^/]+$/.test(pathname)) return "invoice-detail";
+  if (/^\/maintenance\/[^/]+$/.test(pathname)) return "request-detail";
   const first = pathname.split("/").filter(Boolean)[0];
   return first || "dashboard";
 }
