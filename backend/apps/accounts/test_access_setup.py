@@ -535,3 +535,21 @@ def test_page_guides_record_first_visit_per_user_and_module(person, workspace):
     other = get_user_model().objects.create_user(username="another@example.com")
     OrganizationMembership.objects.create(user=other, organization=workspace, role="landlord")
     assert client_for(other).get(url).json()["response_data"]["seen"] == []
+
+
+def test_property_managers_get_only_guides_for_pages_they_can_access(person, workspace):
+    person.organization_memberships.update(role="manager")
+    response = client_for(person).get("/api/v1/accounts/page-guides/").json()["response_data"]
+    assert response["available"] is True
+    assert {"dashboard", "properties", "tenants", "settings"}.issubset(response["modules"])
+    assert not {"setup", "team", "payouts"}.intersection(response["modules"])
+    assert (
+        client_for(person)
+        .post(
+            "/api/v1/accounts/page-guides/",
+            {"module": "payouts", "action": "seen"},
+            format="json",
+        )
+        .status_code
+        == 400
+    )

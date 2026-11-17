@@ -60,7 +60,9 @@ function useTitleHost(pathname) {
 export default function PageGuide({ user }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const persona = getUserAccess(user).persona;
+  const access = getUserAccess(user);
+  const persona = access.persona;
+  const isManager = access.role === "manager";
   const role = persona === "tenant" ? "tenant" : persona === "landlord" ? "landlord" : null;
   const guides = usePageGuides(user, Boolean(role));
   const module = moduleForPath(pathname);
@@ -75,7 +77,10 @@ export default function PageGuide({ user }) {
   const card = useRef(null);
   const { markSeen } = guides;
   // Handy steps only appear when Handy is actually switched on for this person.
-  const steps = React.useMemo(() => (guide ? guide.steps.filter((item) => (!item.target?.handy || findHandy()) && (!item.optional || findTarget(item.target))) : []), [guide, open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const steps = React.useMemo(() => (guide ? guide.steps.filter((item) => {
+    if (isManager && module === "settings" && ["Workspace", "Payments"].includes(item.title)) return false;
+    return (!item.target?.handy || findHandy()) && (!item.optional || findTarget(item.target));
+  }) : []), [guide, isManager, module, open]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = steps[index];
 
   useEffect(() => {

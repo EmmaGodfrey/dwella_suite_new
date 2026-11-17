@@ -33,6 +33,24 @@ MODULES = {
         "invoice-detail",
         "request-detail",
     ],
+    # Managers share the landlord persona in the UI, but cannot use admin-only
+    # workspace setup, payouts, or team controls.
+    "manager": [
+        "dashboard",
+        "properties",
+        "tenants",
+        "leases",
+        "billing",
+        "maintenance",
+        "reports",
+        "settings",
+        "messages",
+        "payment-proofs",
+        "receipts",
+        "lease-detail",
+        "invoice-detail",
+        "request-detail",
+    ],
     "tenant": ["dashboard", "billing", "leases", "maintenance", "settings", "request-detail"],
 }
 PREFIX = "page:"
