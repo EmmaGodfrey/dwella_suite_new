@@ -530,6 +530,28 @@ def test_payment_notice_template_reaches_only_the_tenant(house, settings):
     assert (held.status, held.reason) == ("held", "operational_template_required")
 
 
+def test_manager_payment_notice_uses_its_own_template_once_approved(house, settings):
+    settings.WHATSAPP_OPERATIONAL_TEMPLATE = ""
+    tenant_phone(house)
+    opted_in(house[1], "+260971234560")
+    opted_in(house[2])
+    payment = paid(house)
+    payloads = send_outside_window(
+        {"dwella_payment_received:en", "dwella_manager_payment_received:en"}
+    )
+    assert sorted(item["template"]["name"] for item in payloads) == [
+        "dwella_manager_payment_received", "dwella_payment_received",
+    ]
+    manager = next(
+        item for item in payloads if item["template"]["name"] == "dwella_manager_payment_received"
+    )
+    values = body_values(manager)
+    assert len(values) == 5
+    assert values[1] == house[3].tenant.full_name
+    assert values[2].endswith(f"{payment.amount:,.2f}")
+    assert values[3] == house[4].reference and values[4] == house[0].name
+
+
 @pytest.mark.parametrize(
     "approved,sent", [({"dwella_payment_received:en"}, 1), (set(), 0)]
 )
