@@ -130,13 +130,13 @@ class ReplacementSerializer(serializers.Serializer):
         return attrs
 
 
-@sensitive_variables("password", "code", "values", "user", "device", "document")
-@transaction.atomic
-def replace_credentials(request, *, password, code, values):
-    if not settings.PROVIDER_CREDENTIALS_ENABLED:
-        raise serializers.ValidationError(UNAVAILABLE)
-    crypto = cipher()
-    # Lock the actor first: serializes concurrent proofs and rechecks revoked privileges.
+@sensitive_variables("password", "code", "user", "device")
+def verify_step_up(request, *, password, code):
+    """Prove a platform admin is present: current password plus a fresh authenticator code.
+
+    Call inside ``transaction.atomic``. Locks the actor so concurrent proofs serialize and
+    revoked privileges are rechecked. A code can be used once across every protected action.
+    """
     user = get_user_model().objects.select_for_update().get(pk=request.user.pk)
     device = (
         TwoFactorDevice.objects.select_for_update().filter(user=user, is_confirmed=True).first()
@@ -159,6 +159,16 @@ def replace_credentials(request, *, password, code, values):
         raise PermissionDenied("Use a fresh authenticator code and try again.")
     proof.last_counter = max(matches)
     proof.save(update_fields=["last_counter"])
+    return user
+
+
+@sensitive_variables("password", "code", "values", "user", "document")
+@transaction.atomic
+def replace_credentials(request, *, password, code, values):
+    if not settings.PROVIDER_CREDENTIALS_ENABLED:
+        raise serializers.ValidationError(UNAVAILABLE)
+    crypto = cipher()
+    user = verify_step_up(request, password=password, code=code)
     for name in sorted(values):
         document = json.dumps({"name": name, "value": values[name]}).encode()
         ProviderCredential.objects.update_or_create(
