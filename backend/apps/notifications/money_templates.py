@@ -29,13 +29,22 @@ def money_template(row, target):
             f"{workspace.currency} {target.total:,.2f}",
             f"{target.due_date:%d %b %Y}",
         ))
-    # The wording addresses the person who paid, so managers do not receive this one.
+    # The wording addresses the person who paid, so it is for the tenant only.
     if row.event == "payment.confirmed" and row.audience == "tenant":
         return "dwella_payment_received", _clean((
             target.tenant.full_name,
             workspace.name,
             f"{workspace.currency} {target.amount:,.2f}",
             target.invoice.reference,
+        ))
+    # Managers get their own wording, which names who paid (approved separately by Meta).
+    if row.event == "payment.confirmed" and row.audience == "manager":
+        return "dwella_manager_payment_received", _clean((
+            row.recipient_user.get_full_name() or "there",
+            target.tenant.full_name,
+            f"{workspace.currency} {target.amount:,.2f}",
+            target.invoice.reference,
+            workspace.name,
         ))
     kind, _, state = row.event.partition(".")
     if kind in {"payout", "withdrawal"} and row.audience == "manager" and state in STATUS_WORDS:

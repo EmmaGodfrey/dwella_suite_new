@@ -79,7 +79,7 @@ def template(row, target):
     from .money_templates import money_template
 
     dedicated = money_template(row, target)
-    if dedicated:
+    if dedicated and row.audience == "tenant":
         return TEMPLATES[row.event], dedicated[1]
     # Managers receive the same receipt, addressed to their own account.
     values = (
