@@ -34,6 +34,7 @@ export default function RentCheckout({ invoice }) {
   const pending = latest?.status === "pending";
   const review = latest?.status === "review";
   const canPay = Number(invoice.balance) > 0 && invoice.status !== "void";
+  const methods = options.data?.methods || { card: true, mobile_money: true };
   const feedback = paymentFeedback({ stage, collection: latest, delayed, returnedKind, channel });
   const waiting = feedback?.kind === "waiting";
   const confirmingCompletedCheckout = waiting && (["success", "pending"].includes(returnedKind) || latest?.channel === "mobile-money");
@@ -50,6 +51,10 @@ export default function RentCheckout({ invoice }) {
     lifetime.current = controller;
     return () => controller.abort();
   }, []);
+  useEffect(() => {
+    if (!pending && options.data?.methods) setChannel((current) =>
+      current === "card" && !methods.card ? "mobile-money" : current === "mobile-money" && !methods.mobile_money ? "card" : current);
+  }, [pending, methods.card, methods.mobile_money, options.data]);
   useEffect(() => { setAmount(invoice.balance); key.current = crypto.randomUUID(); }, [invoice.balance]);
   useEffect(() => { if (pending) setAmount(latest.amount); }, [pending, latest?.amount]);
   useEffect(() => {
@@ -123,7 +128,8 @@ export default function RentCheckout({ invoice }) {
           <Field label="Payment method" {...fieldProps("channel")}>
             <Select value={pending ? latest.channel === "mobile-money" ? "mobile-money" : "card" : channel} disabled={busy || pending}
               onChange={(_, data) => { setChannel(data.value); setError(""); key.current = crypto.randomUUID(); }}>
-              <option value="mobile-money">Mobile money</option><option value="card">Card</option>
+              {(methods.mobile_money || (pending && latest?.channel === "mobile-money")) && <option value="mobile-money">Mobile money</option>}
+              {(methods.card || (pending && latest?.channel !== "mobile-money")) && <option value="card">Card</option>}
             </Select>
           </Field>
           <Field label="Amount to pay (ZMW)" required {...fieldProps("amount")}>
